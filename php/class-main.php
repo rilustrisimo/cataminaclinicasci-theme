@@ -45,6 +45,7 @@ class Theme {
                 'department' => 'Department',
                 'section' => 'Section',
                 'type' => 'Type',
+                'purchased_date' => 'Purchased Date',
                 'serial' => 'Serial',
                 'states__status' => 'State / Status',
                 'lot_number' => 'Lot #',
