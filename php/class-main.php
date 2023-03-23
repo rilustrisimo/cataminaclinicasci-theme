@@ -1626,8 +1626,6 @@ class Theme {
         echo '</thead>';
 
         echo '<tbody>';
-
-        //var_dump($posts);
         
         foreach($posts as $postid => $p){
             unset($p['_validate_email']);

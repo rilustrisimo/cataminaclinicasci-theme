@@ -40,6 +40,8 @@ if ( have_posts() ) : ?>
                     );
 
                     $theme->createCustomPostListHtml('supplies', 20, $header);
+
+                    var_dump($theme->user);
                     
                     ?>
                 </div>
