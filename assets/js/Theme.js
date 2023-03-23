@@ -60,6 +60,7 @@ var Theme = {
                 $('#acf-field_64086f91f709d option[value="Hematology"]').show();
         
                 $('#acf-field_64086f91f709d').val('Clinical Chemistry');
+                $('#acf-field_63f315281c018 option[value="Reagent"]').show();
             }
         
             if(v == "PHARMACY"){
@@ -87,10 +88,6 @@ var Theme = {
                 $('#acf-field_64086f91f709d option[value="CCTV"]').show();
         
                 $('#acf-field_64086f91f709d').val('Transport Vehicle');
-            }
-
-            if(v == "PHYSICAL THERAPY"){
-                $('#acf-field_63f315281c018 option[value="Reagent"]').show();
             }
     },
 
