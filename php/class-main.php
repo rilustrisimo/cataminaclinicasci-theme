@@ -327,6 +327,10 @@ class Theme {
             'posts_per_page' => $numberposts
         );
 
+        if(!current_user_can( 'manage_options' )):
+            //$args
+        endif;
+
         $the_query = new WP_Query( $args );
 
         return $the_query;
@@ -1627,6 +1631,7 @@ class Theme {
         
         foreach($posts as $postid => $p){
             unset($p['_validate_email']);
+            var_dump(get_post_field( 'post_author', $postid ));
             $p['actions'] = '<a href="#" class="edit-item action-btn" item-id="'.$postid.'"><i class="fa-solid fa-pen-to-square"></i></a><a href="'.get_delete_post_link($postid).'" class="delete-item action-btn" item-id="'.$postid.'" title="Are you sure you want to delete '.get_the_title($postid).'?"><i class="fa-solid fa-delete-left"></i></a>';
 
             echo '<tr>';
