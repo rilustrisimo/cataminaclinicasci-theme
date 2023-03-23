@@ -1,0 +1,336 @@
+{
+    "key": "group_63e5c71900508",
+    "title": "Supply Fields",
+    "fields": [
+        {
+            "key": "field_63e5c719d10ce",
+            "label": "Supply Name",
+            "name": "supply_name",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "Equipment \/ Supply Name",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_63f4a94f212d3",
+            "label": "Department",
+            "name": "department",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "NURSING": "NURSING",
+                "LABORATORY": "LABORATORY",
+                "PHARMACY": "PHARMACY",
+                "HOUSEKEEPING": "HOUSEKEEPING",
+                "MAINTENANCE": "MAINTENANCE",
+                "RADIOLOGY": "RADIOLOGY",
+                "BUSINESS OFFICE": "BUSINESS OFFICE",
+                "INFORMATION \/ TRIAGE": "INFORMATION \/ TRIAGE",
+                "KONSULTA PROGRAM DEPARTMENT": "KONSULTA PROGRAM DEPARTMENT",
+                "CLINIC B": "CLINIC B",
+                "CLINIC C": "CLINIC C",
+                "CLINIC D": "CLINIC D"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_64086f91f709d",
+            "label": "Section",
+            "name": "section",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_63f4a94f212d3",
+                        "operator": "==",
+                        "value": "NURSING"
+                    }
+                ],
+                [
+                    {
+                        "field": "field_63f4a94f212d3",
+                        "operator": "==",
+                        "value": "LABORATORY"
+                    }
+                ],
+                [
+                    {
+                        "field": "field_63f4a94f212d3",
+                        "operator": "==",
+                        "value": "PHARMACY"
+                    }
+                ],
+                [
+                    {
+                        "field": "field_63f4a94f212d3",
+                        "operator": "==",
+                        "value": "HOUSEKEEPING"
+                    }
+                ],
+                [
+                    {
+                        "field": "field_63f4a94f212d3",
+                        "operator": "==",
+                        "value": "MAINTENANCE"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Treatment Room (Clinic A)": "Treatment Room (Clinic A)",
+                "Ambulatory Surgery Center (ASC)": "Ambulatory Surgery Center (ASC)",
+                "Clinical Chemistry": "Clinical Chemistry",
+                "Immunology": "Immunology",
+                "Histopathology": "Histopathology",
+                "Clinical Microscopy": "Clinical Microscopy",
+                "Hematology": "Hematology",
+                "Medical Supplies": "Medical Supplies",
+                "Medicines": "Medicines",
+                "Goods": "Goods",
+                "Comfort Rooms": "Comfort Rooms",
+                "Janitor’s Closet": "Janitor’s Closet",
+                "Autoclave Room": "Autoclave Room",
+                "Transport Vehicle": "Transport Vehicle",
+                "Septic Vault": "Septic Vault",
+                "Generator": "Generator",
+                "Water Tank System": "Water Tank System",
+                "Solar": "Solar",
+                "CCTV": "CCTV"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_63f315281c018",
+            "label": "Type",
+            "name": "type",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Supply": "Supply",
+                "Equipment": "Equipment"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_63e5c736d10cf",
+            "label": "Serial",
+            "name": "serial",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_63f315281c018",
+                        "operator": "==",
+                        "value": "Equipment"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "Serial",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_63e5c74ed10d0",
+            "label": "States \/ Status",
+            "name": "states__status",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_63f315281c018",
+                        "operator": "==",
+                        "value": "Equipment"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "States \/ Status",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_63f315c64c8b3",
+            "label": "Lot #",
+            "name": "lot_number",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_63f315281c018",
+                        "operator": "==",
+                        "value": "Supply"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "Lot #",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_63f315ec4c8b4",
+            "label": "Expiry Date",
+            "name": "expiry_date",
+            "aria-label": "",
+            "type": "date_picker",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_63f315281c018",
+                        "operator": "==",
+                        "value": "Supply"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "d\/m\/Y",
+            "return_format": "d\/m\/Y",
+            "first_day": 1
+        },
+        {
+            "key": "field_63e5c7bfd10d1",
+            "label": "Date Added",
+            "name": "date_added",
+            "aria-label": "",
+            "type": "date_picker",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "m\/d\/Y",
+            "return_format": "m\/d\/Y",
+            "first_day": 0
+        },
+        {
+            "key": "field_63e5c7dfd10d2",
+            "label": "Price Per Unit",
+            "name": "price_per_unit",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "min": "",
+            "max": "",
+            "placeholder": "Price Per Unit",
+            "step": "",
+            "prepend": "",
+            "append": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "supplies"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "modified": 1678274732
+}
