@@ -328,7 +328,8 @@ class Theme {
         );
 
         //if(!current_user_can( 'manage_options' )):
-            $args['author__in'] = array($this->user->ID);
+            
+            $args['author'] = $this->user->data->ID;
         //endif;
 
         $the_query = new WP_Query( $args );

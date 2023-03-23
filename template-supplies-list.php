@@ -41,7 +41,7 @@ if ( have_posts() ) : ?>
 
                     $theme->createCustomPostListHtml('supplies', 20, $header);
                     $u = wp_get_current_user();
-                    var_dump($u);
+                    var_dump($u->ID);
                     
                     ?>
                 </div>
