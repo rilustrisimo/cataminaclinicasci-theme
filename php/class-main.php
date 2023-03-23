@@ -327,10 +327,10 @@ class Theme {
             'posts_per_page' => $numberposts
         );
 
-        //if(!current_user_can( 'manage_options' )):
-            
-            $args['author'] = $this->user->data->ID;
-        //endif;
+        if(!current_user_can( 'manage_options' )):
+            $u = wp_get_current_user();
+            $args['author'] = $u->ID;
+        endif;
 
         $the_query = new WP_Query( $args );
 
@@ -1559,6 +1559,11 @@ class Theme {
             'meta_query'        => $meta_query,
             's' => $s
         );
+
+        if(!current_user_can( 'manage_options' )):
+            $u = wp_get_current_user();
+            $args['author'] = $u->ID;
+        endif;
 
         $pagi = '';
     
