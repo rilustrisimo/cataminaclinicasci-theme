@@ -438,6 +438,10 @@ class Theme {
 
         $addquery = $this->createQuery('supplies');
 
+        if(!$addquery):
+            return false;
+        endif;
+
         foreach($addquery->posts as $p):
             $name[$p->ID] = get_field('supply_name', $p->ID);
             $supplyid = $p->ID;
