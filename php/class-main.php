@@ -147,6 +147,9 @@ class Theme {
                 'amount' => 'Amount',
                 'date_added' => 'Date Added',
                 'type' => 'Type',
+                'income_category' => 'Income Category',
+                'expense_category' => 'Expense Category',
+                'voucher_number' => 'Voucher Number',
                 'remarks' => 'Remarks'
             )
         ),
