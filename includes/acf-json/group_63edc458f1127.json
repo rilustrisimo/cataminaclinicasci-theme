@@ -89,6 +89,132 @@
             "placeholder": ""
         },
         {
+            "key": "field_641bec17254ad",
+            "label": "Income Category",
+            "name": "income_category",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_63edc73bc6b2f",
+                        "operator": "==",
+                        "value": "Income"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Charges": "Charges",
+                "ECG": "ECG",
+                "Goods": "Goods",
+                "Laboratory Fees": "Laboratory Fees",
+                "OR Fees": "OR Fees",
+                "Others\/Miscellaneous": "Others\/Miscellaneous",
+                "Pharma Meds\/Supplies": "Pharma Meds\/Supplies",
+                "Professional Fees": "Professional Fees",
+                "PHIC (ACPN)": "PHIC (ACPN)",
+                "Physical Therapist": "Physical Therapist",
+                "Ultrasound": "Ultrasound",
+                "X-ray Fees": "X-ray Fees"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_641bed0d1b256",
+            "label": "Expense Category",
+            "name": "expense_category",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_63edc73bc6b2f",
+                        "operator": "==",
+                        "value": "Expense"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Advertisement": "Advertisement",
+                "Donations & Contribution": "Donations & Contribution",
+                "ECG Reading Fee": "ECG Reading Fee",
+                "Freight, Handling & Delivery": "Freight, Handling & Delivery",
+                "Fuel and Oil": "Fuel and Oil",
+                "Fringe Benefits": "Fringe Benefits",
+                "Goods Used": "Goods Used",
+                "Housekeeping Supplies": "Housekeeping Supplies",
+                "Laboratory Supplies Used": "Laboratory Supplies Used",
+                "Light, Water &Maintenance": "Light, Water &Maintenance",
+                "MAX Dr. Ched": "MAX Dr. Ched",
+                "Office Supplies Used": "Office Supplies Used",
+                "OR\/WC Supplies Used": "OR\/WC Supplies Used",
+                "Others": "Others",
+                "Personnel Benefits": "Personnel Benefits",
+                "Pharmacy Medicines\/Supplies USed": "Pharmacy Medicines\/Supplies USed",
+                "Professional Fees": "Professional Fees",
+                "PF PHIC": "PF PHIC",
+                "PF HMO": "PF HMO",
+                "PF DSWD": "PF DSWD",
+                "OTHER PF": "OTHER PF",
+                "Retainers Fee": "Retainers Fee",
+                "Representation & Entertainment": "Representation & Entertainment",
+                "Salaries": "Salaries",
+                "Seminars & Trainings": "Seminars & Trainings",
+                "Taxes, Licenses and Fees": "Taxes, Licenses and Fees",
+                "Transporation & Travel": "Transporation & Travel",
+                "Utilities": "Utilities",
+                "Wages": "Wages",
+                "Xray Supplies Used": "Xray Supplies Used"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_641bed272fade",
+            "label": "Voucher Number",
+            "name": "voucher_number",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "Voucher Number",
+            "prepend": "",
+            "append": ""
+        },
+        {
             "key": "field_63edc756c6b30",
             "label": "Remarks",
             "name": "remarks",
@@ -127,5 +253,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1676787911
+    "modified": 1679641822
 }

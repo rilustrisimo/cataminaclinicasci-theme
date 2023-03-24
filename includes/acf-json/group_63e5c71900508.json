@@ -45,7 +45,8 @@
                 "RADIOLOGY": "RADIOLOGY",
                 "BUSINESS OFFICE": "BUSINESS OFFICE",
                 "INFORMATION \/ TRIAGE": "INFORMATION \/ TRIAGE",
-                "KONSULTA PROGRAM DEPARTMENT": "KONSULTA PROGRAM DEPARTMENT",
+                "PHYSICAL THERAPY": "PHYSICAL THERAPY",
+                "KONSULTA PROGRAM": "KONSULTA PROGRAM",
                 "CLINIC B": "CLINIC B",
                 "CLINIC C": "CLINIC C",
                 "CLINIC D": "CLINIC D"
@@ -153,7 +154,8 @@
             },
             "choices": {
                 "Supply": "Supply",
-                "Equipment": "Equipment"
+                "Equipment": "Equipment",
+                "Reagent": "Reagent"
             },
             "default_value": false,
             "return_format": "value",
@@ -162,6 +164,24 @@
             "ui": 0,
             "ajax": 0,
             "placeholder": ""
+        },
+        {
+            "key": "field_641c0ed027ef0",
+            "label": "Purchased Date",
+            "name": "purchased_date",
+            "aria-label": "",
+            "type": "date_picker",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "d\/m\/Y",
+            "return_format": "d\/m\/Y",
+            "first_day": 0
         },
         {
             "key": "field_63e5c736d10cf",
@@ -234,6 +254,13 @@
                         "operator": "==",
                         "value": "Supply"
                     }
+                ],
+                [
+                    {
+                        "field": "field_63f315281c018",
+                        "operator": "==",
+                        "value": "Reagent"
+                    }
                 ]
             ],
             "wrapper": {
@@ -261,6 +288,13 @@
                         "field": "field_63f315281c018",
                         "operator": "==",
                         "value": "Supply"
+                    }
+                ],
+                [
+                    {
+                        "field": "field_63f315281c018",
+                        "operator": "==",
+                        "value": "Reagent"
                     }
                 ]
             ],
@@ -332,5 +366,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1678274732
+    "modified": 1679641876
 }
