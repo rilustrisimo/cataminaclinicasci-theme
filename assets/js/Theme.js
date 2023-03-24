@@ -7,7 +7,7 @@ var Theme = {
 
     init:function( $ ) {
         this._initHamburgerMenu();
-        this._initMobileMenu();
+        //this._initMobileMenu();
         this._initScrollTop( $ );
         this.initSelectpicker();
         this.initResponsiveTables();
@@ -20,6 +20,7 @@ var Theme = {
         this.initDateFilter($);
         this.reportDateFitler($);
         this.departmentSections($);
+        this.mobileChecker($);
 
         $( '[data-toggle="tooltip"]' ).tooltip();
 
@@ -29,6 +30,22 @@ var Theme = {
             delay: 10,
             time: 1000
         });
+    },
+
+    mobileChecker: function($) {
+        if (Theme.isMobile()) {
+            $('body').addClass('in-mobile');
+        } else {
+            $('body').removeClass('in-mobile');
+        }
+    },
+
+    isMobile: function() {
+        if (jQuery(window).width() <= 992) {
+            return true;
+        } else {
+            return false;
+        }
     },
 
     departmentSections: function($){
@@ -390,6 +407,15 @@ var Theme = {
         $('.main-nav.disabled a').click(function(e){
             e.preventDefault();
         });
+
+        if(Theme.isMobile()){
+            $('#navMenu').removeClass('active');
+            $('.overall-menu').removeClass('expanded');
+            $('.overall-menu__logo-outside').show();
+            $('.login-status').hide();
+            $('.page-breadcrumbs').css('margin', '80px 0 0 60px');
+            $('.layout-container').css('margin', '15px 0 0 60px');
+        }
 
         $('#navMenu').click(function(){
             if($(this).hasClass('active')){
