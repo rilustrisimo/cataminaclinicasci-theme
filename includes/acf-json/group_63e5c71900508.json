@@ -155,7 +155,8 @@
             "choices": {
                 "Supply": "Supply",
                 "Equipment": "Equipment",
-                "Reagent": "Reagent"
+                "Reagent": "Reagent",
+                "Miscellaneous": "Miscellaneous"
             },
             "default_value": false,
             "return_format": "value",
@@ -366,5 +367,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1679641876
+    "modified": 1679716302
 }

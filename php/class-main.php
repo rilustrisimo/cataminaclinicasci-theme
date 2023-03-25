@@ -331,8 +331,10 @@ class Theme {
             'posts_per_page' => $numberposts
         );
 
-        if(!current_user_can( 'manage_options' )):
-            $u = wp_get_current_user();
+        $u = wp_get_current_user();
+        $roles = ( array ) $u->roles;
+
+        if(!current_user_can( 'manage_options' ) && !($roles[0] == "um_accounting")):
             $args['author'] = $u->ID;
         endif;
 
@@ -1564,8 +1566,10 @@ class Theme {
             's' => $s
         );
 
-        if(!current_user_can( 'manage_options' )):
-            $u = wp_get_current_user();
+        $u = wp_get_current_user();
+        $roles = ( array ) $u->roles;
+
+        if(!current_user_can( 'manage_options' ) && !($roles[0] == "um_accounting")):
             $args['author'] = $u->ID;
         endif;
 
