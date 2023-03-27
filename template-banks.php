@@ -33,6 +33,7 @@ if ( have_posts() ) : ?>
                     );
 
                     $theme->createCustomPostListHtml('banks', 20, $header);
+                    
                     ?>
                 </div>
 			</main>
