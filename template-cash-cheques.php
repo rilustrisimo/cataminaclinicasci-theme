@@ -28,9 +28,8 @@ if ( have_posts() ) : ?>
                     <?php 
                     $header = array(
                         'name_of_bank' => 'Name of Bank',
-                        'account_number' => 'Account Number',
-                        'type_of_account' => 'Type',
-                        'amount' => 'Amount'
+                        'amount' => 'Amount',
+                        'date_added' => 'Date Added'
                     );
 
                     $theme->createCustomPostListHtml('cashcheques', 20, $header);
