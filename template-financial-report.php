@@ -21,13 +21,11 @@ if ( have_posts() ) : ?>
 		<div class="page-single">
 			<main class="page-single__content" role="main">
                 <div class="report__filter">
-                    <!--
                     <form action="#" method="POST" id="filter-data" data-report="financial_report">
                         <div class="report__filter-date"><div class="date-icon"><i class="fa-solid fa-calendar"></i></div><input type="text" placeholder="From" class="date-from"></div>
                         <div class="report__filter-date"><div class="date-icon"><i class="fa-regular fa-calendar"></i></div><input type="text" placeholder="To" class="date-to"></div>
                         <div class="report__filter-btn"><a href="#" class="btn button"><i class="fa-solid fa-filter"></i> Apply Filter</a></div>
                     </form>
-                    -->
                 </div>
                 <div class="report__result" id="report__result">
                 <!-- result goes here -->

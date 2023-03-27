@@ -1179,7 +1179,7 @@ class Theme {
         //$to = '13-02-2023';
 
         $res = "";
-        $res .= "<h2>AS OF ".date('M d, Y')."</h2>";
+        $res .= "<h2>AS OF ".date('M d, Y', strtotime($from))." - ".date('M d, Y', strtotime($to))."</h2>";
         $res .= "<h3>Financial Report</h3>";
         $res .= "<h1>CASH ON HAND</h1>";
         $res .= "<table>";
