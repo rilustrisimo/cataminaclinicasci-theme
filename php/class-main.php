@@ -81,17 +81,29 @@ class Theme {
             )
         ),
         array(
+            'post_type'		=> 'banks',
+            'singular_name' => 'Bank',
+            'plural_name'	=> 'Banks',
+            'menu_icon' 	=> 'dashicons-portfolio',
+            'supports'		=> array( 'title', 'thumbnail'),
+            'title_acf'     => 'field_64212ab4b281d',
+            'header'        => array(
+                'name_of_bank' => 'Name of Bank',
+                'account_number' => 'Account Number',
+                'type_of_account' => 'Type'
+            )
+        ),
+        array(
             'post_type'		=> 'cashcheques',
             'singular_name' => 'Cash & Cheque',
             'plural_name'	=> 'Cash & Cheques',
             'menu_icon' 	=> 'dashicons-portfolio',
             'supports'		=> array( 'title', 'thumbnail'),
-            'title_acf'     => 'field_63eca0ce98710',
+            'title_acf'     => array('name_of_bank', 'field_63eca0ce98710'),
             'header'        => array(
                 'name_of_bank' => 'Name of Bank',
-                'account_number' => 'Account Number',
-                'type_of_account' => 'Type',
-                'amount' => 'Amount'
+                'amount' => 'Amount',
+                'date_added' => 'Date Added'
             )
         ),
         array(
