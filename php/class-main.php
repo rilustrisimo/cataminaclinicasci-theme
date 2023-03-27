@@ -99,7 +99,7 @@ class Theme {
             'plural_name'	=> 'Cash & Cheques',
             'menu_icon' 	=> 'dashicons-portfolio',
             'supports'		=> array( 'title', 'thumbnail'),
-            'title_acf'     => array('name_of_bank', 'field_63eca0ce98710'),
+            'title_acf'     => array('name_of_bank', 'field_64212ccd1b252'),
             'header'        => array(
                 'name_of_bank' => 'Name of Bank',
                 'amount' => 'Amount',
@@ -323,6 +323,9 @@ class Theme {
         add_action( 'wp_ajax_load_soc_report', array($this, 'load_soc_report') );
         add_action( 'wp_ajax_nopriv_load_soc_report', array($this, 'load_soc_report') ); 
 
+        add_action( 'wp_ajax_load_financial_report', array($this, 'load_financial_report') );
+        add_action( 'wp_ajax_nopriv_load_financial_report', array($this, 'load_financial_report') ); 
+
         
     }
 
@@ -391,6 +394,14 @@ class Theme {
         $to = date('Y-m-d', strtotime($_POST['todate']));
 
         wp_send_json_success($this->getSOCReport($from, $to));
+
+    }
+
+    public function load_financial_report() {
+        $from = date('Y-m-d', strtotime($_POST['fromdate']));
+        $to = date('Y-m-d', strtotime($_POST['todate']));
+
+        wp_send_json_success($this->getFinancialReport($from, $to));
 
     }
 
@@ -582,6 +593,12 @@ class Theme {
                         $release = (isset($relsupplies[$suppid]['quantity']))?(float)$relsupplies[$suppid]['quantity']:0;
                         $price = (float)get_field('price_per_unit', $suppid);
 
+                        $totcount = (float)$suppdeets['quantity'] + $purchase + ((float)$suppdeets['quantity'] + $purchase) + $release;
+
+                        if($totcount <= 0):
+                            continue;
+                        endif;
+
                         /** body */
                         $res .= "<tbody>";
                         $res .= "<tr>";
@@ -604,6 +621,12 @@ class Theme {
                         $purchase = (isset($datesupplies[$suppid]['quantity']))?(float)$datesupplies[$suppid]['quantity']:0;
                         $release = (isset($relsupplies[$suppid]['quantity']))?(float)$relsupplies[$suppid]['quantity']:0;
                         $price = (float)get_field('price_per_unit', $suppid);
+
+                        $totcount = (float)$suppdeets['quantity'] + $purchase + ((float)$suppdeets['quantity'] + $purchase) + $release;
+
+                        if($totcount <= 0):
+                            continue;
+                        endif;
                         
                         /** body */
                         $res .= "<tbody>";
@@ -845,7 +868,14 @@ class Theme {
         $res .= "<h2>AS OF ".date('M d, Y', strtotime($from))." - ".date('M d, Y', strtotime($to))."</h2>";
         $res .= "<h3>Statement of Condition</h3>";
 
-        $query = $this->createQuery('cashcheques');
+        $meta_query = array(
+            'key'     => 'date_added',
+            'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
+            'type'      =>  'date',
+            'compare' =>  'between'   
+        );
+
+        $query = $this->createQuery('cashcheques', $meta_query);
         $cashonhand = 0;
         $banks = array();
         $totalcandb = 0;

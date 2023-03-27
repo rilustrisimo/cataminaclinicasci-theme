@@ -197,6 +197,7 @@ var Theme = {
             
             $(this).parents('tr').find('.row-variance').html(v - o);
             $(this).parents('tr').find('.row-total').html("&#8369 " + str);
+            $(this).attr('value', $(this).val());
         });
     },
 

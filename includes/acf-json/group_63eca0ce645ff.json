@@ -3,49 +3,9 @@
     "title": "Cash \/ Cheques Fields",
     "fields": [
         {
-            "key": "field_63eca0ce98710",
+            "key": "field_64212ccd1b252",
             "label": "Name of Bank",
             "name": "name_of_bank",
-            "aria-label": "",
-            "type": "text",
-            "instructions": "",
-            "required": 1,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "default_value": "",
-            "maxlength": "",
-            "placeholder": "",
-            "prepend": "",
-            "append": ""
-        },
-        {
-            "key": "field_64212cf3b13fe",
-            "label": "Account Number",
-            "name": "account_number",
-            "aria-label": "",
-            "type": "text",
-            "instructions": "",
-            "required": 1,
-            "conditional_logic": 0,
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "default_value": "",
-            "maxlength": "",
-            "placeholder": "",
-            "prepend": "",
-            "append": ""
-        },
-        {
-            "key": "field_64212ccd1b252",
-            "label": "Name of Bank (copy)",
-            "name": "name_of_bank_copy",
             "aria-label": "",
             "type": "post_object",
             "instructions": "",
@@ -60,7 +20,7 @@
                 "banks"
             ],
             "taxonomy": "",
-            "return_format": "object",
+            "return_format": "id",
             "multiple": 0,
             "allow_null": 0,
             "ui": 1
@@ -101,8 +61,8 @@
                 "class": "",
                 "id": ""
             },
-            "display_format": "F j, Y",
-            "return_format": "F j, Y",
+            "display_format": "m\/d\/Y",
+            "return_format": "m\/d\/Y",
             "first_day": 0
         }
     ],
@@ -124,5 +84,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1679895810
+    "modified": 1679898637
 }
