@@ -1,0 +1,92 @@
+{
+    "key": "group_64212ab4a742d",
+    "title": "Banks Fields",
+    "fields": [
+        {
+            "key": "field_64212ab4b281d",
+            "label": "Name of Bank",
+            "name": "name_of_bank",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "Name of Bank",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_64212ab4b2856",
+            "label": "Account Number",
+            "name": "account_number",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "Account Number",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_64212ab4b288d",
+            "label": "Type",
+            "name": "type_of_account",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Savings": "Savings",
+                "Checking": "Checking",
+                "Cash on Hand": "Cash on Hand"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "banks"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "modified": 1679895718
+}
