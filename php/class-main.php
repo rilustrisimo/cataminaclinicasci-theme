@@ -1174,7 +1174,7 @@ class Theme {
         return $res;
     }
 
-    public function getFinancialReport() {
+    public function getFinancialReport($from, $to) {
         //$from = '13-02-2023';
         //$to = '13-02-2023';
 
@@ -1189,19 +1189,28 @@ class Theme {
         $res .= "</thead>";
         $res .= "<tbody>";
 
-        $query = $this->createQuery('cashcheques');
+        $meta_query = array(
+            'key'     => 'date_added',
+            'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
+            'type'      =>  'date',
+            'compare' =>  'between'   
+        );
+
+        $query = $this->createQuery('cashcheques',$meta_query);
         $cashonhand = 0;
         $banks = array();
         $totalcandb = 0;
 
         foreach($query->posts as $k => $p):
-            if(get_field('type_of_account', $p->ID) == "Cash on Hand"):
+            $bank = get_field('name_of_bank', $p->ID);
+
+            if(get_field('type_of_account', $bank) == "Cash on Hand"):
                 $cashonhand += (float)get_field('amount', $p->ID);
             else:
                 $banks[] = array(
-                    'name_of_bank' => get_field('name_of_bank', $p->ID),
-                    'account_number' => get_field('account_number', $p->ID),
-                    'type_of_account' => get_field('type_of_account', $p->ID),
+                    'name_of_bank' => get_field('name_of_bank', $bank),
+                    'account_number' => get_field('account_number', $bank),
+                    'type_of_account' => get_field('type_of_account', $bank),
                     'amount' => get_field('amount', $p->ID)
                 );
             endif;

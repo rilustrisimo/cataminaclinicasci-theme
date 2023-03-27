@@ -31,7 +31,7 @@ if ( have_posts() ) : ?>
                 </div>
                 <div class="report__result" id="report__result">
                 <!-- result goes here -->
-                <?php echo $theme->getFinancialReport();?>
+                <?php echo $theme->getFinancialReport(date('01-m-Y'), date('d-m-Y', strtotime('last day of this month')));?>
                 </div>
 			</main>
 		</div>
