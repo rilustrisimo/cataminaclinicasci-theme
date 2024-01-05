@@ -467,7 +467,7 @@ var Theme = {
 
     reconBatchProcess: function($, supjson){
         console.log(supjson);
-        console.log(supjson.length);
+        console.log(Object.keys(supjson).length);
     },
 
     reconTotal: function($){
