@@ -17,6 +17,7 @@ if ( $is_sticky_header ) {
 }
 
 $theme = new Theme();
+echo 'test deploy';
 ?>
 <div class="page-breadcrumbs" style="<?php echo (!is_user_logged_in())?'display:none;':''; ?>">
 	<?php $theme->get_breadcrumb();?>
