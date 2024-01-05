@@ -438,12 +438,21 @@ var Theme = {
                         $('.report__result').html(resp.data);
                         $('.filter-show__item input').prop('checked', true);
                     }
-
-                    $('.report__result').removeClass('overlay');
-                    Theme.actualCountCalculator($);
-                    Theme.sectionFilter($);
-                    Theme.reconTotal($);
-                    Theme.recalculateReconTotal($);
+                    
+                    if($('#filter-data').attr('data-report') == "reconciliation_report"){
+                        if($('.supplies-json').length > 0){
+                            var supjson = $('.supplies-json').text();
+                            supjson = JSON.parse(supjson);
+                            
+                            Theme.reconBatchProcess($, supjson);
+                        }
+                    }else{
+                        $('.report__result').removeClass('overlay');
+                        Theme.actualCountCalculator($);
+                        Theme.sectionFilter($);
+                        Theme.reconTotal($);
+                        Theme.recalculateReconTotal($);
+                    }
                 },
             error: function (xhr, ajaxOptions, thrownError) {
                 // this error case means that the ajax call, itself, failed, e.g., a syntax error
@@ -454,6 +463,10 @@ var Theme = {
         });
 
         Theme.actualCountCalculator($);
+    },
+
+    reconBatchProcess: function($, supjson){
+        console.log(supjson);
     },
 
     reconTotal: function($){
