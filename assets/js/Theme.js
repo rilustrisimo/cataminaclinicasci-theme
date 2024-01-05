@@ -5,6 +5,10 @@ var Theme = {
 
     selectLiveSearchAutoStart:0,
 
+    socsupplies: {},
+
+    ajaxsupply: false,
+
     init:function( $ ) {
         this._initHamburgerMenu();
         //this._initMobileMenu();
@@ -21,6 +25,12 @@ var Theme = {
         this.reportDateFitler($);
         this.departmentSections($);
         this.mobileChecker($);
+        this.selectDepartment($);
+        this.releaseScripts($);
+        this.filterShow($);
+        this.socReportGenerate($);
+        this.reconReportGenerate($);
+        this.processSOCsupplies($);
 
         $( '[data-toggle="tooltip"]' ).tooltip();
 
@@ -29,6 +39,63 @@ var Theme = {
         $('.counter').counterUp({
             delay: 10,
             time: 1000
+        });
+    },
+
+    filterShow: function($){
+        if($('.filter-show__item').length > 0){
+            $('.filter-show__item').click(function(){
+                var c = $(this).find('input');
+                var cl = c.attr('data-src');
+
+                if(c.is(':checked')){
+                    $('.'+cl).show();
+                }else{
+                    $('.'+cl).hide();
+                }
+            });
+        }
+    },
+
+    releaseScripts:function($){
+        $('#acf-field_63e9e505537a8').change(function(){
+            var supid = $('#acf-field_63e9e505537a8').val();
+
+            $.ajax ({
+                url: $('#ajax-url').val(),
+                type: 'POST',
+                dataType: 'JSON',
+                data: {
+                    // the value of data.action is the part AFTER 'wp_ajax_' in
+                    // the add_action ('wp_ajax_xxx', 'yyy') in the PHP above
+                    action: 'load_release_data',
+                    // ANY other properties of data are passed to your_function()
+                    // in the PHP global $_REQUEST (or $_POST in this case)
+                    sup: supid,
+                    },
+                beforeSend : function()   {           
+
+                },
+                success: function (resp) {
+                        console.log(resp);
+
+                        $('.res-date').text(resp.data.purchased_date);
+                        $('.res-room').text(resp.data.section);
+                       
+                    },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    // this error case means that the ajax call, itself, failed, e.g., a syntax error
+                    // in your_function()
+                    console.log('Request failed: ' + thrownError.message) ;
+                    
+                    },
+            });
+        });
+    },
+
+    selectDepartment: function($){
+        $('#select-department:not(.recon-dept)').change(function(){
+            Theme.reloadPatientDashContents($, $('.search-ajax').val(), $('#select-department').val());
         });
     },
 
@@ -109,13 +176,19 @@ var Theme = {
     },
 
     printReport: function($){
+        var loc = ($('#section-list option:selected').attr('data-val') != "all")?$('#section-list option:selected').val():'All Locations';
+        var subloc = ($('#subsection-list option:selected').attr('data-val') != "all")?$('#subsection-list option:selected').val():'All Sub Sections';
+
         var mywindow = window.open('', 'PRINT', 'height=600,width=1200');
 
         mywindow.document.write('<html><head><title>' + $('#filter-data').attr('data-title')  + '</title>');
-        mywindow.document.write('<style>*{font-family: Arial, Helvetica, sans-serif}body{max-width: 1120px;margin: 25px auto}table{border-collapse: collapse;width: 100%;margin-bottom: 15px}table td,table th{border: 1px solid #000;text-align: left;padding: 2px 7px;font-size: 14px}table thh2{text-transform: uppercase;font-size: 18px}h3{font-size: 26px}h1{font-size: 18px;text-transform: uppercase;font-weight: 700}.report__result-header{font-size: 16px;background-color: #000;color: #fff;padding: 5px 15px;margin-bottom: 15px}.actual-field{border: none}</style>');
+        mywindow.document.write('<style>*{font-family: Arial, Helvetica, sans-serif}body{max-width: 1120px;margin: 25px auto}table{border-collapse: collapse;width: 100%;margin-bottom: 15px}table td,table th{border: 1px solid #000;text-align: left;padding: 2px 7px;font-size: 14px}table thh2{text-transform: uppercase;font-size: 18px}h3{font-size: 26px}h1{font-size: 18px;text-transform: uppercase;font-weight: 700}.report__result-header{font-size: 16px;background-color: #000;color: #fff;padding: 5px 15px;margin-bottom: 15px}.actual-field{border: none}.pfooter tr td {text-align:center;}.pfooter,.pfooter td {border:none;}.pfooter .name span {border-top: 1px solid #000;padding: 6px 15px;}.pfooter .name {padding-top: 35px;}#section-list,#subsection-list{display:none;}</style>');
         mywindow.document.write('</head><body>');
         mywindow.document.write('<button onclick="window.print();">Print Report</button>');
+        mywindow.document.write('<h2>Location: ' + loc + '</h2>');
+        mywindow.document.write('<h2>Sub Section: ' + subloc + '</h2>');
         mywindow.document.write(document.getElementById('report__result').innerHTML);
+        mywindow.document.write('<table class="pfooter"><tr><td>Prepared By</td><td>Received By</td></tr><tr><td class="name"><span>'+$('#preparedby').val()+'</span></td><td class="name"><span>Mary Angelie Buñi Atupan</span></td></tr><tr><td>&nbsp;</td><td>Clinic Manager</td></tr></table>');
         mywindow.document.write('</body></html>');
 
         mywindow.document.close(); // necessary for IE >= 10
@@ -127,6 +200,325 @@ var Theme = {
         return true;
     },
 
+    socReportGenerate: function($){
+        if($('.soc-report').length > 0){
+            Theme.initialReportDateFitler($, $('.soc-report').attr('dfrom'), $('.soc-report').attr('dto'));
+        }
+    },
+
+    processSOCsupplies: function($){
+        if($('.supplies-json').length > 0){
+            var supjson = $('.supplies-json').text();
+            supjson = JSON.parse(supjson);
+            
+            Theme.processBatch($, supjson);
+        }
+    },
+
+    mergeAndSumJSON: function(json1, json2) {
+        const obj1 = JSON.parse(json1);
+        const obj2 = JSON.parse(json2);
+      
+        // Helper function to check if a value is numeric
+        const isNumeric = (value) => !isNaN(parseFloat(value)) && isFinite(value);
+      
+        // Helper function to handle summing numeric values recursively
+        const sumValues = (value1, value2) => {
+          if (Array.isArray(value1) && Array.isArray(value2)) {
+            return value1.map((item, index) => sumValues(item, value2[index]));
+          } else if (typeof value1 === 'object' && typeof value2 === 'object') {
+            const mergedObj = { ...value1 };
+            for (const key in value2) {
+              if (value2.hasOwnProperty(key)) {
+                mergedObj[key] = key in value1 ? sumValues(value1[key], value2[key]) : value2[key];
+              }
+            }
+            return mergedObj;
+          } else if (isNumeric(value1) && isNumeric(value2)) {
+            return parseFloat(value1) + parseFloat(value2);
+          } else if (isNumeric(value1)) {
+            return parseFloat(value1);
+          } else if (isNumeric(value2)) {
+            return parseFloat(value2);
+          } else {
+            return value2; // Return value2 if neither value is numeric
+          }
+        };
+      
+        // Merge the objects and auto-sum the numeric values recursively
+        const mergedObj = sumValues(obj1, obj2);
+      
+        // Convert the merged object back to a JSON string
+        const mergedJSON = JSON.stringify(mergedObj);
+        return mergedJSON;
+    },
+
+    processBatch: function($, supjson){
+        var totalRecords = Object.keys(supjson).length;
+        var currentRecord = 0; // Start with the first record
+        var batchSize = 1; // Set the batch size to 1 record initially
+        var batchInc = 5; // Set the batch size to + 5 each time
+
+        Theme.socsupplies = {}; // clear records
+
+        function processNextBatch() {
+            // Calculate the end index for the current batch
+            if(batchSize > 200){
+                batchSize = 200;
+            }else{
+                batchSize += batchInc;
+            }
+
+            console.log(batchSize);
+
+            var endRecord = Math.min(currentRecord + batchSize, totalRecords);
+
+            var batchData = {};
+            // Extract the records for the current batch
+            for (var i = currentRecord; i < endRecord; i++) {
+                var recordKey = Object.keys(supjson)[i];
+                batchData[recordKey] = supjson[recordKey];
+            }
+
+            // Calculate progress for the current batch
+            var progress = Math.min(((currentRecord / totalRecords) * 100).toFixed(2), 100);
+            $("#progress").css("width", progress + "%").text(progress + "%");
+
+            var to = $('.date-to').val();
+            var ttodate =  (to.length == 0)?$('#report__result').attr('dto'):to;
+            
+            // Make the AJAX request with the current batch data
+            Theme.ajaxsupply = $.ajax({
+                url: $('#ajax-url').val(),
+                type: 'POST',
+                dataType: 'JSON',
+                data: {
+                    action: 'batch_process_supplies', // Corrected the action name
+                    batchData: batchData, // Pass the data for the current batch
+                    to: ttodate
+                },
+                beforeSend : function()   {           
+                   $('.report__result').addClass('overlay');
+                },
+                success: function(response) {
+                    if (response.success) {
+
+                        var bdata = response.data;
+                        // Process successful, update the UI or do something with the response
+
+                        currentRecord += batchSize; // Move to the next batch
+
+                        Theme.socsupplies = JSON.parse(Theme.mergeAndSumJSON(JSON.stringify(bdata), JSON.stringify(Theme.socsupplies)));
+
+                        if (currentRecord < totalRecords) {
+                            // If there are more records, continue with the next batch
+                            processNextBatch();
+                        } else {
+                            var from = $('.date-from').val();
+                            var to = $('.date-to').val();
+
+
+                            var tfromdate = (from.length == 0)?$('#report__result').attr('dfrom'):from;
+                            var ttodate =  (to.length == 0)?$('#report__result').attr('dto'):to;
+
+                            $.ajax ({
+                                url: $('#ajax-url').val(),
+                                type: 'POST',
+                                dataType: 'JSON',
+                                data: {
+                                    // the value of data.action is the part AFTER 'wp_ajax_' in
+                                    // the add_action ('wp_ajax_xxx', 'yyy') in the PHP above
+                                    action: 'load_soc_report',
+                                    // ANY other properties of data are passed to your_function()
+                                    // in the PHP global $_REQUEST (or $_POST in this case)
+                                    fromdate: tfromdate,
+                                    todate: ttodate,
+                                    suppdata: Theme.socsupplies
+                                    },
+                                success: function (resp) {
+                                       if(resp.success){
+                                            $('.report__result').html(resp.data);
+                                            $('.filter-show__item input').prop('checked', true);
+                                       }
+                    
+                                       $('.report__result').removeClass('overlay');
+                                       // All records processed
+                                       $("#progress").css("width", "100%").text("100%");
+                                    },
+                                error: function (xhr, ajaxOptions, thrownError) {
+                                    // this error case means that the ajax call, itself, failed, e.g., a syntax error
+                                    // in your_function()
+                                    console.log('Request failed: ' + thrownError.message) ;
+                                    $('.report__result').removeClass('overlay');
+                                    },
+                            });
+                        }
+                    } else {
+                        // Handle the error
+                        $("#result").append(response.data + "<br>");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // Handle AJAX error
+                    console.error("Error processing batch:", error);
+                    //$("#result").append("An error occurred while processing the batch.<br>");
+                }
+            });
+        }
+
+        $('.report__filter a.btn').click(function(){
+            var from = $('.date-from').val();
+            var to = $('.date-to').val();
+
+            if(from.length == 0 || to.length == 0){
+                return false;
+            }
+
+            Theme.ajaxsupply.abort();
+            console.log('Request aborted');
+        });
+
+        // Start processing the first batch
+        processNextBatch();
+    },
+
+    reconReportGenerate: function($){
+        if($('.init-recon-report').length > 0){
+            var aid = false;
+
+            if($('#author-id').length > 0){
+                aid = $('#author-id').val();
+            }
+
+            Theme.initialReportDateFitler($, $('.init-recon-report').attr('dfrom'), $('.init-recon-report').attr('dto'), aid);
+        }
+    },
+
+    initialReportDateFitler: function($, dfrom, dto, aid = false){
+        var from = dfrom;
+        var to = dto;
+        var d = false;
+        var inc = 'all';
+        var exp = 'all';
+
+
+        if($('.recon-dept').length > 0){
+            d = $('.recon-dept').val();
+        }
+
+        if(($('.income-cat').length > 0) && ($('.expense-cat').length > 0)){
+            inc = $('.income-cat').val();
+            exp = $('.expense-cat').val();
+        }
+
+
+        $.ajax ({
+            url: $('#ajax-url').val(),
+            type: 'POST',
+            dataType: 'JSON',
+            data: {
+                // the value of data.action is the part AFTER 'wp_ajax_' in
+                // the add_action ('wp_ajax_xxx', 'yyy') in the PHP above
+                action: 'load_' + $('#filter-data').attr('data-report'),
+                // ANY other properties of data are passed to your_function()
+                // in the PHP global $_REQUEST (or $_POST in this case)
+                fromdate: from,
+                todate: to,
+                dept: d,
+                incomecat: inc,
+                expensecat: exp,
+                author: aid
+                },
+            beforeSend : function()   {           
+                $('.report__result').addClass('overlay');
+            },
+            success: function (resp) {
+                    console.log(resp);
+                    if(resp.success){
+                        $('.report__result').html(resp.data);
+                        $('.filter-show__item input').prop('checked', true);
+                    }
+
+                    $('.report__result').removeClass('overlay');
+                    Theme.actualCountCalculator($);
+                    Theme.sectionFilter($);
+                    Theme.reconTotal($);
+                    Theme.recalculateReconTotal($);
+                },
+            error: function (xhr, ajaxOptions, thrownError) {
+                // this error case means that the ajax call, itself, failed, e.g., a syntax error
+                // in your_function()
+                console.log('Request failed: ' + thrownError.message) ;
+                $('.report__result').removeClass('overlay');
+                },
+        });
+
+        Theme.actualCountCalculator($);
+    },
+
+    reconTotal: function($){
+        if($('.recon-total').length > 0){
+            var totp = 0;
+
+            $('.report__result tbody tr:visible').each(function(){
+                var q = $(this).find('.row-actual-count input').val();
+                var p = $(this).find('.row-price').attr('data-val');
+
+                var t = parseInt(q) * parseFloat(p).toFixed(2);
+                totp += t;
+            });
+
+            let np = totp;
+            let str = np.toLocaleString("en-US");
+
+            $('.recon-total span').html("&#8369 " + str);
+        }
+    },
+
+    recalculateReconTotal: function($){
+        $('#section-list, #subsection-list').change(function(){
+            Theme.reconTotal($);
+        });
+    },
+
+    sectionFilter: function($){
+        if($('#section-list').length > 0){
+            $('#subsection-list').insertAfter('.report__result h1');
+            $('#subsection-list').hide();
+            
+            $('#section-list').insertAfter('.report__result h1');
+
+            $('#section-list').change(function(){
+                var v = $(this).val();
+
+                $('tr[data-section]').hide();
+                $('tr[data-section="'+ v +'"]').show();
+
+                if(v == "Select Room Section"){
+                    $('tr[data-section]').show();
+                }
+
+                if(v != "Ambulatory Surgery Center (ASC)"){
+                    $('#subsection-list').hide();
+                }else{
+                    $('#subsection-list').show();
+                    $('#subsection-list').trigger('change');
+                }
+            });
+
+            $('#subsection-list').change(function(){
+                var v = $(this).val();
+
+                $('tr[data-subsection]').hide();
+                $('tr[data-subsection="'+ v +'"]').show();
+
+                if(v == "Select Sub Section"){
+                    $('tr[data-section="Ambulatory Surgery Center (ASC)"]').show();
+                }
+            });
+        }
+    },
+
     reportDateFitler: function($){
         $('.print-btn').click(function(e){
             e.preventDefault();
@@ -135,13 +527,27 @@ var Theme = {
 
         $('#filter-data a.btn').click(function(e){
             e.preventDefault();
+            Theme.socsupplies = {};
             
             var from = $('.date-from').val();
             var to = $('.date-to').val();
+            var d = false;
+            var inc = 'all';
+            var exp = 'all';
 
             if(from.length == 0 || to.length == 0){
                 return false;
             }
+
+            if($('.recon-dept').length > 0){
+                d = $('.recon-dept').val();
+            }
+
+            if(($('.income-cat').length > 0) && ($('.expense-cat').length > 0)){
+                inc = $('.income-cat').val();
+                exp = $('.expense-cat').val();
+            }
+
 
             $.ajax ({
                 url: $('#ajax-url').val(),
@@ -154,7 +560,11 @@ var Theme = {
                     // ANY other properties of data are passed to your_function()
                     // in the PHP global $_REQUEST (or $_POST in this case)
                     fromdate: from,
-                    todate: to
+                    todate: to,
+                    dept: d,
+                    incomecat: inc,
+                    expensecat: exp,
+                    suppdata: Theme.socsupplies
                     },
                 beforeSend : function()   {           
                    $('.report__result').addClass('overlay');
@@ -163,10 +573,20 @@ var Theme = {
                         console.log(resp);
                        if(resp.success){
                             $('.report__result').html(resp.data);
+                            $('.filter-show__item input').prop('checked', true);
+
+                            Theme.processSOCsupplies($); //soc
                        }
-    
-                       $('.report__result').removeClass('overlay');
+
+                       if($('.supplies-json').length == 0){
+                        $('.report__result').removeClass('overlay');
+                       }
+
                        Theme.actualCountCalculator($);
+
+                       Theme.sectionFilter($);
+                        Theme.reconTotal($);
+                        Theme.recalculateReconTotal($);
                     },
                 error: function (xhr, ajaxOptions, thrownError) {
                     // this error case means that the ajax call, itself, failed, e.g., a syntax error
@@ -198,6 +618,8 @@ var Theme = {
             $(this).parents('tr').find('.row-variance').html(v - o);
             $(this).parents('tr').find('.row-total').html("&#8369 " + str);
             $(this).attr('value', $(this).val());
+
+            Theme.reconTotal($);
         });
     },
 
@@ -311,15 +733,17 @@ var Theme = {
         Theme.currentRequest = null;
 
         ajaxfield.keyup(function(){
+            var dept = ($('#select-department').length > 0)?$('#select-department').val():false;
+
             if($(this).val().length > 0){
-                Theme.reloadPatientDashContents($, $(this).val());
+                Theme.reloadPatientDashContents($, $(this).val(), dept);
             }else{
-                Theme.reloadPatientDashContents($);
+                Theme.reloadPatientDashContents($, false, dept);
             }
         });
     },
 
-    reloadPatientDashContents: function($, search=false){
+    reloadPatientDashContents: function($, search=false, d=false){
         Theme.currentRequest = $.ajax ({
             url: $('#ajax-url').val(),
             type: 'POST',
@@ -331,7 +755,8 @@ var Theme = {
                 // ANY other properties of data are passed to your_function()
                 // in the PHP global $_REQUEST (or $_POST in this case)
                 search : search,
-                pt: $('.custom-post__list').attr('data-pt')
+                pt: $('.custom-post__list').attr('data-pt'),
+                dept: d
                 },
             beforeSend : function()    {           
                 if(Theme.currentRequest != null) {

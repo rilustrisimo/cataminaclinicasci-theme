@@ -14,7 +14,7 @@
  */
 
  $theme = new Theme();
-
+ $dept = false;
 get_header();
 if ( have_posts() ) : ?>
 	<?php while ( have_posts() ) { the_post(); ?>
@@ -24,13 +24,49 @@ if ( have_posts() ) : ?>
                     <form action="#" method="POST" id="filter-data" data-report="reconciliation_report" data-title="Reconciliation Report">
                         <div class="report__filter-date"><div class="date-icon"><i class="fa-solid fa-calendar"></i></div><input type="text" placeholder="From" class="date-from"></div>
                         <div class="report__filter-date"><div class="date-icon"><i class="fa-regular fa-calendar"></i></div><input type="text" placeholder="To" class="date-to"></div>
+                        <?php if(current_user_can( 'manage_options' )): ?>
+                            <div class="custom-post__dept" style="display: inline-block;">
+                                <select id="select-department" class="recon-dept">
+                                    <option value="NURSING">NURSING</option>
+                                    <option value="LABORATORY">LABORATORY</option>
+                                    <option value="PHARMACY">PHARMACY</option>
+                                    <option value="HOUSEKEEPING">HOUSEKEEPING</option>
+                                    <option value="MAINTENANCE">MAINTENANCE</option>
+                                    <option value="RADIOLOGY">RADIOLOGY</option>
+                                    <option value="BUSINESS OFFICE">BUSINESS OFFICE</option>
+                                    <option value="INFORMATION / TRIAGE">INFORMATION / TRIAGE</option>
+                                    <option value="PHYSICAL THERAPY">PHYSICAL THERAPY</option>
+                                    <option value="KONSULTA PROGRAM">KONSULTA PROGRAM</option>
+                                    <option value="CLINIC B">CLINIC B</option>
+                                    <option value="CLINIC C">CLINIC C</option>
+                                    <option value="CLINIC D">CLINIC D</option>
+                                </select>
+                            </div>
+                        <?php 
+                            $dept = 'NURSING';
+                            else:
+                                $u = wp_get_current_user();
+                                echo '<input type="hidden" id="author-id" value="'.$u->ID.'">';
+                            endif; 
+                            
+                        ?>
                         <div class="report__filter-btn"><a href="#" class="btn button"><i class="fa-solid fa-filter"></i> Apply Filter</a></div>
                     </form>
-                    <div class="report__filter-btn" style="margin-bottom: 35px;"><a href="#" class="btn button print-btn"><i class="fa-solid fa-print"></i> Print Report</a></div>
+                    <div class="filter-show">
+                        <div class="filter-show__item"><label><input type="checkbox" class="filter-show__check" checked data-src="filter-serial"> Serial</label></div>
+                        <div class="filter-show__item"><label><input type="checkbox" class="filter-show__check" checked data-src="filter-states"> States</label></div>
+                        <div class="filter-show__item"><label><input type="checkbox" class="filter-show__check" checked data-src="filter-lot"> Lot #</label></div>
+                        <div class="filter-show__item"><label><input type="checkbox" class="filter-show__check" checked data-src="filter-exp"> Expiry Date</label></div>
+                        <div class="filter-show__item"><label><input type="checkbox" class="filter-show__check" checked data-src="filter-beg"> Beg Inv</label></div>
+                        <div class="filter-show__item"><label><input type="checkbox" class="filter-show__check" checked data-src="filter-purchase"> Purchases</label></div>
+                        <div class="filter-show__item"><label><input type="checkbox" class="filter-show__check" checked data-src="filter-total"> Before Total</label></div>
+                        <div class="filter-show__item"><label><input type="checkbox" class="filter-show__check" checked data-src="filter-cons"> Consumption</label></div>
+                    </div>
+                    <div class="report__filter-btn" style="margin-bottom: 35px;"><input type="text" placeholder="Prepared By" name="preparedby" id="preparedby"><a href="#" class="btn button print-btn"><i class="fa-solid fa-print"></i> Print Report</a></div>
                 </div>
-                <div class="report__result" id="report__result">
+                <div class="report__result init-recon-report" dfrom="<?php echo date('01-m-Y'); ?>" dto="<?php echo date('d-m-Y', strtotime('last day of this month'));?>" ddept="<?php echo $dept; ?>" id="report__result">
                 <!-- result goes here -->
-                <?php echo $theme->getReconciliationReport(date('01-m-Y'), date('d-m-Y', strtotime('last day of this month')));?>
+                <?php //echo $theme->getReconciliationReport(date('01-m-Y'), date('d-m-Y', strtotime('last day of this month')), $dept);?>
                 </div>
 			</main>
 		</div>

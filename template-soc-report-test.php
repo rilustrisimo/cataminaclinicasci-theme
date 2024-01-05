@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Statement of Conditions Report
+ * Template Name: Statement of Conditions Report Test
  *
  * @author    eyorsogood.com, Rouie Ilustrisimo
  * @package   SwishDesign
@@ -33,7 +33,7 @@ if ( have_posts() ) : ?>
                 </div>
                 <div class="report__result" id="report__result" dfrom="<?php echo date('01-01-Y'); ?>" dto="<?php echo date('d-m-Y'); ?>">
                 <!-- result goes here -->
-                <?php echo $theme->getSOCReport(date('01-01-Y'), date('d-m-Y'));?>
+                <?php echo $theme->getSOCReportTest(date('01-01-Y'), date('d-m-Y'));?>
                 </div>
 			</main>
 		</div>

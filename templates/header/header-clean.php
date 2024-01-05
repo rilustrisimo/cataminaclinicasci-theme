@@ -69,7 +69,7 @@
                     $roles = ( array ) $user->roles;
 			    ?>
 			    
-			    <?php if($roles[0] == "um_accounting"): ?>
+			    <?php if(isset($roles[0]) && ($roles[0] == "um_accounting")): ?>
 			    
 			        <?php if ( has_nav_menu( 'header-menu-accounting' ) ) : ?>
     					<?php $dis = (is_user_logged_in())?'':' disabled';?>

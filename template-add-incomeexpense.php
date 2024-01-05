@@ -34,6 +34,8 @@ if ( have_posts() ) : ?>
                         'income_category' => 'Income Category',
                         'expense_category' => 'Expense Category',
                         'voucher_number' => 'Voucher Number',
+                        'official_receipt' => 'OR',
+                        'sales_invoice' => 'SI',
                         'remarks' => 'Remarks'
                     );
 

@@ -122,7 +122,9 @@
                 "PHIC (ACPN)": "PHIC (ACPN)",
                 "Physical Therapist": "Physical Therapist",
                 "Ultrasound": "Ultrasound",
-                "X-ray Fees": "X-ray Fees"
+                "X-ray Fees": "X-ray Fees",
+                "Interest on Loans ( DOSRI) -JBA": "Interest on Loans ( DOSRI) -JBA",
+                "Interest on Bank Deposits": "Interest on Bank Deposits"
             },
             "default_value": false,
             "return_format": "value",
@@ -184,7 +186,8 @@
                 "Transporation & Travel": "Transporation & Travel",
                 "Utilities": "Utilities",
                 "Wages": "Wages",
-                "Xray Supplies Used": "Xray Supplies Used"
+                "Xray Supplies Used": "Xray Supplies Used",
+                "Bank Charges\/Withholding taxes": "Bank Charges\/Withholding taxes"
             },
             "default_value": false,
             "return_format": "value",
@@ -211,6 +214,46 @@
             "default_value": "",
             "maxlength": "",
             "placeholder": "Voucher Number",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_645dfab8aa875",
+            "label": "Official Receipt",
+            "name": "official_receipt",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "Official Receipt",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_645dfad8aa876",
+            "label": "Sales Invoice",
+            "name": "sales_invoice",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "Sales Invoice",
             "prepend": "",
             "append": ""
         },
@@ -253,5 +296,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1679641822
+    "modified": 1693960208
 }

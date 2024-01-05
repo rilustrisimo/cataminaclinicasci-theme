@@ -64,6 +64,84 @@
             "step": "",
             "prepend": "",
             "append": ""
+        },
+        {
+            "key": "field_6486817c93dd3",
+            "label": "Serial",
+            "name": "serial",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "Serial",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_648681ba93dd4",
+            "label": "States \/ Status",
+            "name": "states__status",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "States \/ Status",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_648681df93dd5",
+            "label": "Lot #",
+            "name": "lot_number",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "Lot #",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_6486820993dd6",
+            "label": "Expiry Date",
+            "name": "expiry_date",
+            "aria-label": "",
+            "type": "date_picker",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "m\/d\/Y",
+            "return_format": "m\/d\/Y",
+            "first_day": 0
         }
     ],
     "location": [
@@ -84,5 +162,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1679641797
+    "modified": 1686536954
 }

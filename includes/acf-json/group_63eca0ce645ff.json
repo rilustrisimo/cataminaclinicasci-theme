@@ -20,7 +20,7 @@
                 "banks"
             ],
             "taxonomy": "",
-            "return_format": "id",
+            "return_format": "object",
             "multiple": 0,
             "allow_null": 0,
             "ui": 1
@@ -84,5 +84,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1679898637
+    "modified": 1679901303
 }

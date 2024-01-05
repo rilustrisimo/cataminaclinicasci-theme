@@ -28,6 +28,8 @@ if ( have_posts() ) : ?>
                     <?php 
                     $header = array(
                         'name_of_bank' => 'Name of Bank',
+                        'type_of_account' => 'Account Type',
+                        'account_number' => 'Account Number',
                         'amount' => 'Amount',
                         'date_added' => 'Date Added'
                     );
