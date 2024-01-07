@@ -64,6 +64,10 @@ if ( have_posts() ) : ?>
                     </div>
                     <div class="report__filter-btn" style="margin-bottom: 35px;"><input type="text" placeholder="Prepared By" name="preparedby" id="preparedby"><a href="#" class="btn button print-btn"><i class="fa-solid fa-print"></i> Print Report</a></div>
                 </div>
+                <div id="progress-container">
+                    <div id="progress"></div>
+                    <div id="result"></div>
+                </div>
                 <div class="report__result init-recon-report" dfrom="<?php echo date('01-m-Y'); ?>" dto="<?php echo date('d-m-Y', strtotime('last day of this month'));?>" ddept="<?php echo $dept; ?>" id="report__result">
                 <!-- result goes here -->
                 <?php //echo $theme->getReconciliationReport(date('01-m-Y'), date('d-m-Y', strtotime('last day of this month')), $dept);?>
