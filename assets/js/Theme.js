@@ -468,6 +468,7 @@ var Theme = {
     },
 
     reconBatchProcess: function($, supjson){
+        console.log('reconBatchProcess');
         if($('.supplies-json-recon').length > 0){
             console.log(supjson);
             console.log(Object.keys(supjson).length);
