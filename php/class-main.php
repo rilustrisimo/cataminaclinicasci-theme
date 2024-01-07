@@ -1311,7 +1311,7 @@ class Theme {
                 ),
                 array(
                     'key'     => 'supply_name',
-                    'value'   =>  $supid
+                    'value'   =>  $suppid
                 )
             );
     
@@ -1348,7 +1348,7 @@ class Theme {
                 ),
                 array(
                     'key'     => 'supply_name',
-                    'value'   =>  $supid
+                    'value'   =>  $suppid
                 )
             );
     
