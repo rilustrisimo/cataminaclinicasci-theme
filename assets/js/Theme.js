@@ -537,7 +537,7 @@ var Theme = {
 
                         Theme.reconsupplies = JSON.parse(Theme.mergeAndSumJSON(JSON.stringify(bdata), JSON.stringify(Theme.reconsupplies)));
                         console.log(Theme.reconsupplies);
-                        return false;//test
+
                         if (currentRecord < totalRecords) {
                             // If there are more records, continue with the next batch
                             processNextBatchRecon();
@@ -548,7 +548,7 @@ var Theme = {
 
                             var tfromdate = (from.length == 0)?$('#report__result').attr('dfrom'):from;
                             var ttodate =  (to.length == 0)?$('#report__result').attr('dto'):to;
-
+/*
                             $.ajax ({
                                 url: $('#ajax-url').val(),
                                 type: 'POST',
@@ -580,6 +580,7 @@ var Theme = {
                                     $('.report__result').removeClass('overlay');
                                     },
                             });
+                            */
                         }
                     } else {
                         // Handle the error
