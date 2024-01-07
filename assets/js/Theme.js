@@ -535,6 +535,7 @@ var Theme = {
                         currentRecord += batchSize; // Move to the next batch
 
                         Theme.reconsupplies = JSON.parse(Theme.mergeAndSumJSON(JSON.stringify(bdata), JSON.stringify(Theme.reconsupplies)));
+                        console.log(Theme.reconsupplies);
                         return false;//test
                         if (currentRecord < totalRecords) {
                             // If there are more records, continue with the next batch
