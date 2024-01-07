@@ -1116,6 +1116,8 @@ class Theme {
         $to = $_POST['to'];
         $from = $_POST['from'];
         $reconarray = array();
+        $relsupplies = array();
+        $datesupplies = array();
 
         foreach($batchData as $suppid => $supp):
             /** first part */
@@ -1155,7 +1157,6 @@ class Theme {
             );
     
             $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'DESC');
-            $datesupplies = array();
             $qty = array();
     
             foreach($addquery->posts as $p):
@@ -1193,7 +1194,6 @@ class Theme {
             );
     
             $addquery = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'DESC');
-            $relsupplies = array();
             $qty = array();
     
             foreach($addquery->posts as $p):
