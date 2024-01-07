@@ -564,6 +564,7 @@ var Theme = {
                                     suppdata: Theme.reconsupplies
                                     },
                                 success: function (resp) {
+                                    console.log(resp);
                                        if(resp.success){
                                             $('.report__result').html(resp.data);
                                             $('.filter-show__item input').prop('checked', true);
