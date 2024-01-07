@@ -881,237 +881,237 @@ class Theme {
 
         return $res;
 
-        foreach($addquery->posts as $p):
-            $name[$p->ID] = get_field('supply_name', $p->ID);
-            $supplyid = $p->ID;
-            $dept = get_field('department', $p->ID);
-            $deptslug = str_replace(" ", "_", strtolower($dept));
-            $type = get_field('type', $p->ID);
-            $typeslug = strtolower($type);
+        // foreach($addquery->posts as $p):
+        //     $name[$p->ID] = get_field('supply_name', $p->ID);
+        //     $supplyid = $p->ID;
+        //     $dept = get_field('department', $p->ID);
+        //     $deptslug = str_replace(" ", "_", strtolower($dept));
+        //     $type = get_field('type', $p->ID);
+        //     $typeslug = strtolower($type);
 
-            if($type == "Adjustment"):
-                continue;
-            endif;
+        //     if($type == "Adjustment"):
+        //         continue;
+        //     endif;
 
-            $overallupplies[$deptslug][$typeslug][$supplyid] = array(
-                'supply_name' => get_field('supply_name', $supplyid),
-                'department' => $dept,
-                'type' => $type,
-                'quantity' => $this->getQtyOfSupplyAfterDate($supplyid, $from)
-            );
+        //     $overallupplies[$deptslug][$typeslug][$supplyid] = array(
+        //         'supply_name' => get_field('supply_name', $supplyid),
+        //         'department' => $dept,
+        //         'type' => $type,
+        //         'quantity' => $this->getQtyOfSupplyAfterDate($supplyid, $from)
+        //     );
 
-        endforeach;
+        // endforeach;
 
-        /** end first loop */
+        // /** end first loop */
 
-        ksort($overallupplies); // sort department
+        // ksort($overallupplies); // sort department
 
-        /** get all actual purchased supplies within the month */
+        // /** get all actual purchased supplies within the month */
 
-        $meta_query = array(
-            'key'     => 'date_added',
-            'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
-            'type'      =>  'date',
-            'compare' =>  'between'   
-        );
+        // $meta_query = array(
+        //     'key'     => 'date_added',
+        //     'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
+        //     'type'      =>  'date',
+        //     'compare' =>  'between'   
+        // );
 
-        $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'DESC', $aid);
-        $datesupplies = array();
-        $qty = array();
+        // $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'DESC', $aid);
+        // $datesupplies = array();
+        // $qty = array();
 
-        foreach($addquery->posts as $p):
-            $name[$p->ID] = get_field('supply_name', $p->ID);
-            $supplyid = $name[$p->ID]->ID;
-            $qty[$supplyid] = (isset($qty[$supplyid]))?(float)$qty[$supplyid] + (float)get_field('quantity', $p->ID):get_field('quantity', $p->ID);
+        // foreach($addquery->posts as $p):
+        //     $name[$p->ID] = get_field('supply_name', $p->ID);
+        //     $supplyid = $name[$p->ID]->ID;
+        //     $qty[$supplyid] = (isset($qty[$supplyid]))?(float)$qty[$supplyid] + (float)get_field('quantity', $p->ID):get_field('quantity', $p->ID);
             
 
-            $datesupplies[$supplyid] = array(
-                'supply_name' => get_field('supply_name', $supplyid),
-                'quantity' => $qty[$supplyid],
-                'serial' => (!empty(get_field('serial', $p->ID)))?get_field('serial', $p->ID):false,
-                'states__status' => (!empty(get_field('states__status', $p->ID)))?get_field('states__status', $p->ID):false,
-                'lot_number' => (!empty(get_field('lot_number', $p->ID)))?get_field('lot_number', $p->ID):false,
-                'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):false
-            );
-        endforeach;
+        //     $datesupplies[$supplyid] = array(
+        //         'supply_name' => get_field('supply_name', $supplyid),
+        //         'quantity' => $qty[$supplyid],
+        //         'serial' => (!empty(get_field('serial', $p->ID)))?get_field('serial', $p->ID):false,
+        //         'states__status' => (!empty(get_field('states__status', $p->ID)))?get_field('states__status', $p->ID):false,
+        //         'lot_number' => (!empty(get_field('lot_number', $p->ID)))?get_field('lot_number', $p->ID):false,
+        //         'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):false
+        //     );
+        // endforeach;
 
-        /** end second loop */
+        // /** end second loop */
 
-        /** get all released supplies within the month */
+        // /** get all released supplies within the month */
 
-        $meta_query = array(
-            'key'     => 'release_date',
-            'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
-            'type'      =>  'date',
-            'compare' =>  'between'   
-        );
+        // $meta_query = array(
+        //     'key'     => 'release_date',
+        //     'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
+        //     'type'      =>  'date',
+        //     'compare' =>  'between'   
+        // );
 
-        $addquery = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'DESC', $aid);
-        $relsupplies = array();
-        $qty = array();
+        // $addquery = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'DESC', $aid);
+        // $relsupplies = array();
+        // $qty = array();
 
-        foreach($addquery->posts as $p):
-            $name[$p->ID] = get_field('supply_name', $p->ID);
-            $supplyid = $name[$p->ID]->ID;
-            $qty[$supplyid] = (isset($qty[$supplyid]))?(float)$qty[$supplyid] + (float)get_field('quantity', $p->ID):get_field('quantity', $p->ID);
+        // foreach($addquery->posts as $p):
+        //     $name[$p->ID] = get_field('supply_name', $p->ID);
+        //     $supplyid = $name[$p->ID]->ID;
+        //     $qty[$supplyid] = (isset($qty[$supplyid]))?(float)$qty[$supplyid] + (float)get_field('quantity', $p->ID):get_field('quantity', $p->ID);
 
-            $relsupplies[$supplyid] = array(
-                'supply_name' => get_field('supply_name', $supplyid),
-                'quantity' => $qty[$supplyid]
-            );
-        endforeach;
+        //     $relsupplies[$supplyid] = array(
+        //         'supply_name' => get_field('supply_name', $supplyid),
+        //         'quantity' => $qty[$supplyid]
+        //     );
+        // endforeach;
 
-        /** end third loop */
+        // /** end third loop */
 
-        /** loop for the output */
-        $sectionlist = array();
-        $subsectionlist = array();
+        // /** loop for the output */
+        // $sectionlist = array();
+        // $subsectionlist = array();
 
-        foreach($overallupplies as $department => $types):
-            ksort($types);
-            $res .= "<h1>".str_replace("_", " ", strtoupper($department))."</h1>";
+        // foreach($overallupplies as $department => $types):
+        //     ksort($types);
+        //     $res .= "<h1>".str_replace("_", " ", strtoupper($department))."</h1>";
             
-            foreach($types as $type => $suppdetails):
-                $typetext = strtoupper($type);
-                $res .= '<div class="report__result-header">'.$typetext.'</div>';
-                $res .= "<table>";
+        //     foreach($types as $type => $suppdetails):
+        //         $typetext = strtoupper($type);
+        //         $res .= '<div class="report__result-header">'.$typetext.'</div>';
+        //         $res .= "<table>";
 
-                if(strtoupper($type) == "EQUIPMENT"):
-                    $res .= "<thead>";
-                    $res .= "<tr>";
-                    $res .= "<th>EQUIPMENT</th>";
-                    $res .= "<th class='filter-serial'>SERIAL</th>";
-                    $res .= "<th class='filter-states'>STATES</th>";
-                    $res .= "<th class='filter-beg'>BEG INV</th>";
-                    $res .= "<th class='filter-purchase'>PURCHASES</th>";
-                    $res .= "<th class='filter-total'>TOTAL</th>";
-                    $res .= "<th class='filter-cons'>CONSUMPTION</th>";
-                    $res .= "<th>END INV</th>";
-                    $res .= "<th>PRICE</th>";
-                    $res .= "<th>ACTUAL COUNT</th>";
-                    $res .= "<th>VARIANCE</th>";
-                    $res .= "<th>TOTAL</th>";
-                    $res .= "</tr>";
-                    $res .= "</thead>";
-                else:
-                    $res .= "<thead>";
-                    $res .= "<tr>";
-                    $res .= "<th>SUPPLY NAME</th>";
-                    $res .= "<th class='filter-lot'>LOT #</th>";
-                    $res .= "<th class='filter-exp'>EXP. DATE</th>";
-                    $res .= "<th class='filter-beg'>BEG INV</th>";
-                    $res .= "<th class='filter-purchase'>PURCHASES</th>";
-                    $res .= "<th class='filter-total'>TOTAL</th>";
-                    $res .= "<th class='filter-cons'>CONSUMPTION</th>";
-                    $res .= "<th>END INV</th>";
-                    $res .= "<th>PRICE</th>";
-                    $res .= "<th>ACTUAL COUNT</th>";
-                    $res .= "<th>VARIANCE</th>";
-                    $res .= "<th>TOTAL</th>";
-                    $res .= "</tr>";
-                    $res .= "</thead>";
-                endif;
+        //         if(strtoupper($type) == "EQUIPMENT"):
+        //             $res .= "<thead>";
+        //             $res .= "<tr>";
+        //             $res .= "<th>EQUIPMENT</th>";
+        //             $res .= "<th class='filter-serial'>SERIAL</th>";
+        //             $res .= "<th class='filter-states'>STATES</th>";
+        //             $res .= "<th class='filter-beg'>BEG INV</th>";
+        //             $res .= "<th class='filter-purchase'>PURCHASES</th>";
+        //             $res .= "<th class='filter-total'>TOTAL</th>";
+        //             $res .= "<th class='filter-cons'>CONSUMPTION</th>";
+        //             $res .= "<th>END INV</th>";
+        //             $res .= "<th>PRICE</th>";
+        //             $res .= "<th>ACTUAL COUNT</th>";
+        //             $res .= "<th>VARIANCE</th>";
+        //             $res .= "<th>TOTAL</th>";
+        //             $res .= "</tr>";
+        //             $res .= "</thead>";
+        //         else:
+        //             $res .= "<thead>";
+        //             $res .= "<tr>";
+        //             $res .= "<th>SUPPLY NAME</th>";
+        //             $res .= "<th class='filter-lot'>LOT #</th>";
+        //             $res .= "<th class='filter-exp'>EXP. DATE</th>";
+        //             $res .= "<th class='filter-beg'>BEG INV</th>";
+        //             $res .= "<th class='filter-purchase'>PURCHASES</th>";
+        //             $res .= "<th class='filter-total'>TOTAL</th>";
+        //             $res .= "<th class='filter-cons'>CONSUMPTION</th>";
+        //             $res .= "<th>END INV</th>";
+        //             $res .= "<th>PRICE</th>";
+        //             $res .= "<th>ACTUAL COUNT</th>";
+        //             $res .= "<th>VARIANCE</th>";
+        //             $res .= "<th>TOTAL</th>";
+        //             $res .= "</tr>";
+        //             $res .= "</thead>";
+        //         endif;
 
-                foreach($suppdetails as $suppid => $suppdeets):
-                    $section = get_field('section', $suppid);
-                    $subsection = ($section == "Ambulatory Surgery Center (ASC)")?get_field('sub_section', $suppid):'';
+        //         foreach($suppdetails as $suppid => $suppdeets):
+        //             $section = get_field('section', $suppid);
+        //             $subsection = ($section == "Ambulatory Surgery Center (ASC)")?get_field('sub_section', $suppid):'';
 
-                    if(strtoupper($type) == "EQUIPMENT"):
-                        $purchase = (isset($datesupplies[$suppid]['quantity']))?(float)$datesupplies[$suppid]['quantity']:0;
-                        $release = (isset($relsupplies[$suppid]['quantity']))?(float)$relsupplies[$suppid]['quantity']:0;
-                        $price = (float)get_field('price_per_unit', $suppid);
+        //             if(strtoupper($type) == "EQUIPMENT"):
+        //                 $purchase = (isset($datesupplies[$suppid]['quantity']))?(float)$datesupplies[$suppid]['quantity']:0;
+        //                 $release = (isset($relsupplies[$suppid]['quantity']))?(float)$relsupplies[$suppid]['quantity']:0;
+        //                 $price = (float)get_field('price_per_unit', $suppid);
 
-                        $totcount = (float)$suppdeets['quantity'] + $purchase + ((float)$suppdeets['quantity'] + $purchase) + $release;
+        //                 $totcount = (float)$suppdeets['quantity'] + $purchase + ((float)$suppdeets['quantity'] + $purchase) + $release;
 
-                        if($totcount == 0):
-                            continue;
-                        endif;
+        //                 if($totcount == 0):
+        //                     continue;
+        //                 endif;
 
-                        $serial = (!empty($datesupplies[$suppid]['serial']))?$datesupplies[$suppid]['serial']:get_field('serial', $suppid);
-                        $states = (!empty($datesupplies[$suppid]['states__status']))?$datesupplies[$suppid]['states__status']:get_field('states__status', $suppid);
+        //                 $serial = (!empty($datesupplies[$suppid]['serial']))?$datesupplies[$suppid]['serial']:get_field('serial', $suppid);
+        //                 $states = (!empty($datesupplies[$suppid]['states__status']))?$datesupplies[$suppid]['states__status']:get_field('states__status', $suppid);
 
-                        /** body */
-                        $res .= "<tbody>";
-                        $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
-                        $res .= "<td>".$suppdeets['supply_name']."</td>";
-                        $res .= "<td class='filter-serial'>".$serial."</td>";
-                        $res .= "<td class='filter-states'>".$states."</td>";
-                        $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
-                        $res .= "<td class='filter-purchase'>".$purchase."</td>";
-                        $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
-                        $res .= "<td class='filter-cons'>".$release."</td>";
-                        $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)."</td>";
-                        $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
-                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' min='0' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
-                        $res .= "<td class='row-variance'>0</td>";
-                        $res .= "<td class='row-total'>&#8369 ".$this->convertNumber(((((float)$suppdeets['quantity'] + $purchase) - $release) * $price))."</td>";
-                        $res .= "</tr>";
-                        $res .= "</tbody>";
-                        /** body end */
-                    else:
-                        $purchase = (isset($datesupplies[$suppid]['quantity']))?(float)$datesupplies[$suppid]['quantity']:0;
-                        $release = (isset($relsupplies[$suppid]['quantity']))?(float)$relsupplies[$suppid]['quantity']:0;
-                        $price = (float)get_field('price_per_unit', $suppid);
+        //                 /** body */
+        //                 $res .= "<tbody>";
+        //                 $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
+        //                 $res .= "<td>".$suppdeets['supply_name']."</td>";
+        //                 $res .= "<td class='filter-serial'>".$serial."</td>";
+        //                 $res .= "<td class='filter-states'>".$states."</td>";
+        //                 $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
+        //                 $res .= "<td class='filter-purchase'>".$purchase."</td>";
+        //                 $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
+        //                 $res .= "<td class='filter-cons'>".$release."</td>";
+        //                 $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)."</td>";
+        //                 $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
+        //                 $res .= "<td class='row-actual-count'><input type='number' class='actual-field' min='0' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
+        //                 $res .= "<td class='row-variance'>0</td>";
+        //                 $res .= "<td class='row-total'>&#8369 ".$this->convertNumber(((((float)$suppdeets['quantity'] + $purchase) - $release) * $price))."</td>";
+        //                 $res .= "</tr>";
+        //                 $res .= "</tbody>";
+        //                 /** body end */
+        //             else:
+        //                 $purchase = (isset($datesupplies[$suppid]['quantity']))?(float)$datesupplies[$suppid]['quantity']:0;
+        //                 $release = (isset($relsupplies[$suppid]['quantity']))?(float)$relsupplies[$suppid]['quantity']:0;
+        //                 $price = (float)get_field('price_per_unit', $suppid);
 
-                        $totcount = (float)$suppdeets['quantity'] + $purchase + ((float)$suppdeets['quantity'] + $purchase) + $release;
+        //                 $totcount = (float)$suppdeets['quantity'] + $purchase + ((float)$suppdeets['quantity'] + $purchase) + $release;
 
-                        if($totcount == 0):
-                            continue;
-                        endif;
+        //                 if($totcount == 0):
+        //                     continue;
+        //                 endif;
 
-                        $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:get_field('lot_number', $suppid);
-                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:get_field('expiry_date', $suppid);
+        //                 $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:get_field('lot_number', $suppid);
+        //                 $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:get_field('expiry_date', $suppid);
                         
-                        /** body */
-                        $res .= "<tbody>";
-                        $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
-                        $res .= "<td>".$suppdeets['supply_name']."</td>";
-                        $res .= "<td class='filter-lot'>".$lot."</td>";
-                        $res .= "<td class='filter-exp'>".$expiry."</td>";
-                        $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
-                        $res .= "<td class='filter-purchase'>".$purchase."</td>";
-                        $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
-                        $res .= "<td class='filter-cons'>".$release."</td>";
-                        $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)."</td>";
-                        $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
-                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' min='0' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
-                        $res .= "<td class='row-variance'>0</td>";
-                        $res .= "<td class='row-total'>&#8369 ".$this->convertNumber(((((float)$suppdeets['quantity'] + $purchase) - $release) * $price))."</td>";
-                        $res .= "</tr>";
-                        $res .= "</tbody>";
-                        /** body end */
-                    endif;
+        //                 /** body */
+        //                 $res .= "<tbody>";
+        //                 $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
+        //                 $res .= "<td>".$suppdeets['supply_name']."</td>";
+        //                 $res .= "<td class='filter-lot'>".$lot."</td>";
+        //                 $res .= "<td class='filter-exp'>".$expiry."</td>";
+        //                 $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
+        //                 $res .= "<td class='filter-purchase'>".$purchase."</td>";
+        //                 $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
+        //                 $res .= "<td class='filter-cons'>".$release."</td>";
+        //                 $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)."</td>";
+        //                 $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
+        //                 $res .= "<td class='row-actual-count'><input type='number' class='actual-field' min='0' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
+        //                 $res .= "<td class='row-variance'>0</td>";
+        //                 $res .= "<td class='row-total'>&#8369 ".$this->convertNumber(((((float)$suppdeets['quantity'] + $purchase) - $release) * $price))."</td>";
+        //                 $res .= "</tr>";
+        //                 $res .= "</tbody>";
+        //                 /** body end */
+        //             endif;
 
-                    if($section):
-                        $sectionlist[str_replace(" ", "-", strtolower($section))] = $section;
-                    endif;
+        //             if($section):
+        //                 $sectionlist[str_replace(" ", "-", strtolower($section))] = $section;
+        //             endif;
 
-                    if($subsection && ($subsection != '')):
-                        $subsectionlist[str_replace(" ", "-", strtolower($subsection))] = $subsection;
-                    endif;
+        //             if($subsection && ($subsection != '')):
+        //                 $subsectionlist[str_replace(" ", "-", strtolower($subsection))] = $subsection;
+        //             endif;
                     
-                endforeach;
+        //         endforeach;
 
-                $res .= "</table>";
+        //         $res .= "</table>";
 
-            endforeach;
-        endforeach;
+        //     endforeach;
+        // endforeach;
 
-        $res .= "<select id='section-list'><option data-val='all'>Select Room Section</option><option>";
-        $res .= implode("</option><option>", $sectionlist);
-        $res .= "</option></select>";
+        // $res .= "<select id='section-list'><option data-val='all'>Select Room Section</option><option>";
+        // $res .= implode("</option><option>", $sectionlist);
+        // $res .= "</option></select>";
 
-        $res .= "<select id='subsection-list'><option data-val='all'>Select Sub Section</option><option>";
-        $res .= implode("</option><option>", $subsectionlist);
-        $res .= "</option></select>";
+        // $res .= "<select id='subsection-list'><option data-val='all'>Select Sub Section</option><option>";
+        // $res .= implode("</option><option>", $subsectionlist);
+        // $res .= "</option></select>";
 
-        $res .= "<div class='recon-total'><b>TOTAL:</b> <span></span></div>";
-
-
-        /** end output loop */
+        // $res .= "<div class='recon-total'><b>TOTAL:</b> <span></span></div>";
 
 
-        return $res;
+        // /** end output loop */
+
+
+        // return $res;
     }
 
     public function render_recon_output() {
