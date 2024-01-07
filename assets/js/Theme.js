@@ -749,9 +749,8 @@ var Theme = {
                         $('.report__result').removeClass('overlay');
                        }
 
-                       Theme.actualCountCalculator($);
-
-                       Theme.sectionFilter($);
+                        Theme.actualCountCalculator($);
+                        Theme.sectionFilter($);
                         Theme.reconTotal($);
                         Theme.recalculateReconTotal($);
                     },

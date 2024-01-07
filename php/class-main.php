@@ -1118,6 +1118,8 @@ class Theme {
 
         $reconarray = $_POST['suppdata'];
         $overallupplies = $reconarray['overallupplies'];
+        $datesupplies = $reconarray['datesupplies'];
+        $relsupplies = $reconarray['relsupplies'];
 
         /** loop for the output */
         $sectionlist = array();
