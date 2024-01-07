@@ -442,7 +442,7 @@ var Theme = {
                     }
                     
                     if($('#filter-data').attr('data-report') == "reconciliation_report"){
-                        if($('.supplies-json').length > 0){
+                        if($('.supplies-json-recon').length > 0){
                             var supjson = $('.supplies-json-recon').text();
                             supjson = JSON.parse(supjson);
                             
