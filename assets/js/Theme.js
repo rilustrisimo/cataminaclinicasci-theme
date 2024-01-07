@@ -548,7 +548,7 @@ var Theme = {
 
                             var tfromdate = (from.length == 0)?$('#report__result').attr('dfrom'):from;
                             var ttodate =  (to.length == 0)?$('#report__result').attr('dto'):to;
-/*
+
                             $.ajax ({
                                 url: $('#ajax-url').val(),
                                 type: 'POST',
@@ -556,7 +556,7 @@ var Theme = {
                                 data: {
                                     // the value of data.action is the part AFTER 'wp_ajax_' in
                                     // the add_action ('wp_ajax_xxx', 'yyy') in the PHP above
-                                    action: 'load_soc_report_recon',
+                                    action: 'render_recon_output',
                                     // ANY other properties of data are passed to your_function()
                                     // in the PHP global $_REQUEST (or $_POST in this case)
                                     fromdate: tfromdate,
@@ -580,7 +580,6 @@ var Theme = {
                                     $('.report__result').removeClass('overlay');
                                     },
                             });
-                            */
                         }
                     } else {
                         // Handle the error
