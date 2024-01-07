@@ -7,6 +7,8 @@ var Theme = {
 
     socsupplies: {},
 
+    reconsupplies: {},
+
     ajaxsupply: false,
 
     init:function( $ ) {
@@ -441,7 +443,7 @@ var Theme = {
                     
                     if($('#filter-data').attr('data-report') == "reconciliation_report"){
                         if($('.supplies-json').length > 0){
-                            var supjson = $('.supplies-json').text();
+                            var supjson = $('.supplies-json-recon').text();
                             supjson = JSON.parse(supjson);
                             
                             Theme.reconBatchProcess($, supjson);
@@ -466,8 +468,144 @@ var Theme = {
     },
 
     reconBatchProcess: function($, supjson){
-        console.log(supjson);
-        console.log(Object.keys(supjson).length);
+        if($('.supplies-json-recon').length > 0){
+            console.log(supjson);
+            console.log(Object.keys(supjson).length);
+            
+            Theme.processBatchRecon($, supjson);
+        }
+    },
+
+    processBatchRecon:function($, supjson){
+        var totalRecords = Object.keys(supjson).length;
+        var currentRecord = 0; // Start with the first record
+        var batchSize = 1; // Set the batch size to 1 record initially
+        var batchInc = 5; // Set the batch size to + 5 each time
+
+        Theme.reconsupplies = {}; // clear records
+
+        function processNextBatchRecon() {
+            // Calculate the end index for the current batch
+            if(batchSize > 200){
+                batchSize = 200;
+            }else{
+                batchSize += batchInc;
+            }
+
+            console.log(batchSize);
+
+            var endRecord = Math.min(currentRecord + batchSize, totalRecords);
+
+            var batchData = {};
+            // Extract the records for the current batch
+            for (var i = currentRecord; i < endRecord; i++) {
+                var recordKey = Object.keys(supjson)[i];
+                batchData[recordKey] = supjson[recordKey];
+            }
+
+            // Calculate progress for the current batch
+            var progress = Math.min(((currentRecord / totalRecords) * 100).toFixed(2), 100);
+            $("#progress").css("width", progress + "%").text(progress + "%");
+
+            var to = $('.date-to').val();
+            var from = $('.date-from').val();
+            var ttodate =  (to.length == 0)?$('#report__result').attr('dto'):to;
+            var tfromdate =  (from.length == 0)?$('#report__result').attr('dfrom'):from;
+            
+            // Make the AJAX request with the current batch data
+            Theme.ajaxsupply = $.ajax({
+                url: $('#ajax-url').val(),
+                type: 'POST',
+                dataType: 'JSON',
+                data: {
+                    action: 'batch_process_supplies_recon', // Corrected the action name
+                    batchData: batchData, // Pass the data for the current batch
+                    to: ttodate,
+                    from: tfromdate
+                },
+                beforeSend : function()   {           
+                   $('.report__result').addClass('overlay');
+                },
+                success: function(response) {
+                    if (response.success) {
+
+                        var bdata = response.data;
+                        // Process successful, update the UI or do something with the response
+
+                        currentRecord += batchSize; // Move to the next batch
+
+                        Theme.reconsupplies = JSON.parse(Theme.mergeAndSumJSON(JSON.stringify(bdata), JSON.stringify(Theme.reconsupplies)));
+                        return false;//test
+                        if (currentRecord < totalRecords) {
+                            // If there are more records, continue with the next batch
+                            processNextBatchRecon();
+                        } else {
+                            var from = $('.date-from').val();
+                            var to = $('.date-to').val();
+
+
+                            var tfromdate = (from.length == 0)?$('#report__result').attr('dfrom'):from;
+                            var ttodate =  (to.length == 0)?$('#report__result').attr('dto'):to;
+
+                            $.ajax ({
+                                url: $('#ajax-url').val(),
+                                type: 'POST',
+                                dataType: 'JSON',
+                                data: {
+                                    // the value of data.action is the part AFTER 'wp_ajax_' in
+                                    // the add_action ('wp_ajax_xxx', 'yyy') in the PHP above
+                                    action: 'load_soc_report_recon',
+                                    // ANY other properties of data are passed to your_function()
+                                    // in the PHP global $_REQUEST (or $_POST in this case)
+                                    fromdate: tfromdate,
+                                    todate: ttodate,
+                                    suppdata: Theme.reconsupplies
+                                    },
+                                success: function (resp) {
+                                       if(resp.success){
+                                            $('.report__result').html(resp.data);
+                                            $('.filter-show__item input').prop('checked', true);
+                                       }
+                    
+                                       $('.report__result').removeClass('overlay');
+                                       // All records processed
+                                       $("#progress").css("width", "100%").text("100%");
+                                    },
+                                error: function (xhr, ajaxOptions, thrownError) {
+                                    // this error case means that the ajax call, itself, failed, e.g., a syntax error
+                                    // in your_function()
+                                    console.log('Request failed: ' + thrownError.message) ;
+                                    $('.report__result').removeClass('overlay');
+                                    },
+                            });
+                        }
+                    } else {
+                        // Handle the error
+                        $("#result").append(response.data + "<br>");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // Handle AJAX error
+                    console.error("Error processing batch:", error);
+                    //$("#result").append("An error occurred while processing the batch.<br>");
+                }
+            });
+        }
+
+        $('.report__filter a.btn').click(function(){
+            var from = $('.date-from').val();
+            var to = $('.date-to').val();
+
+            if(from.length == 0 || to.length == 0){
+                return false;
+            }
+
+            Theme.ajaxsupply.abort();
+            console.log('Request aborted');
+        });
+
+        // Start processing the first batch
+        processNextBatchRecon();
     },
 
     reconTotal: function($){
