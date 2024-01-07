@@ -468,11 +468,8 @@ var Theme = {
     },
 
     reconBatchProcess: function($, supjson){
-        console.log('reconBatchProcess');
         if($('.supplies-json-recon').length > 0){
-            console.log(supjson);
-            console.log(Object.keys(supjson).length);
-            
+            console.log(Object.keys(supjson).length);            
             Theme.processBatchRecon($, supjson);
         }
     },
@@ -573,6 +570,11 @@ var Theme = {
                                        $('.report__result').removeClass('overlay');
                                        // All records processed
                                        $("#progress").css("width", "100%").text("100%");
+
+                                        Theme.actualCountCalculator($);
+                                        Theme.sectionFilter($);
+                                        Theme.reconTotal($);
+                                        Theme.recalculateReconTotal($);
                                     },
                                 error: function (xhr, ajaxOptions, thrownError) {
                                     // this error case means that the ajax call, itself, failed, e.g., a syntax error
@@ -593,6 +595,8 @@ var Theme = {
                     //$("#result").append("An error occurred while processing the batch.<br>");
                 }
             });
+
+            Theme.recalculateReconTotal($);
         }
 
         $('.report__filter a.btn').click(function(){
@@ -731,6 +735,14 @@ var Theme = {
                             $('.filter-show__item input').prop('checked', true);
 
                             Theme.processSOCsupplies($); //soc
+
+                            //recon
+                            if($('.supplies-json-recon').length > 0){
+                                var supjson = $('.supplies-json-recon').text();
+                                supjson = JSON.parse(supjson);
+                                
+                                Theme.reconBatchProcess($, supjson);
+                            }
                        }
 
                        if($('.supplies-json').length == 0){
