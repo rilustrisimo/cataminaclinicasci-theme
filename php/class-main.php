@@ -1182,7 +1182,7 @@ class Theme {
                         $totcount = (float)$suppdeets['quantity'] + $purchase + ((float)$suppdeets['quantity'] + $purchase) + $release;
 
                         if($totcount == 0):
-                            continue;
+                            //continue;
                         endif;
 
                         $serial = (!empty($datesupplies[$suppid]['serial']))?$datesupplies[$suppid]['serial']:get_field('serial', $suppid);
@@ -1214,7 +1214,7 @@ class Theme {
                         $totcount = (float)$suppdeets['quantity'] + $purchase + ((float)$suppdeets['quantity'] + $purchase) + $release;
 
                         if($totcount == 0):
-                            continue;
+                            //continue;
                         endif;
 
                         $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:get_field('lot_number', $suppid);
