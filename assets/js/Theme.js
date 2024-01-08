@@ -469,7 +469,6 @@ var Theme = {
 
     reconBatchProcess: function($, supjson){
         if($('.supplies-json-recon').length > 0){
-            console.log(supjson);       
             console.log(Object.keys(supjson).length);            
             Theme.processBatchRecon($, supjson);
         }
@@ -491,7 +490,6 @@ var Theme = {
                 batchSize += batchInc;
             }
 
-            console.log(batchSize);
 
             var endRecord = Math.min(currentRecord + batchSize, totalRecords);
 
@@ -501,6 +499,8 @@ var Theme = {
                 var recordKey = Object.keys(supjson)[i];
                 batchData[recordKey] = supjson[recordKey];
             }
+
+            console.log(batchData);
 
             // Calculate progress for the current batch
             var progress = Math.min(((currentRecord / totalRecords) * 100).toFixed(2), 100);
