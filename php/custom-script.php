@@ -1,5 +1,5 @@
 <?php
-require PARENT_DIR . '/php/class-main.php';
+require get_template_directory() . '/php/class-main.php';
 
 $theme = new Theme();
 
