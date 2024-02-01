@@ -11,6 +11,6 @@ $meta_query = array(
 
 $addquery = $theme->createQuery('supplies', $meta_query, -1, 'date', 'DESC');
 
-var_dump($addquery);
+var_dump($addquery->posts);
 
 ?>
