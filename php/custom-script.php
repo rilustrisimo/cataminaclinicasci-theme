@@ -15,6 +15,8 @@ $allsup = $addquery->posts;
 foreach($allsup as $p):
     $supid = $p->ID;
 
+    echo $supid.': '.get_the_title($supid).'<br>';
+
     $meta_query2 = array(
         'key'     => 'supply_name',
         'value'   =>  $supid 
@@ -22,7 +24,9 @@ foreach($allsup as $p):
     
     $addquery2 = $theme->createQuery('actualsupplies', $meta_query2, -1, 'date', 'DESC');
 
-    var_dump($addquery2->posts);
+    foreach($addquery2->posts as $p2):
+        echo '-->'.get_the_title($p2->ID).'('.get_the_date($p2->ID).')<br>';
+    endforeach;
 endforeach;
 
 
