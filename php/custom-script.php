@@ -21,7 +21,7 @@ foreach($addquery as $p):
     
     $addquery2 = $theme->createQuery('actualsupplies', $meta_query, -1, 'date', 'DESC');
 
-    var_dump($addquery2);
+    var_dump($addquery2->posts);
 endforeach;
 
 ?>
