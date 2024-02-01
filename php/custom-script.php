@@ -19,7 +19,7 @@ foreach($addquery as $p):
         'value'   =>  $supid
     );
     
-    $addquery2 = $theme->createQuery('actualsupplies', $meta_query, -1, 'date', 'DESC');
+    $addquery2 = $theme->createQuery('actualsupplies', $meta_query2, -1, 'date', 'DESC');
 
     var_dump($addquery2->posts);
 endforeach;
