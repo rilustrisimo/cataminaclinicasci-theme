@@ -11,6 +11,17 @@ $meta_query = array(
 
 $addquery = $theme->createQuery('supplies', $meta_query, -1, 'date', 'DESC');
 
-var_dump($addquery->posts);
+foreach($addquery as $p):
+    $supid = $p->ID;
+
+    $meta_query2 = array(
+        'key'     => 'supply_name',
+        'value'   =>  $supid
+    );
+    
+    $addquery2 = $theme->createQuery('actualsupplies', $meta_query, -1, 'date', 'DESC');
+endforeach;
+
+var_dump($addquery2);
 
 ?>
