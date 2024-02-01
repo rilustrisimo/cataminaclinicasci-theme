@@ -26,6 +26,7 @@ foreach($allsup as $p):
 
     foreach($addquery2->posts as $p2):
         echo '-->'.get_the_title($p2->ID).'('.get_the_date('Y-m-d', $p2->ID).')<br>';
+        wp_trash_post($p2->ID);
     endforeach;
 endforeach;
 
