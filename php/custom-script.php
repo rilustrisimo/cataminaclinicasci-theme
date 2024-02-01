@@ -1,6 +1,6 @@
 <?php
 require_once( __DIR__ . '/../../../../wp-load.php' );
-require get_template_directory() . '/php/class-main.php';
+require_once( __DIR__ . '/class-main.php' );
 
 $theme = new Theme();
 
