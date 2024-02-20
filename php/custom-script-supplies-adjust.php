@@ -46,7 +46,7 @@ foreach($deptuser as $d => $i):
             echo $tit.' --> '.$dept.' ('.$s->ID.')<br>';
 
            
-/*
+
             $post_data = array(
                 'ID' => $s->ID,
                 'post_author' => $deptuser[$dept],
@@ -61,7 +61,7 @@ foreach($deptuser as $d => $i):
             } else {
                 // Failed to update post
                 echo 'Failed to update post author.';
-            }*/
+            }
 
         endif;
     endforeach;
