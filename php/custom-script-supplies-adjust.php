@@ -24,8 +24,11 @@ $posts = $the_query->posts;
 
 
 foreach($posts as $s):
-    //var_dump($s);
-    echo get_the_title($s->ID).' --> '.get_field('department', $s->ID).'<br>';
+    $dept = get_field('department', $s->ID);
+    
+    if($dept != "RADIOLOGY"):
+        echo get_the_title($s->ID).' --> '.$dept.'<br>';
+    endif;
 endforeach;
 
 
