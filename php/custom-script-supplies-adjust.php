@@ -53,8 +53,7 @@ foreach($deptuser as $d => $i):
                 'numberposts'	=> -1,
                 'post_type'		=> 'supplies',
                 'meta_query'    => array($meta_query),
-                'posts_per_page' => -1,
-                'author' => $deptuser[$dept]
+                'posts_per_page' => -1
             );
 
             $the_query2 = new WP_Query( $args );
