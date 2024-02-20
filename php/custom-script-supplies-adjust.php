@@ -43,7 +43,7 @@ foreach($deptuser as $d => $i):
         
         if($dept != $d):
             $tit = get_the_title($s->ID);
-            echo $tit.' --> '.$dept.' ('.$s->ID.')<br>';
+            echo $tit.' --> '.$dept.' ('.$s->ID.') ';
 
             $meta_query = array();
 
@@ -64,7 +64,20 @@ foreach($deptuser as $d => $i):
                 $tit2 =  get_the_title($s2->ID);
 
                 if($tit == $tit2 && $s->ID != $s2->ID):
-                    echo '---> '.$tit2.' ('.$s2->ID.')<br>'; 
+                    
+
+                    $meta_query3 = array(
+                        'key'     => 'supply_name',
+                        'value'   =>  $s->ID 
+                    );
+                    
+                    $addquery3 = $theme->createQuery('releasesupplies', $meta_query3, -1, 'date', 'DESC');
+                    $addquery4 = $theme->createQuery('actualsupplies', $meta_query3, -1, 'date', 'DESC');
+
+                    echo '[actual: '.count($addquery4->posts).'] ';
+                    echo '[release: '.count($addquery3->posts).']<br>';
+
+                    echo '---> '.$tit2.' ('.$s2->ID.') <br>'; 
                 endif;
             endforeach;
 
