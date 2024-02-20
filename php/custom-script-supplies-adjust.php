@@ -63,7 +63,7 @@ foreach($deptuser as $d => $i):
             foreach($posts2 as $s2):
                 $tit2 =  get_the_title($s2->ID);
 
-                if($tit == $tit2):
+                if($tit == $tit2 && $s->ID != $s2->ID):
                     echo '---> '.$tit2.' ('.$s2->ID.')<br>';
                 endif;
             endforeach;
