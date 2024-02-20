@@ -23,9 +23,9 @@ $the_query = new WP_Query( $args );
 $posts = $the_query->posts;
 
 
-var_dump($posts);
-
-
+foreach($posts as $s):
+    echo get_title($s->ID).'<br>';
+endforeach;
 
 
 ?>
