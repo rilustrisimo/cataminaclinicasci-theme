@@ -33,7 +33,7 @@ var Theme = {
         this.socReportGenerate($);
         this.reconReportGenerate($);
         this.processSOCsupplies($);
-        this.checkDeptSelect()$;
+        this.checkDeptSelect($);
 
         $( '[data-toggle="tooltip"]' ).tooltip();
 
