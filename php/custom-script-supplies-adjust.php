@@ -4,31 +4,26 @@ require_once( __DIR__ . '/class-main.php' );
 
 $theme = new Theme();
 
-$meta_query = array(
-    'key'     => 'department',
-    'value'   =>  'PHARMACY' 
+$meta_query = array();
+
+$args = array(
+    'orderby'			=> 'date',
+    'order'				=> 'DESC',
+    'numberposts'	=> -1,
+    'post_type'		=> 'supplies',
+    'meta_query'    => array($meta_query),
+    'posts_per_page' => -1
 );
 
-$addquery = $theme->createQuery('supplies', $meta_query, -1, 'date', 'DESC');
-$allsup = $addquery->posts;
 
-foreach($allsup as $p):
-    $supid = $p->ID;
+$args['author'] = 5;
 
-    echo $supid.': '.get_the_title($supid).'<br>';
 
-    $meta_query2 = array(
-        'key'     => 'supply_name',
-        'value'   =>  $supid 
-    );
-    
-    $addquery2 = $theme->createQuery('releasesupplies', $meta_query2, -1, 'date', 'DESC');
+$the_query = new WP_Query( $args );
+$posts = $the_query->posts;
 
-    foreach($addquery2->posts as $p2):
-        echo '-->'.get_the_title($p2->ID).'('.get_the_date('Y-m-d', $p2->ID).')<br>';
-        wp_trash_post($p2->ID);
-    endforeach;
-endforeach;
+
+var_dump($posts);
 
 
 
