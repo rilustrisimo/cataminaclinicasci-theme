@@ -64,7 +64,7 @@ foreach($deptuser as $d => $i):
                 $tit2 =  get_the_title($s2->ID);
 
                 if($tit == $tit2 && $s->ID != $s2->ID):
-                    echo '---> '.$tit2.' ('.$s2->ID.')<br>';
+                    echo '---> '.$tit2.' ('.$s2->ID.')<br>'; 
                 endif;
             endforeach;
 
