@@ -45,40 +45,7 @@ foreach($deptuser as $d => $i):
             $tit = get_the_title($s->ID);
             echo $tit.' --> '.$dept.' ('.$s->ID.')<br>';
 
-            $meta_query = array();
-
-            $args = array(
-                'orderby'			=> 'date',
-                'order'				=> 'DESC',
-                'numberposts'	=> -1,
-                'post_type'		=> 'supplies',
-                'meta_query'    => array($meta_query),
-                'posts_per_page' => -1
-            );
-
-            $the_query2 = new WP_Query( $args );
-            $posts2 = $the_query2->posts;
-
-            foreach($posts2 as $s2):
-                $tit2 =  get_the_title($s2->ID);
-
-                if($tit == $tit2 && $s->ID != $s2->ID):
-                    
-
-                    $meta_query3 = array(
-                        'key'     => 'supply_name',
-                        'value'   =>  $s->ID 
-                    );
-                    
-                    $addquery3 = $theme->createQuery('releasesupplies', $meta_query3, -1, 'date', 'DESC');
-                    $addquery4 = $theme->createQuery('actualsupplies', $meta_query3, -1, 'date', 'DESC');
-
-                    echo '[actual: '.count($addquery4->posts).'] ';
-                    echo '[release: '.count($addquery3->posts).']<br>';
-
-                    echo '---> '.$tit2.' ('.$s2->ID.') <br>'; 
-                endif;
-            endforeach;
+           
 
             /*
 
