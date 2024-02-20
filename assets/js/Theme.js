@@ -76,6 +76,8 @@ var Theme = {
                     }
                 }
             }
+
+            Theme.checkDepartment($);
         }
     },
 
