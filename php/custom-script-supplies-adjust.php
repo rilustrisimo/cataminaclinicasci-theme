@@ -40,6 +40,9 @@ foreach($deptuser as $d => $i):
     echo "------".$d."--------START--------------<br>";
     foreach($posts as $s):
         $dept = get_field('department', $s->ID);
+
+        wp_update_post( array( 'ID' => $s->ID ) );
+        wp_reset_postdata();
         
         if($dept != $d):
             $tit = get_the_title($s->ID);
