@@ -76,7 +76,7 @@ var Theme = {
                     }
                 }
             }
-
+            $('#acf-field_63f4a94f212d3').trigger('change');
             Theme.checkDepartment($);
         }
     },
