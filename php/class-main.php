@@ -364,6 +364,16 @@ class Theme {
          * Place filters here
          */
 
+         add_filter('acf/fields/post_object/query/name=supply_name', array($this, 'my_acf_fields_post_object_query_supply_name'), 10, 3);
+
+    }
+
+    public function my_acf_fields_post_object_query_supply_name($args, $field, $post_id) {
+        
+        $u = wp_get_current_user();
+        $args['author'] = $u->ID;
+
+        return $args;
     }
 
     public function createQuery($posttype, $meta_query = array(), $numberposts = -1, $orderby = 'date', $order = 'DESC', $aid = false) {
