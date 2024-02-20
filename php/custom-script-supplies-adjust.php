@@ -43,7 +43,7 @@ foreach($deptuser as $d => $i):
         
         if($dept != $d):
             $tit = get_the_title($s->ID);
-            echo $tit.' --> '.$dept.' ('.$s->ID.') ';
+            echo $tit.' --> '.$dept.' ('.$s->ID.')<br>';
 
             $meta_query = array();
 
