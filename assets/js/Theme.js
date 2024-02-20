@@ -33,6 +33,7 @@ var Theme = {
         this.socReportGenerate($);
         this.reconReportGenerate($);
         this.processSOCsupplies($);
+        this.checkDeptSelect()$;
 
         $( '[data-toggle="tooltip"]' ).tooltip();
 
@@ -42,6 +43,37 @@ var Theme = {
             delay: 10,
             time: 1000
         });
+    },
+
+    checkDeptSelect: function($){
+
+        if($('#useraccid').length > 0){
+            const deptuser = {
+                'NURSING': 7,
+                'LABORATORY': 6,
+                'PHARMACY': 4,
+                'HOUSEKEEPING': 8,
+                'MAINTENANCE': 8,
+                'RADIOLOGY': 5,
+                'BUSINESS OFFICE': 9,
+                'INFORMATION / TRIAGE': 10,
+                'PHYSICAL THERAPY': 14,
+                'KONSULTA PROGRAM': 11,
+                'CLINIC B': 12,
+                'CLINIC C': 12,
+                'CLINIC D': 12
+            };
+
+            var v = $('#useraccid').val();
+
+            for (const key in deptuser) {
+                if (deptuser.hasOwnProperty(key)) {
+                    if (deptuser[key] === parseInt(v)) {
+                        console.log(key);
+                    }
+                }
+            }
+        }
     },
 
     filterShow: function($){
