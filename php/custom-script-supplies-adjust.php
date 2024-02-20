@@ -37,7 +37,7 @@ foreach($deptuser as $d => $i):
     $the_query = new WP_Query( $args );
     $posts = $the_query->posts;
 
-    echo "------".$d."--------START--------------";
+    echo "------".$d."--------START--------------<br>";
     foreach($posts as $s):
         $dept = get_field('department', $s->ID);
         
@@ -45,7 +45,7 @@ foreach($deptuser as $d => $i):
             echo get_the_title($s->ID).' --> '.$dept.'<br>';
         endif;
     endforeach;
-    echo "------".$d."--------END--------------";
+    echo "------".$d."--------END--------------<br>";
 endforeach;
 
 ?>
