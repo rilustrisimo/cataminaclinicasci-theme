@@ -40,17 +40,12 @@ foreach($deptuser as $d => $i):
     echo "------".$d."--------START--------------<br>";
     foreach($posts as $s):
         $dept = get_field('department', $s->ID);
-
-        wp_update_post( array( 'ID' => $s->ID ) );
-        wp_reset_postdata();
         
         if($dept != $d):
             $tit = get_the_title($s->ID);
             echo $tit.' --> '.$dept.' ('.$s->ID.')<br>';
 
            
-
-            /*
 
             $post_data = array(
                 'ID' => $s->ID,
@@ -67,7 +62,7 @@ foreach($deptuser as $d => $i):
                 // Failed to update post
                 echo 'Failed to update post author.';
             }
-            */
+
         endif;
     endforeach;
     echo "------".$d."--------END--------------<br>";
