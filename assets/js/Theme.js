@@ -69,6 +69,9 @@ var Theme = {
             for (const key in deptuser) {
                 if (deptuser.hasOwnProperty(key)) {
                     if (deptuser[key] === parseInt(v)) {
+                        
+                    }else{
+                        $('div[data-name="department"] select option[value="'+key+'"]').remove();
                         console.log(key);
                     }
                 }
