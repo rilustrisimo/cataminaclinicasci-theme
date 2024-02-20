@@ -42,7 +42,50 @@ foreach($deptuser as $d => $i):
         $dept = get_field('department', $s->ID);
         
         if($dept != $d):
-            echo get_the_title($s->ID).' --> '.$dept.'<br>';
+            $tit = get_the_title($s->ID);
+            echo $tit.' --> '.$dept.' ('.$s->ID.')<br>';
+
+            $meta_query = array();
+
+            $args = array(
+                'orderby'			=> 'date',
+                'order'				=> 'DESC',
+                'numberposts'	=> -1,
+                'post_type'		=> 'supplies',
+                'meta_query'    => array($meta_query),
+                'posts_per_page' => -1,
+                'author' => $deptuser[$dept]
+            );
+
+            $the_query2 = new WP_Query( $args );
+            $posts2 = $the_query2->posts;
+
+            foreach($posts2 as $s2):
+                $tit2 =  get_the_title($s2->ID);
+
+                if($tit == $tit2):
+                    echo '---> '.$tit2.' ('.$s2->ID.')<br>';
+                endif;
+            endforeach;
+
+            /*
+
+            $post_data = array(
+                'ID' => $s->ID,
+                'post_author' => $deptuser[$dept],
+            );
+            
+            // Update the post with the new author
+            $post_updated = wp_update_post( $post_data );
+            
+            if ( $post_updated !== 0 ) {
+                // Post updated successfully
+                echo 'Post author updated successfully.';
+            } else {
+                // Failed to update post
+                echo 'Failed to update post author.';
+            }
+            */
         endif;
     endforeach;
     echo "------".$d."--------END--------------<br>";
