@@ -16,10 +16,12 @@
  $theme = new Theme();
 
  $dept = false;
+ $u = wp_get_current_user();
 
 get_header();
 if ( have_posts() ) : ?>
 	<?php while ( have_posts() ) { the_post(); ?>
+        <input type="hidden" id="useraccid" value="<?php echo $u->ID; ?>">
 		<div class="page-single">
 			<main class="page-single__content" role="main">
                 <div class="custom-post__add-form" form-id="108">
