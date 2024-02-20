@@ -720,6 +720,12 @@ var Theme = {
     reportDateFitler: function($){
         $('.print-btn').click(function(e){
             e.preventDefault();
+            
+            if($('#preparedby').val().length == 0){
+                alert('Kindly place a value in the Prepared By Field.');
+                return false;
+            }
+
             Theme.printReport($);
         });
 
