@@ -1121,9 +1121,16 @@ class Theme {
         $datesupplies = $reconarray['datesupplies'];
         $relsupplies = $reconarray['relsupplies'];
 
+        $from = $_POST['fromdate'];
+        $to = $_POST['todate'];
+
         /** loop for the output */
         $sectionlist = array();
         $subsectionlist = array();
+
+        $res = "";
+        $res .= "<h2>AS OF ".date('M d, Y', strtotime($from))." - ".date('M d, Y', strtotime($to))."</h2>";
+        $res .= "<h3>Reconciliation Report</h3>";
 
         foreach($overallupplies as $department => $types):
             ksort($types);
