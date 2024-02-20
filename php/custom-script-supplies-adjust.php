@@ -24,7 +24,8 @@ $posts = $the_query->posts;
 
 
 foreach($posts as $s):
-    echo get_title($s->ID).' --> '.get_field('department', $s->ID).'<br>';
+    var_dump($s);
+    //echo get_title($s->ID).' --> '.get_field('department', $s->ID).'<br>';
 endforeach;
 
 
