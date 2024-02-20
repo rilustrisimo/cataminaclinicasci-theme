@@ -21,7 +21,9 @@
 get_header();
 if ( have_posts() ) : ?>
 	<?php while ( have_posts() ) { the_post(); ?>
+        <?php if(!current_user_can( 'manage_options' )): ?>
         <input type="hidden" id="useraccid" value="<?php echo $u->ID; ?>">
+        <?php endif; ?>
 		<div class="page-single">
 			<main class="page-single__content" role="main">
                 <div class="custom-post__add-form" form-id="108">
