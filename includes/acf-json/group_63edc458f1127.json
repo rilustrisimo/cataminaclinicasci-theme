@@ -124,7 +124,9 @@
                 "Ultrasound": "Ultrasound",
                 "X-ray Fees": "X-ray Fees",
                 "Interest on Loans ( DOSRI) -JBA": "Interest on Loans ( DOSRI) -JBA",
-                "Interest on Bank Deposits": "Interest on Bank Deposits"
+                "Interest on Bank Deposits": "Interest on Bank Deposits",
+                "DSWD-AOI": "DSWD-AOI",
+                "ISDAP-AOI": "ISDAP-AOI"
             },
             "default_value": false,
             "return_format": "value",
@@ -187,7 +189,8 @@
                 "Utilities": "Utilities",
                 "Wages": "Wages",
                 "Xray Supplies Used": "Xray Supplies Used",
-                "Bank Charges\/Withholding taxes": "Bank Charges\/Withholding taxes"
+                "Bank Charges\/Withholding taxes": "Bank Charges\/Withholding taxes",
+                "ISDAP-AOI": "ISDAP-AOI"
             },
             "default_value": false,
             "return_format": "value",
@@ -296,5 +299,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1693960208
+    "modified": 1709512979
 }
