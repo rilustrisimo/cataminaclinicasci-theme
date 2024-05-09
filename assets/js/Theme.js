@@ -491,6 +491,7 @@ var Theme = {
                         Theme.sectionFilter($);
                         Theme.reconTotal($);
                         Theme.recalculateReconTotal($);
+                        Theme.sortRecon($);
                     }
                 },
             error: function (xhr, ajaxOptions, thrownError) {
@@ -614,6 +615,7 @@ var Theme = {
                                         Theme.sectionFilter($);
                                         Theme.reconTotal($);
                                         Theme.recalculateReconTotal($);
+                                        Theme.sortRecon($);
                                     },
                                 error: function (xhr, ajaxOptions, thrownError) {
                                     // this error case means that the ajax call, itself, failed, e.g., a syntax error
@@ -652,6 +654,19 @@ var Theme = {
 
         // Start processing the first batch
         processNextBatchRecon();
+    },
+
+    sortRecon: function($){
+        $('#report__result table').each(function() {
+            var $table = $(this);
+            var $tbody = $table.find('tbody');
+        
+            $tbody.sort(function(a, b) {
+                var aName = $(a).data('name').toUpperCase();
+                var bName = $(b).data('name').toUpperCase();
+                return (aName < bName) ? -1 : (aName > bName) ? 1 : 0;
+            }).appendTo($table);
+        });
     },
 
     reconTotal: function($){
@@ -798,6 +813,7 @@ var Theme = {
                         Theme.sectionFilter($);
                         Theme.reconTotal($);
                         Theme.recalculateReconTotal($);
+                        Theme.sortRecon($);
                     },
                 error: function (xhr, ajaxOptions, thrownError) {
                     // this error case means that the ajax call, itself, failed, e.g., a syntax error
