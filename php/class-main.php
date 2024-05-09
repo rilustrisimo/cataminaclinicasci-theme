@@ -1206,7 +1206,7 @@ class Theme {
                         $states = (!empty($datesupplies[$suppid]['states__status']))?$datesupplies[$suppid]['states__status']:get_field('states__status', $suppid);
 
                         /** body */
-                        $res .= "<tbody>";
+                        $res .= "<tbody class='sup-container' data-name='".$suppdeets['supply_name']."'>";
                         $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
                         $res .= "<td>".$suppdeets['supply_name']."</td>";
                         $res .= "<td class='filter-serial'>".$serial."</td>";
@@ -1238,7 +1238,7 @@ class Theme {
                         $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:get_field('expiry_date', $suppid);
                         
                         /** body */
-                        $res .= "<tbody>";
+                        $res .= "<tbody class='sup-container' data-name='".$suppdeets['supply_name']."'>";
                         $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
                         $res .= "<td>".$suppdeets['supply_name']."</td>";
                         $res .= "<td class='filter-lot'>".$lot."</td>";
