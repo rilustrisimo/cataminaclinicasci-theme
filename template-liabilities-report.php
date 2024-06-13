@@ -29,6 +29,7 @@ if ( have_posts() ) : ?>
                     </form>
                     -->
                 </div>
+                <div class="report__filter-btn" style="margin: 35px 0;"><input type="text" placeholder="Prepared By" name="preparedby" id="preparedby"><a href="#" class="btn button print-btn"><i class="fa-solid fa-print"></i> Print Report</a></div>
                 <div class="report__result" id="report__result">
                 <!-- result goes here -->
                 <?php echo $theme->getLiabilitiesReport();?>
