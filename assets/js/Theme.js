@@ -224,8 +224,15 @@ var Theme = {
         mywindow.document.write('<style>*{font-family: Arial, Helvetica, sans-serif}body{max-width: 1120px;margin: 25px auto}table{border-collapse: collapse;width: 100%;margin-bottom: 15px}table td,table th{border: 1px solid #000;text-align: left;padding: 2px 7px;font-size: 14px}table thh2{text-transform: uppercase;font-size: 18px}h3{font-size: 26px}h1{font-size: 18px;text-transform: uppercase;font-weight: 700}.report__result-header{font-size: 16px;background-color: #000;color: #fff;padding: 5px 15px;margin-bottom: 15px}.actual-field{border: none}.pfooter tr td {text-align:center;}.pfooter,.pfooter td {border:none;}.pfooter .name span {border-top: 1px solid #000;padding: 6px 15px;}.pfooter .name {padding-top: 35px;}#section-list,#subsection-list{display:none;}</style>');
         mywindow.document.write('</head><body>');
         mywindow.document.write('<button onclick="window.print();">Print Report</button>');
-        mywindow.document.write('<h2>Location: ' + loc + '</h2>');
-        mywindow.document.write('<h2>Sub Section: ' + subloc + '</h2>');
+
+        if(loc){
+            mywindow.document.write('<h2>Location: ' + loc + '</h2>');
+        }
+
+        if(subloc){
+            mywindow.document.write('<h2>Sub Section: ' + subloc + '</h2>');
+        }
+
         mywindow.document.write(document.getElementById('report__result').innerHTML);
         mywindow.document.write('<table class="pfooter"><tr><td>Prepared By</td><td>Received By</td></tr><tr><td class="name"><span>'+$('#preparedby').val()+'</span></td><td class="name"><span>Mary Angelie Buñi Atupan</span></td></tr><tr><td>&nbsp;</td><td>Clinic Manager</td></tr></table>');
         mywindow.document.write('</body></html>');
