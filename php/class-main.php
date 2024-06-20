@@ -1350,9 +1350,7 @@ class Theme {
                 }
 
                 if(get_field('expiry_date', $p->ID)){
-                    if(!isset($expd[$supplyid])){
-                        $expd[$supplyid] = get_field('expiry_date', $p->ID);   
-                    }
+                    $expd[$supplyid][] = get_field('expiry_date', $p->ID);   
                 }
     
                 $datesupplies[$supplyid] = array(
@@ -1361,7 +1359,7 @@ class Theme {
                     'serial' => (!empty(get_field('serial', $p->ID)))?get_field('serial', $p->ID):false,
                     'states__status' => (!empty(get_field('states__status', $p->ID)))?get_field('states__status', $p->ID):false,
                     'lot_number' => (isset($lotn[$supplyid]))?implode(',', $lotn[$supplyid]):'',
-                    'expiry_date' => (isset($expd[$supplyid]))?$expd[$supplyid]:''
+                    'expiry_date' => (isset($expd[$supplyid]))?implode(',', $expd[$supplyid]):''
                 );
             endforeach;
     
