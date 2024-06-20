@@ -1334,22 +1334,33 @@ class Theme {
                 )
             );
     
-            $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'DESC');
+            $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'ASC');
             $qty = array();
+            $lotn = array();
+            $expd = array();
     
             foreach($addquery->posts as $p):
                 $name[$p->ID] = get_field('supply_name', $p->ID);
                 $supplyid = $name[$p->ID]->ID;
                 $qty[$supplyid] = (isset($qty[$supplyid]))?(float)$qty[$supplyid] + (float)get_field('quantity', $p->ID):get_field('quantity', $p->ID);
                 
+                if(get_field('lot_number', $p->ID)){
+                    $lotn[$supplyid][] = get_field('lot_number', $p->ID);
+                }
+
+                if(get_field('expiry_date', $p->ID)){
+                    if(!isset($expd[$supplyid])){
+                        $expd[$supplyid] = get_field('expiry_date', $p->ID);   
+                    }
+                }
     
                 $datesupplies[$supplyid] = array(
                     'supply_name' => get_field('supply_name', $supplyid),
                     'quantity' => $qty[$supplyid],
                     'serial' => (!empty(get_field('serial', $p->ID)))?get_field('serial', $p->ID):false,
                     'states__status' => (!empty(get_field('states__status', $p->ID)))?get_field('states__status', $p->ID):false,
-                    'lot_number' => (!empty(get_field('lot_number', $p->ID)))?get_field('lot_number', $p->ID):false,
-                    'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):false
+                    'lot_number' => (isset($lotn[$supplyid]))?implode(',', $lotn[$supplyid]):'',
+                    'expiry_date' => (isset($expd[$supplyid]))?$expd[$supplyid]:''
                 );
             endforeach;
     
@@ -1371,7 +1382,7 @@ class Theme {
                 )
             );
     
-            $addquery = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'DESC');
+            $addquery = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'ASC');
             $qty = array();
     
             foreach($addquery->posts as $p):
