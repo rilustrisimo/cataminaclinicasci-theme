@@ -383,7 +383,8 @@ class Theme {
             'numberposts'	=> $numberposts,
             'post_type'		=> $posttype,
             'meta_query'    => array($meta_query),
-            'posts_per_page' => $numberposts
+            'posts_per_page' => $numberposts,
+            'post_status'    => 'publish'
         );
 
         $u = wp_get_current_user();
