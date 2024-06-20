@@ -30,7 +30,7 @@ foreach($batchData as $suppid => $supp):
         'supply_name' => get_field('supply_name', $supplyid),
         'department' => $dept,
         'type' => $type,
-        'quantity' => $this->getQtyOfSupplyAfterDate($supplyid, $from)
+        'quantity' => $theme->getQtyOfSupplyAfterDate($supplyid, $from)
     );
     /** end first part */
 
@@ -50,7 +50,7 @@ foreach($batchData as $suppid => $supp):
         )
     );
 
-    $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'ASC');
+    $addquery = $theme->createQuery('actualsupplies', $meta_query, -1, 'date', 'ASC');
     $qty = array();
     $lotn = array();
     $expd = array();
@@ -96,7 +96,7 @@ foreach($batchData as $suppid => $supp):
         )
     );
 
-    $addquery = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'ASC');
+    $addquery = $theme->createQuery('releasesupplies', $meta_query, -1, 'date', 'ASC');
     $qty = array();
 
     foreach($addquery->posts as $p):
