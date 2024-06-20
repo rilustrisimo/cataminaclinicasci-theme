@@ -1235,8 +1235,8 @@ class Theme {
                             //continue;
                         endif;
 
-                        $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:get_field('lot_number', $suppid);
-                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:get_field('expiry_date', $suppid);
+                        $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:'';
+                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:'';
                         
                         /** body */
                         $res .= "<tbody class='sup-container' data-name='".$suppdeets['supply_name']."'>";
