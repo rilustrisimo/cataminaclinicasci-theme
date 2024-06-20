@@ -1234,8 +1234,6 @@ class Theme {
                             //continue;
                         endif;
 
-                        var_dump($datesupplies[$suppid]);
-
                         $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:get_field('lot_number', $suppid);
                         $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:get_field('expiry_date', $suppid);
                         
