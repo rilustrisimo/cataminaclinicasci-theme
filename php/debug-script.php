@@ -5,7 +5,7 @@ require_once( __DIR__ . '/class-main.php' );
 $theme = new Theme();
 
 $batchData = array(
-    1085 => 'Anti-D'
+    1188 => 'Cell Pack'
 );
 $to = 'March 4, 2024';
 $from = 'April 4, 2024';
