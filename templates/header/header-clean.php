@@ -44,7 +44,7 @@
 	<a href="<?php echo home_url(); ?>" class="logo-link">
 		<div class="overall-menu__logo">
 			<div class="top">Catamina Clinic</div>
-			<div class="bottom">& Ambulatory Sugery Center, Inc.</div>
+			<div class="bottom">& Ambulatory Surgery Center, Inc.</div>
 		</div>
 	</a>
 	<div class="header__content-wrap">
