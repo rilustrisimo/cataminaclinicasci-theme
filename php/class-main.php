@@ -2125,7 +2125,7 @@ class Theme {
                 'relation' => 'AND',
                 array(
                     'key'     => 'type',
-                    'value'   => array('Equipment', 'Adjustment'),
+                    'value'   => array('Equipment'),
                     'compare' => 'NOT IN'
                 ),
                 array(
