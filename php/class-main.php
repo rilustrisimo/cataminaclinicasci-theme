@@ -2122,9 +2122,18 @@ class Theme {
 
         if(!$supparr):
             $meta_query = array(
-                'key'     => 'type',
-                'value'   =>  array('Equipment', 'Adjustment'),
-                'compare' =>  'NOT IN'   
+                'relation' => 'AND',
+                array(
+                    'key'     => 'type',
+                    'value'   => array('Equipment', 'Adjustment'),
+                    'compare' => 'NOT IN'
+                ),
+                array(
+                    'key'     => 'date_added',
+                    'value'   => array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
+                    'type'    => 'date',
+                    'compare' => 'BETWEEN'
+                )
             );
     
             $supplies = $this->createQuery('supplies', $meta_query);
