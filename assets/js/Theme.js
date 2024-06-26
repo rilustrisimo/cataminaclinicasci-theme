@@ -702,9 +702,9 @@ var Theme = {
                 var p = $(this).find('.row-price').attr('data-val');
 
                 var t = parseInt(q) * parseFloat(p).toFixed(2);
-                if(t > 0){
-                    totp += t;
-                }
+                
+                totp += t;
+                
             });
 
             let np = totp;

@@ -453,7 +453,7 @@ class Theme {
             $price = (float)get_field('price_per_unit', $suppid);
             $curqty = $this->getQtyOfSupplyAfterDate($suppid, $to);
 
-            if($curqty <= 0) continue;
+            //if($curqty <= 0) continue;
 
             $dept = get_field('department', $suppid);
             $deptslug = strtolower(str_replace(" ", "_", $dept));
