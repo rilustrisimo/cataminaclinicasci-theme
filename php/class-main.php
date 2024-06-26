@@ -1138,7 +1138,6 @@ class Theme {
         /** loop for the output */
         $sectionlist = array();
         $subsectionlist = array();
-        $supplyoveralltotal = 0;
 
         $res = "";
         $res .= "<h2>AS OF ".date('M d, Y', strtotime($from))." - ".date('M d, Y', strtotime($to))."</h2>";
@@ -1242,7 +1241,7 @@ class Theme {
                         $suptots = ((((float)$suppdeets['quantity'] + $purchase) - $release) * $price);
                         
                         /** body */
-                        $res .= "<tbody class='sup-container' data-name='".$suppdeets['supply_name']."'>";
+                        $res .= "<tbody class='sup-container count-supplies' data-name='".$suppdeets['supply_name']."'>";
                         $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
                         $res .= "<td>".$suppdeets['supply_name']."</td>";
                         $res .= "<td class='filter-lot'>".$lot."</td>";
@@ -1259,7 +1258,6 @@ class Theme {
                         $res .= "</tr>";
                         $res .= "</tbody>";
 
-                        $supplyoveralltotal += $suptots;
                         /** body end */
                     endif;
 
@@ -1286,7 +1284,7 @@ class Theme {
         $res .= implode("</option><option>", $subsectionlist);
         $res .= "</option></select>";
 
-        $res .= "<div class='sup-total'><b>SUPPLIES TOTAL:</b> <span>".$this->convertNumber($supplyoveralltotal)."</span></div>";
+        $res .= "<div class='sup-total'><b>SUPPLIES TOTAL:</b> <span></span></div>";
         $res .= "<div class='recon-total'><b>OVERALL TOTAL:</b> <span></span></div>";
 
 

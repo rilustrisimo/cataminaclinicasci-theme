@@ -693,6 +693,23 @@ var Theme = {
 
             $('.recon-total span').html("&#8369 " + str);
         }
+
+        if($('.sup-total').length > 0){
+            var totp = 0;
+
+            $('.report__result tbody.count-supplies tr:visible').each(function(){
+                var q = $(this).find('.row-actual-count input').val();
+                var p = $(this).find('.row-price').attr('data-val');
+
+                var t = parseInt(q) * parseFloat(p).toFixed(2);
+                totp += t;
+            });
+
+            let np = totp;
+            let str = np.toLocaleString("en-US");
+
+            $('.sup-total span').html("&#8369 " + str);
+        }
     },
 
     recalculateReconTotal: function($){
