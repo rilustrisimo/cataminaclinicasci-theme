@@ -1188,6 +1188,8 @@ class Theme {
                     $res .= "</thead>";
                 endif;
 
+                $supplyoveralltotal = 0;
+
                 foreach($suppdetails as $suppid => $suppdeets):
                     $section = get_field('section', $suppid);
                     $subsection = ($section == "Ambulatory Surgery Center (ASC)")?get_field('sub_section', $suppid):'';
@@ -1237,6 +1239,7 @@ class Theme {
 
                         $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:'';
                         $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:'';
+                        $suptots = ((((float)$suppdeets['quantity'] + $purchase) - $release) * $price);
                         
                         /** body */
                         $res .= "<tbody class='sup-container' data-name='".$suppdeets['supply_name']."'>";
@@ -1252,9 +1255,11 @@ class Theme {
                         $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
                         $res .= "<td class='row-actual-count'><input type='number' class='actual-field' min='0' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
                         $res .= "<td class='row-variance'>0</td>";
-                        $res .= "<td class='row-total'>&#8369 ".$this->convertNumber(((((float)$suppdeets['quantity'] + $purchase) - $release) * $price))."</td>";
+                        $res .= "<td class='row-total'>&#8369 ".$this->convertNumber($suptots)."</td>";
                         $res .= "</tr>";
                         $res .= "</tbody>";
+
+                        $supplyoveralltotal += $suptots;
                         /** body end */
                     endif;
 
@@ -1281,7 +1286,9 @@ class Theme {
         $res .= implode("</option><option>", $subsectionlist);
         $res .= "</option></select>";
 
-        $res .= "<div class='recon-total'><b>TOTAL:</b> <span></span></div>";
+        $res .= "<div class='sup-total'><b>SUPPLIES TOTAL:</b> <span>".$this->convertNumber($supplyoveralltotal)."</span></div>";
+        $res .= "<div class='recon-total'><b>OVERALL TOTAL:</b> <span></span></div>";
+
 
 
         /** end output loop */
