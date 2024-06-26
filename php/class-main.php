@@ -641,7 +641,7 @@ class Theme {
                 'supply_name' => get_field('supply_name', $supplyid),
                 'department' => $dept,
                 'type' => $type,
-                'quantity' => $this->getQtyOfSupplyAfterDate($supplyid, $from)
+                'quantity' => $this->getQtyOfSupplyAfterDate($supplyid, $to)
             );
 
         endforeach;
@@ -1336,7 +1336,7 @@ class Theme {
                 'supply_name' => get_field('supply_name', $supplyid),
                 'department' => $dept,
                 'type' => $type,
-                'quantity' => $this->getQtyOfSupplyAfterDate($supplyid, $from)
+                'quantity' => $this->getQtyOfSupplyAfterDate($supplyid, $to)
             );
             /** end first part */
     
@@ -2141,7 +2141,7 @@ class Theme {
                 'relation' => 'AND',
                 array(
                     'key'     => 'type',
-                    'value'   => array('Equipment'),
+                    'value'   => array('Equipment', 'Adjustment'),
                     'compare' => 'NOT IN'
                 ),
                 array(
