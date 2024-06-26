@@ -2130,9 +2130,9 @@ class Theme {
                 ),
                 array(
                     'key'     => 'date_added',
-                    'value'   => array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
-                    'type'    => 'date',
-                    'compare' => 'BETWEEN'
+                    'value'   =>  date('Y-m-d', strtotime($to)),
+                    'type'      =>  'date',
+                    'compare' =>  '<='
                 )
             );
     
