@@ -1138,6 +1138,7 @@ class Theme {
         /** loop for the output */
         $sectionlist = array();
         $subsectionlist = array();
+        $supplyoveralltotal = 0;
 
         $res = "";
         $res .= "<h2>AS OF ".date('M d, Y', strtotime($from))." - ".date('M d, Y', strtotime($to))."</h2>";
@@ -1188,7 +1189,6 @@ class Theme {
                     $res .= "</thead>";
                 endif;
 
-                $supplyoveralltotal = 0;
 
                 foreach($suppdetails as $suppid => $suppdeets):
                     $section = get_field('section', $suppid);
