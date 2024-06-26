@@ -893,7 +893,7 @@ class Theme {
                 'compare' =>  '<='
             );
 
-            $addquery = $this->createQuery('supplies');
+            $addquery = $this->createQuery('supplies', $meta_query);
         endif;
 
         // Extracts out just post_titles and makes new array
