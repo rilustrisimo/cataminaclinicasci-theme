@@ -694,7 +694,6 @@ class Theme {
             $type = get_field('type', $p->ID);
             $typeslug = strtolower($type);
             $curqty = $this->getQtyOfSupplyAfterDate($supplyid, $to);
-            $price = (float)get_field('price_per_unit', $supplyid);
 
             if($type == "Adjustment"):
                 continue;
@@ -706,21 +705,6 @@ class Theme {
                 'type' => $type,
                 'quantity' => $curqty
             );
-
-
-            /** csv func */
-        
-            // Prepare the data to be written to CSV
-            $data = array(
-                'ID' => $supplyid,
-                'department' => $deptslug,
-                'quantity' => $curqty,
-                'price' => $price,
-                'total price' => ($price * $curqty),
-            );
-        
-            // Append the data to the CSV file
-            $this->append_to_csv($filename, $data);
 
         endforeach;
 
@@ -1397,6 +1381,8 @@ class Theme {
         $relsupplies = array();
         $datesupplies = array();
 
+        $filename = 'batch_process_supplies_recon - '.$to.'.csv'; // Specify your CSV file name
+
         foreach($batchData as $suppid => $supp):
             /** first part */
             $name[$suppid] = get_field('supply_name', $suppid);
@@ -1410,13 +1396,32 @@ class Theme {
                 continue;
             endif;
 
+            $curqty = $this->getQtyOfSupplyAfterDate($supplyid, $to);
+            $price = (float)get_field('price_per_unit', $suppid);
+
             $overallupplies[$deptslug][$typeslug][$supplyid] = array(
                 'supply_name' => get_field('supply_name', $supplyid),
                 'department' => $dept,
                 'type' => $type,
-                'quantity' => $this->getQtyOfSupplyAfterDate($supplyid, $to)
+                'quantity' => $curqty
             );
             /** end first part */
+
+
+             /** csv func */
+        
+            // Prepare the data to be written to CSV
+            $data = array(
+                'ID' => $supplyid,
+                'department' => $deptslug,
+                'quantity' => $curqty,
+                'price' => $price,
+                'total price' => ($price * $curqty),
+            );
+        
+            // Append the data to the CSV file
+            $this->append_to_csv($filename, $data);
+
     
             /** get all actual purchased supplies within the month */
     
