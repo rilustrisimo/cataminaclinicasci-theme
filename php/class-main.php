@@ -448,6 +448,8 @@ class Theme {
         $to = $_POST['to'];
         $suppdept = array();
 
+        $filename = 'batch_process_supplies - '.$to.'.csv'; // Specify your CSV file name
+
         foreach($batchData as $suppid => $supp):
 
             $price = (float)get_field('price_per_unit', $suppid);
@@ -459,14 +461,64 @@ class Theme {
             $deptslug = strtolower(str_replace(" ", "_", $dept));
             $stype = strtolower(str_replace(" ", "_", get_field('type', $suppid)));
 
+            
+
             if(isset($suppdept[$deptslug][$stype])):
                 $suppdept[$deptslug][$stype] += ($price * $curqty);
             else:
                 $suppdept[$deptslug][$stype] = ($price * $curqty);
             endif;
+
+            /** csv func */
+        
+            // Prepare the data to be written to CSV
+            $data = array(
+                'ID' => $suppid,
+                'department' => $deptslug,
+                'quantity' => $curqty,
+                'price' => $price,
+                'total price' => ($price * $curqty),
+            );
+        
+            // Append the data to the CSV file
+            $this->append_to_csv($filename, $data);
+
+            /** csv func end */
+
         endforeach;
 
         wp_send_json_success($suppdept);
+    }
+
+
+    public function append_to_csv($filename, $data) {
+        $file_exists = file_exists($filename);
+    
+        $file = fopen($filename, 'a'); // Open the file in append mode
+    
+        if (!$file_exists) {
+            // Write the header only if the file doesn't exist
+            fputcsv($file, array('ID', 'department', 'quantity', 'price', 'total price', 'duplicate'));
+        }
+    
+        // Check for duplicate ID
+        $is_duplicate = false;
+        if ($file_exists) {
+            // Read the file to check for duplicate IDs
+            $existing_data = array_map('str_getcsv', file($filename));
+            foreach ($existing_data as $row) {
+                if ($row[0] == $data['ID']) {
+                    $is_duplicate = true;
+                    break;
+                }
+            }
+        }
+    
+        // Append the row with "true" or "false" in the duplicate column
+        $data['duplicate'] = $is_duplicate ? 'true' : 'false';
+        fputcsv($file, $data);
+    
+        fclose($file); // Close the file
     }
 
     public function load_goods_report() {
@@ -625,6 +677,8 @@ class Theme {
             $addquery = $this->createQuery('supplies');
         endif;
 
+        $filename = 'getReconciliationReport - '.$to.'.csv'; // Specify your CSV file name
+
         foreach($addquery->posts as $p):
             $name[$p->ID] = get_field('supply_name', $p->ID);
             $supplyid = $p->ID;
@@ -632,6 +686,8 @@ class Theme {
             $deptslug = str_replace(" ", "_", strtolower($dept));
             $type = get_field('type', $p->ID);
             $typeslug = strtolower($type);
+            $curqty = $this->getQtyOfSupplyAfterDate($supplyid, $to);
+            $price = (float)get_field('price_per_unit', $supplyid);
 
             if($type == "Adjustment"):
                 continue;
@@ -641,8 +697,23 @@ class Theme {
                 'supply_name' => get_field('supply_name', $supplyid),
                 'department' => $dept,
                 'type' => $type,
-                'quantity' => $this->getQtyOfSupplyAfterDate($supplyid, $to)
+                'quantity' => $curqty
             );
+
+
+            /** csv func */
+        
+            // Prepare the data to be written to CSV
+            $data = array(
+                'ID' => $supplyid,
+                'department' => $deptslug,
+                'quantity' => $curqty,
+                'price' => $price,
+                'total price' => ($price * $curqty),
+            );
+        
+            // Append the data to the CSV file
+            $this->append_to_csv($filename, $data);
 
         endforeach;
 
