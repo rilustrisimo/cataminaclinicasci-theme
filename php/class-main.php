@@ -449,6 +449,11 @@ class Theme {
         $suppdept = array();
 
         $filename = 'batch_process_supplies - '.$to.'.csv'; // Specify your CSV file name
+        
+        // Check and delete the file if it exists to start fresh
+        if (file_exists($filename)) {
+            unlink($filename);
+        }
 
         foreach($batchData as $suppid => $supp):
 
@@ -678,6 +683,11 @@ class Theme {
         endif;
 
         $filename = 'getReconciliationReport - '.$to.'.csv'; // Specify your CSV file name
+
+        // Check and delete the file if it exists to start fresh
+        if (file_exists($filename)) {
+            unlink($filename);
+        }
 
         foreach($addquery->posts as $p):
             $name[$p->ID] = get_field('supply_name', $p->ID);
