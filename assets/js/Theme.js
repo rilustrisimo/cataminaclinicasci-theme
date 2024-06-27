@@ -680,7 +680,7 @@ var Theme = {
         if($('.recon-total').length > 0){
             var totp = 0;
 
-            $('.report__result tbody tr:visible').each(function(){
+            $('.report__result tbody tr').each(function(){
                 var q = $(this).find('.row-actual-count input').val();
                 var p = $(this).find('.row-price').attr('data-val');
 
@@ -695,22 +695,22 @@ var Theme = {
         }
 
         if($('.sup-total').length > 0){
-            var totp = 0;
+            var totp2 = 0;
 
-            $('.report__result tbody.count-supplies tr:visible').each(function(){
-                var q = $(this).find('.row-actual-count input').val();
-                var p = $(this).find('.row-price').attr('data-val');
+            $('.report__result tbody.count-supplies tr').each(function(){
+                var q2 = $(this).find('.row-actual-count input').val();
+                var p2 = $(this).find('.row-price').attr('data-val');
 
-                var t = parseInt(q) * parseFloat(p).toFixed(2);
+                var t2 = parseInt(q2) * parseFloat(p2).toFixed(2);
                 
-                totp += t;
+                totp2 += t2;
                 
             });
 
-            let np = totp;
-            let str = np.toLocaleString("en-US");
+            let np2 = totp2;
+            let str2 = np2.toLocaleString("en-US");
 
-            $('.sup-total span').html("&#8369 " + str);
+            $('.sup-total span').html("&#8369 " + str2);
         }
     },
 
