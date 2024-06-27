@@ -447,9 +447,6 @@ class Theme {
         $batchData = (array)$_POST['batchData'];
         $to = $_POST['to'];
         $suppdept = array();
-
-        $template_dir = get_template_directory(); 
-        $filename = $template_dir. '/php/batch_process_supplies - '.$to.'.csv'; // Specify your CSV file name
         
 
         foreach($batchData as $suppid => $supp):
@@ -464,27 +461,6 @@ class Theme {
             $stype = strtolower(str_replace(" ", "_", get_field('type', $suppid)));
 
             $suppdept[$deptslug][$stype][$suppid] = ($price * $curqty);
-/*
-            if(isset($suppdept[$deptslug][$stype][$suppid])):
-                $suppdept[$deptslug][$stype][$suppid] += ($price * $curqty);
-            else:
-                $suppdept[$deptslug][$stype][$suppid] = ($price * $curqty);
-            endif;
-            */
-
-            /** csv func */
-        
-            // Prepare the data to be written to CSV
-            $data = array(
-                'ID' => $suppid,
-                'department' => $deptslug,
-                'quantity' => $curqty,
-                'price' => $price,
-                'total price' => ($price * $curqty),
-            );
-        
-            // Append the data to the CSV file
-            $this->append_to_csv($filename, $data);
 
             /** csv func end */
 
@@ -955,14 +931,6 @@ class Theme {
 
         $res .= '<div class="supplies-json-recon" style="display:none;">'.json_encode($arrfinal).'</div>';
 
-
-        // Define the CSV file name and path
-        $template_dir = get_template_directory(); // Get the template directory path
-        $filename = $template_dir . '/php/batch_process_supplies_recon - '.$to.'.csv'; // Specify your CSV file name
-
-        if (file_exists($filename)) {
-            unlink($filename);
-        }
         
         return $res;
 
@@ -1376,11 +1344,7 @@ class Theme {
         $reconarray = array();
         $relsupplies = array();
         $datesupplies = array();
-
-        // Define the CSV file name and path
-        $template_dir = get_template_directory(); // Get the template directory path
-        $filename = $template_dir . '/php/batch_process_supplies_recon - '.$to.'.csv'; // Specify your CSV file name
-        
+ 
 
         foreach($batchData as $suppid => $supp):
             /** first part */
@@ -1406,23 +1370,6 @@ class Theme {
             );
             /** end first part */
 
-
-             /** csv func */
-        
-            // Prepare the data to be written to CSV
-            $data = array(
-                'ID' => $supplyid,
-                'department' => $deptslug,
-                'quantity' => $curqty,
-                'price' => $price,
-                'total price' => ($price * $curqty),
-            );
-        
-            // Append the data to the CSV file
-
-            if(strtoupper($type) != "EQUIPMENT"):
-                $this->append_to_csv($filename, $data);
-            endif;
     
             /** get all actual purchased supplies within the month */
     
@@ -2244,12 +2191,6 @@ class Theme {
 
             $res .= '<div class="supplies-json" style="display:none;">'.json_encode($arrfinal).'</div>';
 
-            $template_dir = get_template_directory(); 
-            $filename = $template_dir . '/php/batch_process_supplies - '.$to.'.csv'; // Specify your CSV file name
-            
-            if (file_exists($filename)) {
-                unlink($filename);
-            }
         endif;
 
         
