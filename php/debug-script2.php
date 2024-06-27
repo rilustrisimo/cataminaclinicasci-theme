@@ -18,7 +18,7 @@ $filename = 'batch_process_supplies - '.$to.'.csv'; // Specify your CSV file nam
 foreach($batchData as $suppid => $supp):
 
     $price = (float)get_field('price_per_unit', $suppid);
-    $curqty = $this->getQtyOfSupplyAfterDate($suppid, $to);
+    $curqty = $theme->getQtyOfSupplyAfterDate($suppid, $to);
 
     //if($curqty <= 0) continue;
 
@@ -46,7 +46,7 @@ foreach($batchData as $suppid => $supp):
     );
 
     // Append the data to the CSV file
-    $this->append_to_csv($filename, $data);
+    $theme->append_to_csv($filename, $data);
 
     /** csv func end */
 
