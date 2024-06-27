@@ -849,7 +849,7 @@ class Theme {
                         $res .= "<td class='filter-cons'>".$release."</td>";
                         $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)."</td>";
                         $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
-                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' min='0' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
+                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
                         $res .= "<td class='row-variance'>0</td>";
                         $res .= "<td class='row-total'>&#8369 ".$this->convertNumber(((((float)$suppdeets['quantity'] + $purchase) - $release) * $price))."</td>";
                         $res .= "</tr>";
@@ -881,7 +881,7 @@ class Theme {
                         $res .= "<td class='filter-cons'>".$release."</td>";
                         $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)."</td>";
                         $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
-                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' min='0' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
+                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
                         $res .= "<td class='row-variance'>0</td>";
                         $res .= "<td class='row-total'>&#8369 ".$this->convertNumber(((((float)$suppdeets['quantity'] + $purchase) - $release) * $price))."</td>";
                         $res .= "</tr>";
@@ -1173,7 +1173,7 @@ class Theme {
         //                 $res .= "<td class='filter-cons'>".$release."</td>";
         //                 $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)."</td>";
         //                 $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
-        //                 $res .= "<td class='row-actual-count'><input type='number' class='actual-field' min='0' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
+        //                 $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
         //                 $res .= "<td class='row-variance'>0</td>";
         //                 $res .= "<td class='row-total'>&#8369 ".$this->convertNumber(((((float)$suppdeets['quantity'] + $purchase) - $release) * $price))."</td>";
         //                 $res .= "</tr>";
@@ -1307,7 +1307,7 @@ class Theme {
                         $res .= "<td class='filter-cons'>".$release."</td>";
                         $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)."</td>";
                         $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
-                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' min='0' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
+                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
                         $res .= "<td class='row-variance'>0</td>";
                         $res .= "<td class='row-total'>&#8369 ".$this->convertNumber(((((float)$suppdeets['quantity'] + $purchase) - $release) * $price))."</td>";
                         $res .= "</tr>";
@@ -1340,7 +1340,7 @@ class Theme {
                         $res .= "<td class='filter-cons'>".$release."</td>";
                         $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)."</td>";
                         $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
-                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' min='0' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
+                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
                         $res .= "<td class='row-variance'>0</td>";
                         $res .= "<td class='row-total'>&#8369 ".$this->convertNumber($suptots)."</td>";
                         $res .= "</tr>";
@@ -1433,8 +1433,10 @@ class Theme {
             );
         
             // Append the data to the CSV file
-            $this->append_to_csv($filename, $data);
 
+            if(strtoupper($type) != "EQUIPMENT"):
+                $this->append_to_csv($filename, $data);
+            endif;
     
             /** get all actual purchased supplies within the month */
     
