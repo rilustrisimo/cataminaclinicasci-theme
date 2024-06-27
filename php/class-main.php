@@ -2236,18 +2236,9 @@ class Theme {
 
         if(!$supparr):
             $meta_query = array(
-                'relation' => 'AND',
-                array(
-                    'key'     => 'type',
-                    'value'   => array('Equipment', 'Adjustment'),
-                    'compare' => 'NOT IN'
-                ),
-                array(
-                    'key'     => 'date_added',
-                    'value'   =>  date('Y-m-d', strtotime($to)),
-                    'type'      =>  'date',
-                    'compare' =>  '<='
-                )
+                'key'     => 'type',
+                'value'   => array('Equipment', 'Adjustment'),
+                'compare' => 'NOT IN'
             );
     
             $supplies = $this->createQuery('supplies', $meta_query);
@@ -2256,12 +2247,14 @@ class Theme {
             $suppdept = array();
 
             // Extracts out just post_titles and makes new array
-            $filter = array_unique( array_column( $supplies->posts , 'post_title' ) );
+            //$filter = array_unique( array_column( $supplies->posts , 'post_title' ) );
 
             // Gets unique values
-            $unique = array_intersect_key( $supplies->posts, $filter );
+            //$unique = array_intersect_key( $supplies->posts, $filter );
 
-            $arrfinal = array_column( $unique , 'post_title', 'ID' );
+            //$arrfinal = array_column( $unique , 'post_title', 'ID' );
+
+            $arrfinal = array_column( $supplies->posts , 'post_title', 'ID' );
 
             $res .= '<div class="supplies-json" style="display:none;">'.json_encode($arrfinal).'</div>';
 
