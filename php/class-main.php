@@ -463,7 +463,7 @@ class Theme {
             $deptslug = strtolower(str_replace(" ", "_", $dept));
             $stype = strtolower(str_replace(" ", "_", get_field('type', $suppid)));
 
-            $suppdept[$deptslug][$stype][$suppid] = ($price * $curqty);
+            
 /*
             if(isset($suppdept[$deptslug][$stype][$suppid])):
                 $suppdept[$deptslug][$stype][$suppid] += ($price * $curqty);
@@ -1395,7 +1395,7 @@ class Theme {
                 continue;
             endif;
 
-            $curqty = $this->getQtyOfSupplyAfterDate($supplyid, $to);
+            $curqty = $this->getQtyOfSupplyAfterDate($supplyid, $from);
             $price = (float)get_field('price_per_unit', $suppid);
 
             $overallupplies[$deptslug][$typeslug][$supplyid] = array(
