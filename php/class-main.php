@@ -463,13 +463,14 @@ class Theme {
             $deptslug = strtolower(str_replace(" ", "_", $dept));
             $stype = strtolower(str_replace(" ", "_", get_field('type', $suppid)));
 
-            
-
+            $suppdept[$deptslug][$stype][$suppid] = ($price * $curqty);
+/*
             if(isset($suppdept[$deptslug][$stype][$suppid])):
                 $suppdept[$deptslug][$stype][$suppid] += ($price * $curqty);
             else:
                 $suppdept[$deptslug][$stype][$suppid] = ($price * $curqty);
             endif;
+            */
 
             /** csv func */
         
