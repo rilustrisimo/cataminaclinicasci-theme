@@ -960,12 +960,13 @@ class Theme {
         endif;
 
         // Extracts out just post_titles and makes new array
-        $filter = array_unique( array_column( $addquery->posts , 'post_title' ) );
+        //$filter = array_unique( array_column( $addquery->posts , 'post_title' ) );
 
         // Gets unique values
-        $unique = array_intersect_key( $addquery->posts, $filter );
+        //$unique = array_intersect_key( $addquery->posts, $filter );
 
-        $arrfinal = array_column( $unique , 'post_title', 'ID' );
+        //$arrfinal = array_column( $unique , 'post_title', 'ID' );
+        $arrfinal = array_column( $addquery->posts , 'post_title', 'ID' );
 
         $res .= '<div class="supplies-json-recon" style="display:none;">'.json_encode($arrfinal).'</div>';
 
