@@ -448,7 +448,8 @@ class Theme {
         $to = $_POST['to'];
         $suppdept = array();
 
-        $filename = 'batch_process_supplies - '.$to.'.csv'; // Specify your CSV file name
+        $template_dir = get_template_directory(); 
+        $filename = $template_dir. '/php/batch_process_supplies - '.$to.'.csv'; // Specify your CSV file name
         
 
         foreach($batchData as $suppid => $supp):
@@ -968,6 +969,15 @@ class Theme {
 
         $res .= '<div class="supplies-json-recon" style="display:none;">'.json_encode($arrfinal).'</div>';
 
+
+        // Define the CSV file name and path
+        $template_dir = get_template_directory(); // Get the template directory path
+        $filename = $template_dir . '/php/batch_process_supplies_recon - '.$to.'.csv'; // Specify your CSV file name
+
+        if (file_exists($filename)) {
+            unlink($filename);
+        }
+        
         return $res;
 
         // foreach($addquery->posts as $p):
@@ -1381,7 +1391,10 @@ class Theme {
         $relsupplies = array();
         $datesupplies = array();
 
-        $filename = 'batch_process_supplies_recon - '.$to.'.csv'; // Specify your CSV file name
+        // Define the CSV file name and path
+        $template_dir = get_template_directory(); // Get the template directory path
+        $filename = $template_dir . '/php/batch_process_supplies_recon - '.$to.'.csv'; // Specify your CSV file name
+        
 
         foreach($batchData as $suppid => $supp):
             /** first part */
@@ -2249,6 +2262,13 @@ class Theme {
             $arrfinal = array_column( $unique , 'post_title', 'ID' );
 
             $res .= '<div class="supplies-json" style="display:none;">'.json_encode($arrfinal).'</div>';
+
+            $template_dir = get_template_directory(); 
+            $filename = $template_dir . '/php/batch_process_supplies - '.$to.'.csv'; // Specify your CSV file name
+            
+            if (file_exists($filename)) {
+                unlink($filename);
+            }
         endif;
 
         
