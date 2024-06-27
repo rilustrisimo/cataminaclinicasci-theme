@@ -933,30 +933,14 @@ class Theme {
 
         if(!is_bool($dept) && ($dept !== 'false')):
             $meta_query = array(
-                'relation' => 'AND',
-                array(
-                    'key'     => 'department',
-                    'value'   =>  $dept,
-                    'compare' =>  '='   
-                ),
-                array(
-                    'key'     => 'date_added',
-                    'value'   =>  date('Y-m-d', strtotime($to)),
-                    'type'      =>  'date',
-                    'compare' =>  '<='
-                )
+                'key'     => 'department',
+                'value'   =>  $dept,
+                'compare' =>  '='  
             );
 
             $addquery = $this->createQuery('supplies', $meta_query);
         else:
-            $meta_query = array(
-                'key'     => 'date_added',
-                'value'   =>  date('Y-m-d', strtotime($to)),
-                'type'      =>  'date',
-                'compare' =>  '<='
-            );
-
-            $addquery = $this->createQuery('supplies', $meta_query);
+            $addquery = $this->createQuery('supplies');
         endif;
 
         // Extracts out just post_titles and makes new array
