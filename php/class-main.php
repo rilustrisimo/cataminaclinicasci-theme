@@ -497,6 +497,11 @@ class Theme {
     
         $file = fopen($filename, 'a'); // Open the file in append mode
     
+        if (!$file) {
+            // If the file couldn't be opened, throw an error
+            throw new Exception("Unable to open file: $filename");
+        }
+    
         if (!$file_exists) {
             // Write the header only if the file doesn't exist
             fputcsv($file, array('ID', 'department', 'quantity', 'price', 'total price', 'duplicate'));
