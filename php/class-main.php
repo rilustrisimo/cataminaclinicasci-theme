@@ -465,7 +465,7 @@ class Theme {
 
             
 
-            if(isset($suppdept[$deptslug][$stype])):
+            if(isset($suppdept[$deptslug][$stype][$suppid])):
                 $suppdept[$deptslug][$stype][$suppid] += ($price * $curqty);
             else:
                 $suppdept[$deptslug][$stype][$suppid] = ($price * $curqty);
