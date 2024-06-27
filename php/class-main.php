@@ -466,9 +466,9 @@ class Theme {
             
 
             if(isset($suppdept[$deptslug][$stype])):
-                $suppdept[$deptslug][$stype] += ($price * $curqty);
+                $suppdept[$deptslug][$stype][$suppid] += ($price * $curqty);
             else:
-                $suppdept[$deptslug][$stype] = ($price * $curqty);
+                $suppdept[$deptslug][$stype][$suppid] = ($price * $curqty);
             endif;
 
             /** csv func */
@@ -2264,11 +2264,17 @@ class Theme {
                 $res .= "</tr>";
 
                 foreach($t as $typetitle => $v):
-                    $totsup += (float)$v;
+                    $vnumfinal = 0;
+
+                    foreach($v as $vnum):
+                        $vnumfinal += (float)$vnum;
+                    endforeach;
+
+                    $totsup += $vnumfinal;
 
                     $res .= "<tr>";
                     $res .= "<td>".strtoupper(str_replace("_", " ", $typetitle))."</td>";
-                    $res .= "<td>&#8369 ".$this->convertNumber($v)."</td>";
+                    $res .= "<td>&#8369 ".$this->convertNumber($vnumfinal)."</td>";
                     $res .= "</tr>";
                 endforeach;
             endforeach;
