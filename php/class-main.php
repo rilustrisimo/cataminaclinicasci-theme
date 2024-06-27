@@ -521,7 +521,7 @@ class Theme {
         }
     
         // Append the row with "true" or "false" in the duplicate column
-        $data['duplicate'] = $is_duplicate ? 'true' : 'false';
+        $data['duplicate'] = $is_duplicate ? 'true' : '';
         fputcsv($file, $data);
     
         fclose($file); // Close the file
