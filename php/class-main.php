@@ -463,7 +463,7 @@ class Theme {
             $deptslug = strtolower(str_replace(" ", "_", $dept));
             $stype = strtolower(str_replace(" ", "_", get_field('type', $suppid)));
 
-            
+            $suppdept[$deptslug][$stype][$suppid] = ($price * $curqty);
 /*
             if(isset($suppdept[$deptslug][$stype][$suppid])):
                 $suppdept[$deptslug][$stype][$suppid] += ($price * $curqty);
@@ -586,7 +586,7 @@ class Theme {
                 'key'     => 'release_date',
                 'value'   =>  date('Y-m-d', strtotime($date)),
                 'type'      =>  'date',
-                'compare' =>  '<'   
+                'compare' =>  '<='   
             ),
             array(
                 'key'     => 'supply_name',
