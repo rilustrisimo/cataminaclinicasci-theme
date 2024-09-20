@@ -712,6 +712,52 @@ var Theme = {
 
             $('.sup-total span').html("&#8369 " + str2);
         }
+
+        Theme.checkExpired($);
+    },
+
+    checkExpired: function($){
+        // Get today's date
+        const today = new Date();
+
+        // Select all visible and non-empty .filter-exp <td> elements
+        $("td.filter-exp:visible").filter(function() {
+            // Get the text inside the td and trim any extra spaces
+            const dateText = $.trim($(this).html());
+
+            // Check if the <td> has a valid date
+            if (dateText !== "") {
+                // Parse the date in the format MM/DD/YYYY
+                const cellDate = new Date(dateText);
+
+                // Check if the parsed date is valid
+                if (!isNaN(cellDate.getTime())) {
+                    // Calculate the time difference in milliseconds
+                    const timeDifference = cellDate.getTime() - today.getTime();
+                    
+                    // Convert time difference to days
+                    const daysDifference = timeDifference / (1000 * 3600 * 24);
+                    
+                    // Select all <td> elements in the current row (parent <tr>)
+                    const allTdsInRow = $(this).closest("tr").find("td");
+                    
+                    // Apply bold and red color to all <td> if the date is already expired
+                    if (daysDifference < 0) {
+                        allTdsInRow.css({
+                            "font-weight": "bold",
+                            "color": "red"
+                        });
+                    } 
+                    // Apply bold to all <td> if the date is expiring within 6 months (180 days)
+                    else if (daysDifference <= 180) {
+                        allTdsInRow.css({
+                            "font-weight": "bold"
+                        });
+                    }
+                }
+            }
+        });
+
     },
 
     recalculateReconTotal: function($){
