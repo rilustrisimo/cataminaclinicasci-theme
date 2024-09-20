@@ -680,7 +680,7 @@ var Theme = {
         if($('.recon-total').length > 0){
             var totp = 0;
 
-            $('.report__result tbody tr').each(function(){
+            $('.report__result tbody tr:visible').each(function(){
                 var q = $(this).find('.row-actual-count input').val();
                 var p = $(this).find('.row-price').attr('data-val');
 
@@ -697,7 +697,7 @@ var Theme = {
         if($('.sup-total').length > 0){
             var totp2 = 0;
 
-            $('.report__result tbody.count-supplies tr').each(function(){
+            $('.report__result tbody.count-supplies tr:visible').each(function(){
                 var q2 = $(this).find('.row-actual-count input').val();
                 var p2 = $(this).find('.row-price').attr('data-val');
 
