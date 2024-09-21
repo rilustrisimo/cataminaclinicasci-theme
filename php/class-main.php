@@ -263,6 +263,20 @@ class Theme {
             )
         ),
         array(
+            'post_type'		=> 'unrecordedcredits',
+            'singular_name' => 'Unrecorded Credit',
+            'plural_name'	=> 'Unrecorded Credits',
+            'menu_icon' 	=> 'dashicons-portfolio',
+            'supports'		=> array( 'title', 'thumbnail'),
+            'title_acf'     => 'field_66eed7325b875',
+            'header'        => array(
+                'credit_amount' => 'Credit Amount',
+                'description' => 'Description',
+                'date_added' => 'Date Added',
+                'source' => 'Source'
+            )
+        ),
+        array(
             'post_type'		=> 'declareddividends',
             'singular_name' => 'Declared Dividend',
             'plural_name'	=> 'Declared Dividends',
