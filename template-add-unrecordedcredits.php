@@ -20,18 +20,20 @@ if ( have_posts() ) : ?>
 	<?php while ( have_posts() ) { the_post(); ?>
 		<div class="page-single">
 			<main class="page-single__content" role="main">
-                <div class="custom-post__add-form" form-id="198">
-				    <?php $theme->createAcfForm(198, 'retainedearnings', '<i class="fa-solid fa-plus"></i> Add Earnings'); ?>
+                <div class="custom-post__add-form" form-id="19482">
+				    <?php $theme->createAcfForm(19482, 'unrecordedcredits', '<i class="fa-solid fa-plus"></i> Add Unrecorded Credits'); ?>
                 </div>
-                <div class="custom-post__search"><div class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></div><input type="text" class="search-ajax" placeholder="Search Earnings"></div>
-                <div class="custom-post__list" data-pt="retainedearnings">
+                <div class="custom-post__search"><div class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></div><input type="text" class="search-ajax" placeholder="Search Unrecorded Credits"></div>
+                <div class="custom-post__list" data-pt="unrecordedcredits">
                     <?php 
                     $header = array(
-                        'retained_earnings' => 'Retained Earnings / Undivided Profits',
-                        'date_added' => 'Date Added'
+                        'credit_amount' => 'Credit Amount',
+                        'description' => 'Description',
+                        'date_added' => 'Date Added',
+                        'source' => 'Source'
                     );
 
-                    $theme->createCustomPostListHtml('retainedearnings', 20, $header);
+                    $theme->createCustomPostListHtml('unrecordedcredits', 20, $header);
                     ?>
                 </div>
 			</main>
