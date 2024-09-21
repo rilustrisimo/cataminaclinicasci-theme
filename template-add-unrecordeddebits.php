@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Add Unrecorded Credits
+ * Template Name: Add Unrecorded Debits
  *
  * @author    eyorsogood.com, Rouie Ilustrisimo
  * @package   SwishDesign
