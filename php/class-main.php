@@ -2430,8 +2430,29 @@ class Theme {
 
 
         $res .= '<div class="report__result-total">&#8369 '.$this->convertNumber(($rettot - $dectot) + ($incexp)).'</div>';
-        $res .= '<div class="report__result-total"><span>Total Networth:</span> &#8369 '.$this->convertNumber($captot + ($rettot - $dectot) + ($incexp)).'</div>';
-        $res .= '<div class="report__result-total" style="margin-bottom: 50px;"><span>Total Liabilities and Networth:</span> &#8369 '.$this->convertNumber(($payaccttot + $paysupptot) + $captot + ($rettot - $dectot) + ($incexp)).'</div>';
+
+        $query = $this->createQuery('unrecordedcredits', $meta_query, -1, 'date', 'ASC');
+        $uncredits = 0;
+
+        foreach($query->posts as $cre):
+            $uncredits += (float)get_field('credit_amount', $cre->ID);
+        endforeach;
+
+        $res .= '<div class="report__result-total"><span>Unrecorded Credits:</span> &#8369 '.$this->convertNumber($uncredits).'</div>';
+
+        $query = $this->createQuery('unrecordeddebits', $meta_query, -1, 'date', 'ASC');
+        $undebits = 0;
+
+        foreach($query->posts as $deb):
+            $undebits += (float)get_field('debit_amount', $deb->ID);
+        endforeach;
+
+        $res .= '<div class="report__result-total"><span>Unrecorded Debits:</span> (&#8369 '.$this->convertNumber($undebits).')</div>';
+        
+        $networth = $captot + ($rettot - $dectot) + ($incexp);
+
+        $res .= '<div class="report__result-total"><span>Total Networth:</span> &#8369 '.$this->convertNumber($networth).'</div>';
+        $res .= '<div class="report__result-total" style="margin-bottom: 50px;"><span>Total Liabilities and Networth:</span> &#8369 '.$this->convertNumber(($payaccttot + $paysupptot) + $networth).'</div>';
 
         return $res;
     }
