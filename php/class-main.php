@@ -2856,7 +2856,26 @@ class Theme {
         $res .= "</table>";
 
         $res .= '<div class="report__result-total"><span>DEPRECIATION EXPENSES:</span> &#8369 '.$this->convertNumber($deptot).'</div>';
-        $res .= '<div class="report__result-total" style="margin-bottom: 35px;"><span>NET INCOME:</span> &#8369 '.$this->convertNumber(($totinc - $totexps) - $deptot).'</div>';
+
+        $meta_query = array(
+            array(
+                'key'     => 'date_added',
+                'value'   =>  date('Y-m-d', strtotime($to)),
+                'type'      =>  'date',
+                'compare' =>  '<='  
+            )
+        );
+
+        $query = $this->createQuery('beforeincometax', $meta_query, -1, 'date', 'ASC');
+        $beforetax = 0;
+
+        foreach($query->posts as $tax):
+            $beforetax += (float)get_field('pre-tax_income_amount', $tax->ID);
+        endforeach;
+
+        $res .= '<div class="report__result-total"><span>BEFORE INCOME TAX:</span> (&#8369 '.$this->convertNumber($beforetax).')</div>';
+
+        $res .= '<div class="report__result-total" style="margin-bottom: 35px;"><span>NET INCOME:</span> &#8369 '.$this->convertNumber((($totinc - $totexps) - $deptot) - $beforetax).'</div>';
        
 
         return $res;
