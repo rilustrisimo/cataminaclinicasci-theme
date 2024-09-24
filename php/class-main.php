@@ -2449,7 +2449,7 @@ class Theme {
 
         $res .= '<div class="report__result-total"><span>Unrecorded Debits:</span> (&#8369 '.$this->convertNumber($undebits).')</div>';
         
-        $networth = $captot + ($rettot - $dectot) + ($incexp);
+        $networth = (($captot + ($rettot - $dectot) + ($incexp)) + $uncredits) - $undebits;
 
         $res .= '<div class="report__result-total"><span>Total Networth:</span> &#8369 '.$this->convertNumber($networth).'</div>';
         $res .= '<div class="report__result-total" style="margin-bottom: 50px;"><span>Total Liabilities and Networth:</span> &#8369 '.$this->convertNumber(($payaccttot + $paysupptot) + $networth).'</div>';
