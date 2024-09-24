@@ -185,6 +185,20 @@ class Theme {
             )
         ),
         array(
+            'post_type'		=> 'beforeincometax',
+            'singular_name' => 'Before Income Tax',
+            'plural_name'	=> 'Before Income Taxes',
+            'menu_icon' 	=> 'dashicons-portfolio',
+            'supports'		=> array( 'title', 'thumbnail'),
+            'title_acf'     => 'field_66f26824ef620',
+            'header'        => array(
+                'pre-tax_income_amount' => 'Pre-Tax Income Amount',
+                'description' => 'Description',
+                'date_added' => 'Date Added',
+                'applicable_period' => 'Applicable Period'
+            )
+        ),
+        array(
             'post_type'		=> 'products',
             'singular_name' => 'Product',
             'plural_name'	=> 'Products',
@@ -286,6 +300,20 @@ class Theme {
             'header'        => array(
                 'declared_dividends' => 'Declared Dividends',
                 'date_added' => 'Date Added'
+            )
+        ),
+        array(
+            'post_type'		=> 'unrecordeddebits',
+            'singular_name' => 'Unrecorded Debit',
+            'plural_name'	=> 'Unrecorded Debits',
+            'menu_icon' 	=> 'dashicons-portfolio',
+            'supports'		=> array( 'title', 'thumbnail'),
+            'title_acf'     => 'field_66f267ad50a56',
+            'header'        => array(
+                'debit_amount' => 'Debit Amount',
+                'description' => 'Description',
+                'date_added' => 'Date Added',
+                'reason' => 'Reason'
             )
         )
     );
