@@ -20,18 +20,20 @@ if ( have_posts() ) : ?>
 	<?php while ( have_posts() ) { the_post(); ?>
 		<div class="page-single">
 			<main class="page-single__content" role="main">
-                <div class="custom-post__add-form" form-id="198">
-				    <?php $theme->createAcfForm(198, 'retainedearnings', '<i class="fa-solid fa-plus"></i> Add Earnings'); ?>
+                <div class="custom-post__add-form" form-id="19506">
+				    <?php $theme->createAcfForm(19506, 'beforeincometax', '<i class="fa-solid fa-plus"></i> Add Before Income Tax'); ?>
                 </div>
-                <div class="custom-post__search"><div class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></div><input type="text" class="search-ajax" placeholder="Search Earnings"></div>
-                <div class="custom-post__list" data-pt="retainedearnings">
+                <div class="custom-post__search"><div class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></div><input type="text" class="search-ajax" placeholder="Search Before Income Taxes"></div>
+                <div class="custom-post__list" data-pt="beforeincometax">
                     <?php 
                     $header = array(
-                        'retained_earnings' => 'Retained Earnings / Undivided Profits',
-                        'date_added' => 'Date Added'
+                        'pre-tax_income_amount' => 'Pre-Tax Income Amount',
+                        'description' => 'Description',
+                        'date_added' => 'Date Added',
+                        'applicable_period' => 'Applicable Period'
                     );
 
-                    $theme->createCustomPostListHtml('retainedearnings', 20, $header);
+                    $theme->createCustomPostListHtml('beforeincometax', 20, $header);
                     ?>
                 </div>
 			</main>
