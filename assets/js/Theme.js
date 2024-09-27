@@ -689,7 +689,7 @@ var Theme = {
             });
 
             let np = totp.toFixed(2);
-            let str = np.toLocaleString("en-US");
+            let str = parseFloat(np).toLocaleString("en-US");
 
             $('.recon-total span').html("&#8369 " + str);
         }
@@ -708,7 +708,7 @@ var Theme = {
             });
 
             let np2 = totp2.toFixed(2);
-            let str2 = np2.toLocaleString("en-US");
+            let str2 = parseFloat(np2).toLocaleString("en-US");
 
             $('.sup-total span').html("&#8369 " + str2);
         }
