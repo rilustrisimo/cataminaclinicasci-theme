@@ -684,7 +684,7 @@ var Theme = {
                 var q = $(this).find('.row-actual-count input').val();
                 var p = $(this).find('.row-price').attr('data-val');
 
-                var t = parseInt(q) * parseFloat(p).toFixed(2);
+                var t = parseInt(q) * parseFloat(p);
                 totp += t;
             });
 
@@ -701,7 +701,7 @@ var Theme = {
                 var q2 = $(this).find('.row-actual-count input').val();
                 var p2 = $(this).find('.row-price').attr('data-val');
 
-                var t2 = parseInt(q2) * parseFloat(p2).toFixed(2);
+                var t2 = parseInt(q2) * parseFloat(p2);
                 
                 totp2 += t2;
                 
