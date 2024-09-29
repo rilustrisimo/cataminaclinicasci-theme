@@ -46,7 +46,28 @@ if ( have_posts() ) : ?>
                             $dept = 'NURSING';
                             else:
                                 $u = wp_get_current_user();
+                                /*
                                 echo '<input type="hidden" id="author-id" value="'.$u->ID.'">';
+                                */
+
+                                echo '<div class="custom-post__dept" style="display: inline-block;">';
+                                echo '    <select id="select-department" class="recon-dept">';
+                                echo ($u == 7)?'        <option value="NURSING">NURSING</option>':'';
+                                echo ($u == 6)?'        <option value="LABORATORY">LABORATORY</option>':'';
+                                echo ($u == 4)?'        <option value="PHARMACY">PHARMACY</option>':'';
+                                echo ($u == 8)?'        <option value="HOUSEKEEPING">HOUSEKEEPING</option>':'';
+                                echo ($u == 8)?'        <option value="MAINTENANCE">MAINTENANCE</option>':'';
+                                echo ($u == 5)?'        <option value="RADIOLOGY">RADIOLOGY</option>':'';
+                                echo ($u == 9)?'        <option value="BUSINESS OFFICE">BUSINESS OFFICE</option>':'';
+                                echo ($u == 10)?'        <option value="INFORMATION / TRIAGE">INFORMATION / TRIAGE</option>':'';
+                                echo ($u == 14)?'        <option value="PHYSICAL THERAPY">PHYSICAL THERAPY</option>':'';
+                                echo ($u == 11)?'        <option value="KONSULTA PROGRAM">KONSULTA PROGRAM</option>':'';
+                                echo ($u == 12)?'        <option value="CLINIC B">CLINIC B</option>':'';
+                                echo ($u == 12)?'        <option value="CLINIC C">CLINIC C</option>':'';
+                                echo ($u == 12)?'        <option value="CLINIC D">CLINIC D</option>':'';
+                                echo '    </select>';
+                                echo '</div>';
+
                             endif; 
                             
                         ?>
