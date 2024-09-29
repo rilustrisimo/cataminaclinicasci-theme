@@ -431,14 +431,14 @@ class Theme {
 
         $u = wp_get_current_user();
         $roles = ( array ) $u->roles;
-
+/*
         if(!current_user_can( 'manage_options' ) && !($roles[0] == "um_accounting")):
             if($aid):
                 $args['author'] = $aid;
             else:
                 $args['author'] = $u->ID;
             endif;
-        endif;
+        endif;*/
 
         $the_query = new WP_Query( $args );
 
