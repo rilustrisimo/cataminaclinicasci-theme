@@ -2412,8 +2412,26 @@ class Theme {
         endforeach;
 
         $res .= '<div class="report__result-total"><span>Retained Earnings/Undivided Profits:</span> &#8369 '.$this->convertNumber($rettot).'</div>';
-        
-        $incexp = $this->getIncomeExpensesTotalNet($from, $to);
+
+        $meta_query = array(
+            array(
+                'key'     => 'date_added',
+                'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
+                'type'      =>  'date',
+                'compare' =>  'between'  
+            )
+        );
+
+        $query = $this->createQuery('beforeincometax', $meta_query, -1, 'date', 'ASC');
+        $beforetax = 0;
+
+        foreach($query->posts as $tax):
+            $beforetax += (float)get_field('pre-tax_income_amount', $tax->ID);
+        endforeach;
+
+        $incexp = $this->getIncomeExpensesTotalNet($from, $to) - $beforetax;
+
+        $res .= '<div class="report__result-total"><span>Before Income Tax:</span> (&#8369 '.$this->convertNumber($beforetax).')</div>';
 
         $res .= '<div class="report__result-total"><span>Net Profit/Income ('.date('M d, Y', strtotime($from))." - ".date('M d, Y', strtotime($to)).'):</span> &#8369 '.$this->convertNumber($incexp).'</div>';
 
@@ -2860,9 +2878,9 @@ class Theme {
         $meta_query = array(
             array(
                 'key'     => 'date_added',
-                'value'   =>  date('Y-m-d', strtotime($to)),
+                'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
                 'type'      =>  'date',
-                'compare' =>  '<='  
+                'compare' =>  'between'  
             )
         );
 
