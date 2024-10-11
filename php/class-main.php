@@ -1321,7 +1321,7 @@ class Theme {
                         endif;
 
                         $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:'';
-                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:implode(',',$this->getLastExpDate($suppid));
+                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:$this->getLastExpDate($suppid);
                         $suptots = ((((float)$suppdeets['quantity'] + $purchase) - $release) * $price);
                         
                         /** body */
@@ -1394,7 +1394,9 @@ class Theme {
             $expd[] = get_field('expiry_date', $p->ID);  
         endforeach;
 
-        return $expd;
+        $cnt = count($expd);
+
+        return $expd[$cnt-1];
     }
 
     public function batch_process_supplies_recon() {
