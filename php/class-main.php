@@ -1321,7 +1321,7 @@ class Theme {
                         endif;
 
                         $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:'';
-                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:'';
+                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:implode(',',$this->getLastExpDate($suppid));
                         $suptots = ((((float)$suppdeets['quantity'] + $purchase) - $release) * $price);
                         
                         /** body */
@@ -1377,6 +1377,24 @@ class Theme {
 
         wp_send_json_success($res);
         //return $res;
+    }
+
+    public function getLastExpDate($suppid) {
+        $meta_query = array(
+            array(
+                'key'     => 'supply_name',
+                'value'   =>  $suppid
+            )
+        );
+
+        $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'ASC');
+        $expd = array();
+
+        foreach($addquery->posts as $p):
+            $expd[] = get_field('expiry_date', $p->ID);  
+        endforeach;
+
+        return $expd;
     }
 
     public function batch_process_supplies_recon() {
@@ -1442,18 +1460,19 @@ class Theme {
                 if(get_field('lot_number', $p->ID)){
                     $lotn[$supplyid][] = get_field('lot_number', $p->ID);
                 }
-
+/*
                 if(get_field('expiry_date', $p->ID)){
                     $expd[$supplyid][] = get_field('expiry_date', $p->ID);   
                 }
-    
+    */
                 $datesupplies[$supplyid] = array(
                     'supply_name' => get_field('supply_name', $supplyid),
                     'quantity' => $qty[$supplyid],
                     'serial' => (!empty(get_field('serial', $p->ID)))?get_field('serial', $p->ID):false,
                     'states__status' => (!empty(get_field('states__status', $p->ID)))?get_field('states__status', $p->ID):false,
                     'lot_number' => (isset($lotn[$supplyid]))?implode(',', $lotn[$supplyid]):'',
-                    'expiry_date' => (isset($expd[$supplyid]))?implode(',', $expd[$supplyid]):''
+                    //'expiry_date' => (isset($expd[$supplyid]))?implode(',', $expd[$supplyid]):''
+                    'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):'',
                 );
             endforeach;
     
