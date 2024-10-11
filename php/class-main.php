@@ -1391,12 +1391,16 @@ class Theme {
         $expd = array();
 
         foreach($addquery->posts as $p):
-            $expd[] = get_field('expiry_date', $p->ID);  
+            $expfield = get_field('expiry_date', $p->ID);
+
+            if(!empty($expfield)):
+                $expd[] = $expfield;  
+            endif;
         endforeach;
 
         $cnt = count($expd);
 
-        return $expd[$cnt-1];
+        return ($cnt > 0)?$expd[$cnt-1]:'';
     }
 
     public function batch_process_supplies_recon() {
