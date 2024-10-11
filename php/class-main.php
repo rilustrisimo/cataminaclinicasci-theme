@@ -1321,7 +1321,7 @@ class Theme {
                         endif;
 
                         $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:'';
-                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:$this->getLastExpDate($suppid);
+                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:$this->getLastExpDate($suppid,$suppdeets['quantity']);
                         $suptots = ((((float)$suppdeets['quantity'] + $purchase) - $release) * $price);
                         
                         /** body */
@@ -1379,7 +1379,9 @@ class Theme {
         //return $res;
     }
 
-    public function getLastExpDate($suppid) {
+    public function getLastExpDate($suppid, $quantity) {
+        if($quantity == 0) return '';
+        
         $meta_query = array(
             array(
                 'key'     => 'supply_name',
