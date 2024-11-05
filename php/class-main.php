@@ -2304,7 +2304,7 @@ class Theme {
             $res .= "</table>";
 
             $res .= '<div class="report__result-total"><span>Total Supplies - Inventory:</span> &#8369 '.$this->convertNumber($totsup).'</div>';
-            $res .= '<div class="report__result-total"><span>Total Current Assets:</span> &#8369 '.$this->convertNumber($totsup + $totalcandb + $cashonhand[0]).'</div>';
+            $res .= '<div class="report__result-total"><span>Total Current Assets:</span> &#8369 '.$this->convertNumber($totsup + $totalcandb + $cashonhand[0] + $totalexclu).'</div>';
 
         endif;
 
