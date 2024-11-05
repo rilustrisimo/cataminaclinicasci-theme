@@ -2199,9 +2199,19 @@ class Theme {
 
         foreach($banks as $id => $b):
             
-            $exclu = array('Accounts Receivable-JBA', 'Accrued Interest Receivable');
+            $exclu = array('Accounts Receivable', 'Accrued Interest Receivable');
 
-            if(!in_array(trim($b['name_of_bank']), $exclu)):
+            $bankName = trim($b['name_of_bank']);
+            $found = false;
+
+            foreach ($exclu as $word) {
+                if (strpos($bankName, $word) !== false) {
+                    $found = true;
+                    break; // Stop checking if any match is found
+                }
+            }
+
+            if(!$found):
                 $res .= "<tr>";
                 $res .= "<td>".$b['name_of_bank']."</td>";
                 $res .= "<td>&#8369 ".$this->convertNumber($b['amount'])."</td>";
