@@ -2245,7 +2245,7 @@ class Theme {
         $res .= "</tbody>";
         $res .= "</table>";
         
-        $res .= '<div class="report__result-total"><span>Accounts Receivable:</span> &#8369 '.$this->convertNumber($totalexclu).'</div>';
+        $res .= '<div class="report__result-total"><span>Total Accounts Receivable:</span> &#8369 '.$this->convertNumber($totalexclu).'</div>';
 
 /*
         $meta_query = array(
