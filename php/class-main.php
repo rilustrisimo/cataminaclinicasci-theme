@@ -2233,9 +2233,19 @@ class Theme {
 
         $res .= '<div class="report__result-total"><span>Total Cash on Hand / In Banks:</span> &#8369 '.$this->convertNumber(($totalcandb + $cashonhand[0])).'</div>';
 
+        $res .= "<table>";
+        $res .= "<tbody>";
+
         foreach($temparr as $i => $e):
-            $res .= '<div class="report__result-total"><span>'.$e['title'].'</span> &#8369 '.$e['amount'].'</div>'; 
+            $res .= "<tr>";
+            $res .= "<td>".$e['title']."</td>";
+            $res .= "<td>&#8369 ".$e['amount']."</td>";
+            $res .= "</tr>";
         endforeach;
+        $res .= "</tbody>";
+        $res .= "</table>";
+        
+        $res .= '<div class="report__result-total"><span>Accounts Receivable:</span> &#8369 '.$this->convertNumber($totalexclu).'</div>';
 
 /*
         $meta_query = array(
