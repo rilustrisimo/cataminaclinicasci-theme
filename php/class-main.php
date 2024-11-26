@@ -630,7 +630,7 @@ class Theme {
     
         // Calculate final quantity based on $expired flag
         if ($expired) {
-            return array(($addqty - $expqty) - $relqty, $expqty);
+            return array(($addqty - $relqty), $expqty);
         } else {
             return $addqty - $relqty;
         }
@@ -2306,8 +2306,9 @@ class Theme {
             foreach($supparr as $d => $t):
                 $res .= "<tr style='background: #8e8e8e;'>";
                 $res .= "<td style='color: #fff;font-weight: 700;'>".strtoupper(str_replace("_", " ", $d))."</td>";
-                $res .= "<td>FINAL AMOUNT</td>";
+                $res .= "<td>AMOUNT</td>";
                 $res .= "<td>EXPIRED (LOSS)</td>";
+                $res .= "<td>FINAL AMOUNT</td>";
                 $res .= "</tr>";
 
                 foreach($t as $typetitle => $v):
@@ -2326,6 +2327,7 @@ class Theme {
                     $res .= "<td>".strtoupper(str_replace("_", " ", $typetitle))."</td>";
                     $res .= "<td>&#8369 ".$this->convertNumber($vnumfinal)."</td>";
                     $res .= "<td>&#8369 ".$this->convertNumber($expvnumfinal)."</td>";
+                    $res .= "<td>&#8369 ".$this->convertNumber($vnumfinal - $expvnumfinal)."</td>";
                     $res .= "</tr>";
                 endforeach;
             endforeach;
@@ -2335,7 +2337,7 @@ class Theme {
 
             $res .= '<div class="report__result-total"><span>Total Supplies - Inventory:</span> &#8369 '.$this->convertNumber($totsup).'</div>';
             $res .= '<div class="report__result-total"><span>Total Supplies (LOSS):</span> (&#8369 '.$this->convertNumber($totsupexp).')</div>';
-            $res .= '<div class="report__result-total"><span>Total Current Assets:</span> &#8369 '.$this->convertNumber($totsup + $totalcandb + $cashonhand[0] + $totalexclu).'</div>';
+            $res .= '<div class="report__result-total"><span>Total Current Assets:</span> &#8369 '.$this->convertNumber(($totsup - $totsupexp) + $totalcandb + $cashonhand[0] + $totalexclu).'</div>';
 
         endif;
 
@@ -2391,7 +2393,7 @@ class Theme {
         $res .= "</table>";
 
         $res .= '<div class="report__result-total"><span>Total Fixed Assets:</span> &#8369 '.$this->convertNumber($overalllval).'</div>';
-        $res .= '<div class="report__result-total"><span>Total Assets:</span> &#8369 '.$this->convertNumber($overalllval + $totsup + $totalcandb + $cashonhand[0] + $totalexclu).'</div>';
+        $res .= '<div class="report__result-total"><span>Total Assets:</span> &#8369 '.$this->convertNumber($overalllval + ($totsup - $totsupexp) + $totalcandb + $cashonhand[0] + $totalexclu).'</div>';
        
 
         $res .= '<div class="report__result-header">LIABILITIES</div>';
