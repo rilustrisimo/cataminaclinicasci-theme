@@ -494,7 +494,7 @@ class Theme {
         foreach($batchData as $suppid => $supp):
 
             $price = (float)get_field('price_per_unit', $suppid);
-            $curqty = $this->getQtyOfSupplyAfterDate($suppid, $to);
+            $curqty = $this->getQtyOfSupplyAfterDate($suppid, $to, true);
 
             //if($curqty <= 0) continue;
 
@@ -502,7 +502,7 @@ class Theme {
             $deptslug = strtolower(str_replace(" ", "_", $dept));
             $stype = strtolower(str_replace(" ", "_", get_field('type', $suppid)));
 
-            $suppdept[$deptslug][$stype][$suppid] = ($price * $curqty);
+            $suppdept[$deptslug][$stype][$suppid] = array(($price * $curqty[0]), $curqty[1]);
 
             /** csv func end */
 
@@ -572,55 +572,69 @@ class Theme {
 
     }
 
-    public function getQtyOfSupplyAfterDate($supid, $date) {
-
-        ///** add supplies 
+    public function getQtyOfSupplyAfterDate($supid, $date, $expired = false) {
+        // Initialize quantities
+        $addqty = 0;
+        $expqty = 0;
+        $relqty = 0;
+    
+        // Fetch and process actual supplies
         $meta_query = array(
             'relation' => 'AND',
             array(
                 'key'     => 'date_added',
-                'value'   =>  date('Y-m-d', strtotime($date)),
-                'type'      =>  'date',
-                'compare' =>  '<='   
+                'value'   => date('Y-m-d', strtotime($date)),
+                'type'    => 'date',
+                'compare' => '<='
             ),
             array(
-                'key'     => 'supply_name',
-                'value'   =>  $supid
+                'key'   => 'supply_name',
+                'value' => $supid
             )
         );
-
+    
         $query = $this->createQuery('actualsupplies', $meta_query);
-        $addqty = 0;
-
-        foreach($query->posts as $supp):
-            $addqty += (float)get_field('quantity', $supp->ID);
-        endforeach;
-
-        ///** release supplies 
-
+    
+        foreach ($query->posts as $supp) {
+            $quantity = (float)get_field('quantity', $supp->ID);
+            $expiry_date = get_field('expiry_date', $supp->ID);
+    
+            // Check expiry conditions if needed
+            if ($expired && strtotime($date) > strtotime($expiry_date)) {
+                $expqty += $quantity;
+            }
+    
+            $addqty += $quantity;
+        }
+    
+        // Fetch and process released supplies
         $meta_query = array(
             'relation' => 'AND',
             array(
                 'key'     => 'release_date',
-                'value'   =>  date('Y-m-d', strtotime($date)),
-                'type'      =>  'date',
-                'compare' =>  '<='   
+                'value'   => date('Y-m-d', strtotime($date)),
+                'type'    => 'date',
+                'compare' => '<='
             ),
             array(
-                'key'     => 'supply_name',
-                'value'   =>  $supid
+                'key'   => 'supply_name',
+                'value' => $supid
             )
         );
-
+    
         $query = $this->createQuery('releasesupplies', $meta_query);
-        $relqty = 0;
-
-        foreach($query->posts as $supp):
+    
+        foreach ($query->posts as $supp) {
             $relqty += (float)get_field('quantity', $supp->ID);
-        endforeach;
-
-        return ($addqty - $relqty);
-    }
+        }
+    
+        // Calculate final quantity based on $expired flag
+        if ($expired) {
+            return array(($addqty - $expqty) - $relqty, $expqty);
+        } else {
+            return $addqty - $relqty;
+        }
+    }    
     
 /*
     public function getQtyOfSupplyAfterDate($supid, $date) {
@@ -2287,25 +2301,31 @@ class Theme {
             $res .= "<table>";
             $res .= "<tbody>";
             $totsup = 0;
+            $totsupexp = 0;
 
             foreach($supparr as $d => $t):
                 $res .= "<tr style='background: #8e8e8e;'>";
                 $res .= "<td style='color: #fff;font-weight: 700;'>".strtoupper(str_replace("_", " ", $d))."</td>";
-                $res .= "<td>&nbsp;</td>";
+                $res .= "<td>FINAL AMOUNT</td>";
+                $res .= "<td>EXPIRED (LOSS)</td>";
                 $res .= "</tr>";
 
                 foreach($t as $typetitle => $v):
                     $vnumfinal = 0;
+                    $expvnumfinal = 0;
 
                     foreach($v as $vnum):
-                        $vnumfinal += (float)$vnum;
+                        $vnumfinal += (float)$vnum[0];
+                        $expvnumfinal += (float)$vnum[1];
                     endforeach;
 
                     $totsup += $vnumfinal;
+                    $totsupexp += $expvnumfinal;
 
                     $res .= "<tr>";
                     $res .= "<td>".strtoupper(str_replace("_", " ", $typetitle))."</td>";
                     $res .= "<td>&#8369 ".$this->convertNumber($vnumfinal)."</td>";
+                    $res .= "<td>&#8369 ".$this->convertNumber($expvnumfinal)."</td>";
                     $res .= "</tr>";
                 endforeach;
             endforeach;
@@ -2314,6 +2334,7 @@ class Theme {
             $res .= "</table>";
 
             $res .= '<div class="report__result-total"><span>Total Supplies - Inventory:</span> &#8369 '.$this->convertNumber($totsup).'</div>';
+            $res .= '<div class="report__result-total"><span>Total Supplies (LOSS):</span> (&#8369 '.$this->convertNumber($totsupexp).')</div>';
             $res .= '<div class="report__result-total"><span>Total Current Assets:</span> &#8369 '.$this->convertNumber($totsup + $totalcandb + $cashonhand[0] + $totalexclu).'</div>';
 
         endif;

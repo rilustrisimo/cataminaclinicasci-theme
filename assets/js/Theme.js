@@ -356,8 +356,6 @@ var Theme = {
 
                         Theme.socsupplies = JSON.parse(Theme.mergeAndSumJSON(JSON.stringify(bdata), JSON.stringify(Theme.socsupplies)));
 
-                        console.log(Theme.socsupplies);
-
                         if (currentRecord < totalRecords) {
                             // If there are more records, continue with the next batch
                             processNextBatch();
