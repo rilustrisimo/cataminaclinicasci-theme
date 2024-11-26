@@ -628,9 +628,13 @@ class Theme {
             $relqty += (float)get_field('quantity', $supp->ID);
         }
     
+        $diffexprel = 0;
+
         // Calculate final quantity based on $expired flag
         if ($expired) {
-            return array(($addqty - $relqty), $expqty);
+            $diffexprel = ($expqty > $relqty)?$expqty - $relqty:0;
+
+            return array(($addqty - $relqty), $diffexprel);
         } else {
             return $addqty - $relqty;
         }
