@@ -635,7 +635,8 @@ class Theme {
             $diffexprel = ($expqty > $relqty)?$expqty - $relqty:0;
             
 
-            return array(($addqty - $relqty), array($addqty, $relqty, $expqty));
+            //return array(($addqty - $relqty), array($addqty, $relqty, $expqty));
+            return array(($addqty - $relqty), $diffexprel);
         } else {
             return $addqty - $relqty;
         }
