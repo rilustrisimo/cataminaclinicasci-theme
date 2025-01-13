@@ -633,8 +633,9 @@ class Theme {
         // Calculate final quantity based on $expired flag
         if ($expired) {
             $diffexprel = ($expqty > $relqty)?$expqty - $relqty:0;
+            
 
-            return array(($addqty - $relqty), $expqty);
+            return array(($addqty - $relqty), array($addqty, $relqty, $expqty));
         } else {
             return $addqty - $relqty;
         }
