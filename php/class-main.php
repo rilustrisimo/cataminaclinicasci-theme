@@ -634,7 +634,7 @@ class Theme {
         if ($expired) {
             $diffexprel = ($expqty > $relqty)?$expqty - $relqty:0;
 
-            return array(($addqty - $relqty), $diffexprel);
+            return array(($addqty - $relqty), $expqty);
         } else {
             return $addqty - $relqty;
         }
