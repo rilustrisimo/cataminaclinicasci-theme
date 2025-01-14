@@ -780,15 +780,6 @@ class Theme {
                 'lot_number' => (!empty(get_field('lot_number', $p->ID)))?get_field('lot_number', $p->ID):false,
                 'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):false
             );
-
-            
-
-            if($datesupplies[$supplyid]['expiry_date']):
-                $expsupplies[$supplyid][] = array(
-                    'expiry_dates' => $datesupplies[$supplyid]['expiry_date'],
-                    'expiry_amount' => get_field('quantity', $p->ID)
-                );
-            endif;
         endforeach;
 
         /** end second loop */
@@ -923,7 +914,7 @@ class Theme {
                         $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
                         $res .= "<td>".$suppdeets['supply_name']."</td>";
                         $res .= "<td class='filter-lot'>".$lot."</td>";
-                        $res .= "<td class='filter-exp'>".$expiry.json_encode($expsupplies[$suppid], JSON_PRETTY_PRINT)."</td>";
+                        $res .= "<td class='filter-exp'>".$expiry."</td>";
                         $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
                         $res .= "<td class='filter-purchase'>".$purchase."</td>";
                         $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
@@ -1245,6 +1236,7 @@ class Theme {
         $overallupplies = $reconarray['overallupplies'];
         $datesupplies = $reconarray['datesupplies'];
         $relsupplies = $reconarray['relsupplies'];
+        $expsupplies = $reconarray['expsupplies'];
 
         $from = $_POST['fromdate'];
         $to = $_POST['todate'];
@@ -1359,7 +1351,7 @@ class Theme {
                         $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
                         $res .= "<td>".$suppdeets['supply_name']."</td>";
                         $res .= "<td class='filter-lot'>".$lot."</td>";
-                        $res .= "<td class='filter-exp'>".$expiry."</td>";
+                        $res .= "<td class='filter-exp'>".$expiry.json_encode($expsupplies[$suppid], JSON_PRETTY_PRINT)."</td>";
                         $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
                         $res .= "<td class='filter-purchase'>".$purchase."</td>";
                         $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
@@ -1442,6 +1434,7 @@ class Theme {
         $reconarray = array();
         $relsupplies = array();
         $datesupplies = array();
+        $expsupplies = array();
  
 
         foreach($batchData as $suppid => $supp):
@@ -1512,6 +1505,13 @@ class Theme {
                     //'expiry_date' => (isset($expd[$supplyid]))?implode(',', $expd[$supplyid]):''
                     'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):'',
                 );
+
+                if($datesupplies[$supplyid]['expiry_date']):
+                    $expsupplies[$supplyid][] = array(
+                        'expiry_dates' => $datesupplies[$supplyid]['expiry_date'],
+                        'expiry_amount' => get_field('quantity', $p->ID)
+                    );
+                endif;
             endforeach;
     
             /** end second loop */
@@ -1552,6 +1552,7 @@ class Theme {
         $reconarray['overallupplies'] = $overallupplies;
         $reconarray['datesupplies'] = $datesupplies;
         $reconarray['relsupplies'] = $relsupplies;
+        $reconarray['expsupplies'] = $expsupplies;
 
         wp_send_json_success($reconarray);
     }
