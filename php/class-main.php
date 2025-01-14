@@ -1292,6 +1292,8 @@ class Theme {
                     $res .= "</thead>";
                 endif;
 
+                $expSuppExpTotal = 0;
+
 
                 foreach($suppdetails as $suppid => $suppdeets):
                     $section = get_field('section', $suppid);
@@ -1348,6 +1350,7 @@ class Theme {
                         $expQtyAmountHTML = ($expQtyAmount && ($expQtyAmount > 0))?"<span class='red-warning'>(".$expQtyAmount.")</span>":"";
                         $expNameHTMLClass = ($expQtyAmount && ($expQtyAmount > 0))?"red-warning":"";
                         
+                        $expSuppExpTotal += (float)$expQtyAmount;
                         
                         /** body */
                         $res .= "<tbody class='sup-container count-supplies' data-name='".$suppdeets['supply_name']."'>";
@@ -1394,6 +1397,7 @@ class Theme {
         $res .= "</option></select>";
 
         $res .= "<div class='sup-total'><b>SUPPLIES TOTAL:</b> <span></span></div>";
+        $res .= "<div class='sup-total'><b>SUPPLIES (LOSS):</b> <span>".$this->convertNumber($expSuppExpTotal)."</span></div>";
         $res .= "<div class='recon-total'><b>OVERALL TOTAL:</b> <span></span></div>";
 
 
