@@ -1443,6 +1443,8 @@ class Theme {
             $type = get_field('type', $suppid);
             $typeslug = strtolower($type);
 
+            var_dump($name);
+
             if($type == "Adjustment"):
                 continue;
             endif;
