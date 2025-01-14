@@ -1427,8 +1427,8 @@ class Theme {
 
     public function getExpAmountAndStatus($json, $from, $to) {
         $batchData = (array)$json;
-        $to = $_POST['to'];
-        $from = $_POST['from'];
+        //$to = $_POST['to'];
+        //$from = $_POST['from'];
         $reconarray = array();
         $relsupplies = array();
         $datesupplies = array();
