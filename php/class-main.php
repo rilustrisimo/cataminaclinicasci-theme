@@ -1432,6 +1432,8 @@ class Theme {
         $reconarray = array();
         $relsupplies = array();
         $datesupplies = array();
+
+        var_dump($batchData);
  
 
         foreach($batchData as $suppid => $supp):
