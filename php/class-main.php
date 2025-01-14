@@ -1343,18 +1343,23 @@ class Theme {
                         $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:'';
                         $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:$this->getLastExpDate($suppid,$suppdeets['quantity']);
                         $suptots = ((((float)$suppdeets['quantity'] + $purchase) - $release) * $price);
+
+                        $expQtyAmount = $datesupplies[$suppid]['expired_qty'];
+                        $expQtyAmountHTML = ($expQtyAmount && ($expQtyAmount > 0))?"<span class='red-warning'>(".$expQtyAmount.")</span>":"";
+                        $expNameHTMLClass = ($expQtyAmount && ($expQtyAmount > 0))?"red-warning":"";
+                        
                         
                         /** body */
                         $res .= "<tbody class='sup-container count-supplies' data-name='".$suppdeets['supply_name']."'>";
                         $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
-                        $res .= "<td>".$suppdeets['supply_name']."</td>";
+                        $res .= "<td class='".$expNameHTMLClass."'>".$suppdeets['supply_name']."</td>";
                         $res .= "<td class='filter-lot'>".$lot."</td>";
                         $res .= "<td class='filter-exp'>".$expiry."</td>";
                         $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
                         $res .= "<td class='filter-purchase'>".$purchase."</td>";
                         $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
                         $res .= "<td class='filter-cons'>".$release."</td>";
-                        $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)."</td>";
+                        $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)." ".$expQtyAmountHTML."</td>";
                         $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
                         $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
                         $res .= "<td class='row-variance'>0</td>";
@@ -1425,20 +1430,6 @@ class Theme {
         return ($cnt > 0)?$expd[$cnt-1]:'';
     }
 
-    public function getExpAmountAndStatus($json, $from, $to) {
-        $batchData = (array)$json;
-        $expqtyOfSup = array();
-
- 
-
-        foreach($batchData as $suppid => $supp):
-            $expqtyOfSup[$suppid] = $this->getQtyOfSupplyAfterDate($suppid, $to, true);
-        endforeach;
-
-
-        return $expqtyOfSup;
-    }
-
     public function batch_process_supplies_recon() {
         $batchData = (array)$_POST['batchData'];
         $to = $_POST['to'];
@@ -1507,6 +1498,9 @@ class Theme {
                     $expd[$supplyid][] = get_field('expiry_date', $p->ID);   
                 }
     */
+
+                $expQtySup = $this->getQtyOfSupplyAfterDate($supplyid, $to, true);
+
                 $datesupplies[$supplyid] = array(
                     'supply_name' => get_field('supply_name', $supplyid),
                     'quantity' => $qty[$supplyid],
@@ -1515,6 +1509,7 @@ class Theme {
                     'lot_number' => (isset($lotn[$supplyid]))?implode(',', $lotn[$supplyid]):'',
                     //'expiry_date' => (isset($expd[$supplyid]))?implode(',', $expd[$supplyid]):''
                     'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):'',
+                    'expired_qty' => $expQtySup[1]
                 );
 
             endforeach;
