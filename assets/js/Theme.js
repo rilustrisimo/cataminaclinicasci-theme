@@ -713,7 +713,7 @@ var Theme = {
             $('.sup-total span').html("&#8369 " + str2);
         }
 
-        Theme.checkExpired($);
+        //Theme.checkExpired($);
     },
 
     checkExpired: function($){
