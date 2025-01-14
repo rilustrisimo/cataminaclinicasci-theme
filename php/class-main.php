@@ -1344,7 +1344,7 @@ class Theme {
                         $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:$this->getLastExpDate($suppid,$suppdeets['quantity']);
                         $suptots = ((((float)$suppdeets['quantity'] + $purchase) - $release) * $price);
 
-                        $expQtyAmount = $datesupplies[$suppid]['expired_qty'];
+                        $expQtyAmount = $suppdeets['expired_qty'];
                         $expQtyAmountHTML = ($expQtyAmount && ($expQtyAmount > 0))?"<span class='red-warning'>(".$expQtyAmount.")</span>":"";
                         $expNameHTMLClass = ($expQtyAmount && ($expQtyAmount > 0))?"red-warning":"";
                         
@@ -1454,12 +1454,14 @@ class Theme {
 
             $curqty = $this->getQtyOfSupplyAfterDate($supplyid, $from);
             $price = (float)get_field('price_per_unit', $suppid);
+            $expQtySup = $this->getQtyOfSupplyAfterDate($supplyid, $to, true);
 
             $overallupplies[$deptslug][$typeslug][$supplyid] = array(
                 'supply_name' => get_field('supply_name', $supplyid),
                 'department' => $dept,
                 'type' => $type,
-                'quantity' => $curqty
+                'quantity' => $curqty,
+                'expired_qty' => $expQtySup[1]
             );
             /** end first part */
 
@@ -1499,8 +1501,6 @@ class Theme {
                 }
     */
 
-                $expQtySup = $this->getQtyOfSupplyAfterDate($supplyid, $to, true);
-
                 $datesupplies[$supplyid] = array(
                     'supply_name' => get_field('supply_name', $supplyid),
                     'quantity' => $qty[$supplyid],
@@ -1508,8 +1508,7 @@ class Theme {
                     'states__status' => (!empty(get_field('states__status', $p->ID)))?get_field('states__status', $p->ID):false,
                     'lot_number' => (isset($lotn[$supplyid]))?implode(',', $lotn[$supplyid]):'',
                     //'expiry_date' => (isset($expd[$supplyid]))?implode(',', $expd[$supplyid]):''
-                    'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):'',
-                    'expired_qty' => $expQtySup[1]
+                    'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):''
                 );
 
             endforeach;
