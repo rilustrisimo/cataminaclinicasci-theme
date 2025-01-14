@@ -1443,14 +1443,14 @@ class Theme {
             $type = get_field('type', $suppid);
             $typeslug = strtolower($type);
 
-            var_dump($name);
-
             if($type == "Adjustment"):
                 continue;
             endif;
 
             $curqty = $this->getQtyOfSupplyAfterDate($supplyid, $from);
             $price = (float)get_field('price_per_unit', $suppid);
+
+            var_dump($curqty);
 
             $overallupplies[$deptslug][$typeslug][$supplyid] = array(
                 'supply_name' => get_field('supply_name', $supplyid),
