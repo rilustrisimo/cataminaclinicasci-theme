@@ -4,7 +4,7 @@ require_once( __DIR__ . '/class-main.php' );
 
 $theme = new Theme();
 
-$json = json_encode('{"2240":"MEFENAMIC ACID 500MG TABLET (RITEMED)"}');
+$json = json_decode('{"2240":"MEFENAMIC ACID 500MG TABLET (RITEMED)"}');
 
 var_dump($json);
 
