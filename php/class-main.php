@@ -763,6 +763,7 @@ class Theme {
 
         $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'DESC', $aid);
         $datesupplies = array();
+        $expsupplies = array();
         $qty = array();
 
         foreach($addquery->posts as $p):
@@ -779,6 +780,15 @@ class Theme {
                 'lot_number' => (!empty(get_field('lot_number', $p->ID)))?get_field('lot_number', $p->ID):false,
                 'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):false
             );
+
+            
+
+            if($datesupplies[$supplyid]['expiry_date']):
+                $expsupplies[$supplyid][] = array(
+                    'expiry_dates' => $datesupplies[$supplyid]['expiry_date'],
+                    'expiry_amount' => get_field('quantity', $p->ID)
+                );
+            endif;
         endforeach;
 
         /** end second loop */
@@ -913,7 +923,7 @@ class Theme {
                         $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
                         $res .= "<td>".$suppdeets['supply_name']."</td>";
                         $res .= "<td class='filter-lot'>".$lot."</td>";
-                        $res .= "<td class='filter-exp'>".$expiry."</td>";
+                        $res .= "<td class='filter-exp'>".$expiry.var_dump($expsupplies[$suppid])."</td>";
                         $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
                         $res .= "<td class='filter-purchase'>".$purchase."</td>";
                         $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
