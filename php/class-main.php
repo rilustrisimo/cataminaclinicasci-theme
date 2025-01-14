@@ -763,7 +763,6 @@ class Theme {
 
         $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'DESC', $aid);
         $datesupplies = array();
-        $expsupplies = array();
         $qty = array();
 
         foreach($addquery->posts as $p):
@@ -1236,7 +1235,6 @@ class Theme {
         $overallupplies = $reconarray['overallupplies'];
         $datesupplies = $reconarray['datesupplies'];
         $relsupplies = $reconarray['relsupplies'];
-        $expsupplies = $reconarray['expsupplies'];
 
         $from = $_POST['fromdate'];
         $to = $_POST['todate'];
@@ -1351,7 +1349,7 @@ class Theme {
                         $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
                         $res .= "<td>".$suppdeets['supply_name']."</td>";
                         $res .= "<td class='filter-lot'>".$lot."</td>";
-                        $res .= "<td class='filter-exp'>".$expiry.json_encode($expsupplies[$suppid], JSON_PRETTY_PRINT)."</td>";
+                        $res .= "<td class='filter-exp'>".$expiry."</td>";
                         $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
                         $res .= "<td class='filter-purchase'>".$purchase."</td>";
                         $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
@@ -1427,14 +1425,13 @@ class Theme {
         return ($cnt > 0)?$expd[$cnt-1]:'';
     }
 
-    public function batch_process_supplies_recon() {
-        $batchData = (array)$_POST['batchData'];
+    public function getExpAmountAndStatus($json, $to, $from) {
+        $batchData = (array)$json;
         $to = $_POST['to'];
         $from = $_POST['from'];
         $reconarray = array();
         $relsupplies = array();
         $datesupplies = array();
-        $expsupplies = array();
  
 
         foreach($batchData as $suppid => $supp):
@@ -1506,12 +1503,6 @@ class Theme {
                     'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):'',
                 );
 
-                if($datesupplies[$supplyid]['expiry_date']):
-                    $expsupplies[$supplyid][] = array(
-                        'expiry_dates' => $datesupplies[$supplyid]['expiry_date'],
-                        'expiry_amount' => get_field('quantity', $p->ID)
-                    );
-                endif;
             endforeach;
     
             /** end second loop */
@@ -1552,7 +1543,128 @@ class Theme {
         $reconarray['overallupplies'] = $overallupplies;
         $reconarray['datesupplies'] = $datesupplies;
         $reconarray['relsupplies'] = $relsupplies;
-        $reconarray['expsupplies'] = $expsupplies;
+
+        return $reconarray;
+    }
+
+    public function batch_process_supplies_recon() {
+        $batchData = (array)$_POST['batchData'];
+        $to = $_POST['to'];
+        $from = $_POST['from'];
+        $reconarray = array();
+        $relsupplies = array();
+        $datesupplies = array();
+ 
+
+        foreach($batchData as $suppid => $supp):
+            /** first part */
+            $name[$suppid] = get_field('supply_name', $suppid);
+            $supplyid = $suppid;
+            $dept = get_field('department', $suppid);
+            $deptslug = str_replace(" ", "_", strtolower($dept));
+            $type = get_field('type', $suppid);
+            $typeslug = strtolower($type);
+
+            if($type == "Adjustment"):
+                continue;
+            endif;
+
+            $curqty = $this->getQtyOfSupplyAfterDate($supplyid, $from);
+            $price = (float)get_field('price_per_unit', $suppid);
+
+            $overallupplies[$deptslug][$typeslug][$supplyid] = array(
+                'supply_name' => get_field('supply_name', $supplyid),
+                'department' => $dept,
+                'type' => $type,
+                'quantity' => $curqty
+            );
+            /** end first part */
+
+    
+            /** get all actual purchased supplies within the month */
+    
+            $meta_query = array(
+                'relation' => 'AND',
+                array(
+                    'key'     => 'date_added',
+                    'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
+                    'type'      =>  'date',
+                    'compare' =>  'between'   
+                ),
+                array(
+                    'key'     => 'supply_name',
+                    'value'   =>  $suppid
+                )
+            );
+    
+            $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'ASC');
+            $qty = array();
+            $lotn = array();
+            $expd = array();
+    
+            foreach($addquery->posts as $p):
+                $name[$p->ID] = get_field('supply_name', $p->ID);
+                $supplyid = $name[$p->ID]->ID;
+                $qty[$supplyid] = (isset($qty[$supplyid]))?(float)$qty[$supplyid] + (float)get_field('quantity', $p->ID):get_field('quantity', $p->ID);
+                
+                if(get_field('lot_number', $p->ID)){
+                    $lotn[$supplyid][] = get_field('lot_number', $p->ID);
+                }
+/*
+                if(get_field('expiry_date', $p->ID)){
+                    $expd[$supplyid][] = get_field('expiry_date', $p->ID);   
+                }
+    */
+                $datesupplies[$supplyid] = array(
+                    'supply_name' => get_field('supply_name', $supplyid),
+                    'quantity' => $qty[$supplyid],
+                    'serial' => (!empty(get_field('serial', $p->ID)))?get_field('serial', $p->ID):false,
+                    'states__status' => (!empty(get_field('states__status', $p->ID)))?get_field('states__status', $p->ID):false,
+                    'lot_number' => (isset($lotn[$supplyid]))?implode(',', $lotn[$supplyid]):'',
+                    //'expiry_date' => (isset($expd[$supplyid]))?implode(',', $expd[$supplyid]):''
+                    'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):'',
+                );
+
+            endforeach;
+    
+            /** end second loop */
+    
+            /** get all released supplies within the month */
+    
+            $meta_query = array(
+                'relation' => 'AND',
+                array(
+                    'key'     => 'release_date',
+                    'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
+                    'type'      =>  'date',
+                    'compare' =>  'between'  
+                ),
+                array(
+                    'key'     => 'supply_name',
+                    'value'   =>  $suppid
+                )
+            );
+    
+            $addquery = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'ASC');
+            $qty = array();
+    
+            foreach($addquery->posts as $p):
+                $name[$p->ID] = get_field('supply_name', $p->ID);
+                $supplyid = $name[$p->ID]->ID;
+                $qty[$supplyid] = (isset($qty[$supplyid]))?(float)$qty[$supplyid] + (float)get_field('quantity', $p->ID):get_field('quantity', $p->ID);
+    
+                $relsupplies[$supplyid] = array(
+                    'supply_name' => get_field('supply_name', $supplyid),
+                    'quantity' => $qty[$supplyid]
+                );
+            endforeach;
+    
+            /** end third loop */
+        endforeach;
+
+        $reconarray['overallupplies'] = $overallupplies;
+        $reconarray['datesupplies'] = $datesupplies;
+        $reconarray['relsupplies'] = $relsupplies;
 
         wp_send_json_success($reconarray);
     }
