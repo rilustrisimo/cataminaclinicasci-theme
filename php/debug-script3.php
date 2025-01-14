@@ -6,7 +6,7 @@ $theme = new Theme();
 
 $json = json_decode('{"2240":"MEFENAMIC ACID 500MG TABLET (RITEMED)"}');
 
-$res = $theme->getExpAmountAndStatus($json, 'December 4, 2024', 'January 13, 2025');
+$res = $theme->getQtyOfSupplyAfterDate(2240, 'January 14, 2025', true);
 
 var_dump($res);
 ?>
