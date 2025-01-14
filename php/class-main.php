@@ -502,7 +502,7 @@ class Theme {
             $deptslug = strtolower(str_replace(" ", "_", $dept));
             $stype = strtolower(str_replace(" ", "_", get_field('type', $suppid)));
 
-            $suppdept[$deptslug][$stype][$suppid] = array(($price * $curqty[0]), $curqty[1]);
+            $suppdept[$deptslug][$stype][$suppid] = array(($price * $curqty[0]), ($curqty[1] * $price));
 
             /** csv func end */
 
@@ -1350,7 +1350,7 @@ class Theme {
                         $expQtyAmountHTML = ($expQtyAmount && ($expQtyAmount > 0))?"<span class='red-warning'>(".$expQtyAmount.")</span>":"";
                         $expNameHTMLClass = ($expQtyAmount && ($expQtyAmount > 0))?"red-warning":"";
                         
-                        $expSuppExpTotal += (float)$expQtyAmount;
+                        $expSuppExpTotal += ((float)$expQtyAmount * $price);
                         
                         /** body */
                         $res .= "<tbody class='sup-container count-supplies' data-name='".$suppdeets['supply_name']."'>";
