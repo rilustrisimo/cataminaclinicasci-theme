@@ -1343,7 +1343,7 @@ class Theme {
                         endif;
 
                         $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:'';
-                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:$this->getLastExpDate($suppid,$suppdeets['quantity']);
+                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:$this->getLastExpDate($suppid,$suppdeets['quantity'], $to);
                         $suptots = ((((float)$suppdeets['quantity'] + $purchase) - $release) * $price);
 
                         $expQtyAmount = $suppdeets['expired_qty'];
@@ -1408,13 +1408,20 @@ class Theme {
         //return $res;
     }
 
-    public function getLastExpDate($suppid, $quantity) {
+    public function getLastExpDate($suppid, $quantity, $date) {
         if($quantity == 0) return '';
-        
+
         $meta_query = array(
+            'relation' => 'AND',
             array(
-                'key'     => 'supply_name',
-                'value'   =>  $suppid
+                'key'     => 'date_added',
+                'value'   => date('Y-m-d', strtotime($date)),
+                'type'    => 'date',
+                'compare' => '<='
+            ),
+            array(
+                'key'   => 'supply_name',
+                'value' => $supid
             )
         );
 
