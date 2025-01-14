@@ -598,12 +598,12 @@ class Theme {
         foreach ($query->posts as $supp) {
             $quantity = (float)get_field('quantity', $supp->ID);
             $expiry_date = get_field('expiry_date', $supp->ID);
-    
-            // Check expiry conditions if needed
-            if ($expired && strtotime($date) > strtotime($expiry_date)) {
+        
+            // Ensure $expiry_date is not empty or just whitespace
+            if ($expired && !empty($expiry_date) && trim($expiry_date) !== '' && strtotime($date) > strtotime($expiry_date)) {
                 $expqty += $quantity;
             }
-    
+        
             $addqty += $quantity;
         }
     
@@ -1431,14 +1431,15 @@ class Theme {
         foreach($addquery->posts as $p):
             $expfield = get_field('expiry_date', $p->ID);
 
-            if(!empty($expfield)):
+            // Check if $expfield is not empty, not null, and not just whitespace
+            if(!empty($expfield) && trim($expfield) !== ''):
                 $expd[] = $expfield;  
             endif;
         endforeach;
 
         $cnt = count($expd);
 
-        return ($cnt > 0)?$expd[$cnt-1]:'';
+        return ($cnt > 0) ? $expd[$cnt-1] : '';
     }
 
     public function batch_process_supplies_recon() {
