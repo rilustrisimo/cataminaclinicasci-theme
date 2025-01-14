@@ -1425,15 +1425,13 @@ class Theme {
         return ($cnt > 0)?$expd[$cnt-1]:'';
     }
 
-    public function getExpAmountAndStatus($json, $to, $from) {
+    public function getExpAmountAndStatus($json, $from, $to) {
         $batchData = (array)$json;
         $to = $_POST['to'];
         $from = $_POST['from'];
         $reconarray = array();
         $relsupplies = array();
         $datesupplies = array();
-
-        var_dump($batchData);
  
 
         foreach($batchData as $suppid => $supp):
