@@ -1365,7 +1365,7 @@ class Theme {
                         $expirySixMOnths = '';
 
                         // Check if expiry date is within 6 months
-                        if ($expiryDate <= $sixMonthsFromNow) {
+                        if (!empty($expiry) && $expiry != "" && ($expiryDate <= $sixMonthsFromNow)) {
                             // Perform your action here
                             $expirySixMOnths = 'bold-warning';
                         }
