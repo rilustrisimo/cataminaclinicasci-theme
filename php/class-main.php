@@ -1443,7 +1443,7 @@ class Theme {
 
         $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'ASC');
         $expd = array();
-
+var_dump($addquery->posts);
         foreach($addquery->posts as $p):
             $expfield = get_field('expiry_date', $p->ID);
 
