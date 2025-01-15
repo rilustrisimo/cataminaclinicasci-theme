@@ -688,8 +688,11 @@ var Theme = {
                 totp += t;
             });
 
-            let np = totp.toFixed(2);
+            let lossdata = $('.sup-loss span').attr('data-val');
+            let loss = totp - parseFloat(lossdata);
+            let np = loss.toFixed(2);
             let str = parseFloat(np).toLocaleString("en-US");
+            
 
             $('.recon-total span').html("&#8369 " + str);
         }
