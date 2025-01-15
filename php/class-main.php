@@ -1409,8 +1409,6 @@ class Theme {
     }
 
     public function getLastExpDate($suppid, $quantity, $date) {
-        if($quantity == 0) return '';
-
         $meta_query = array(
             'relation' => 'AND',
             array(
