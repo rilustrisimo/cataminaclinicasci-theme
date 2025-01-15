@@ -15,7 +15,7 @@ $json = json_decode('{
 
 //$res = $theme->getLastExpDate(2240, 0, 'January 14, 2025');
 
-$expiry = 'March 10, 2025';
+$expiry = '02/28/2025';
 
 // Convert expiry date to a timestamp
 $expiryTimestamp = strtotime($expiry);
