@@ -1418,7 +1418,7 @@ class Theme {
         $res .= "</option></select>";
 
         $res .= "<div class='sup-total'><b>SUPPLIES TOTAL:</b> <span></span></div>";
-        $res .= "<div class='sup-loss'><b>SUPPLIES (LOSS):</b> <span>".$this->convertNumber($expSuppExpTotal)."</span></div>";
+        $res .= "<div class='sup-loss'><b>SUPPLIES (LOSS):</b> <span data-val='".$expSuppExpTotal."'>₱ ".$this->convertNumber($expSuppExpTotal)."</span></div>";
         $res .= "<div class='recon-total'><b>OVERALL TOTAL:</b> <span></span></div>";
 
 
