@@ -1353,20 +1353,21 @@ class Theme {
                         $expSuppExpTotal += ((float)$expQtyAmount * $price);
 
 
-                        // Convert expiry date to DateTime object
-                        $expiryDate = DateTime::createFromFormat('d/m/Y', $expiry);
+                        // Convert expiry date to a timestamp
+                        $expiryTimestamp = strtotime($expiry);
 
-                        // Get today's date
+                        // Get today's timestamp (start of today)
                         $today = new DateTime();
+                        $todayTimestamp = $today->setTime(0, 0)->getTimestamp();
 
-                        // Add 6 months to today's date to calculate the threshold
-                        $sixMonthsFromNow = (clone $today)->add(new DateInterval('P6M'));
+                        // Calculate the timestamp for six months from now (start of that day)
+                        $sixMonthsFromNow = (clone $today)->add(new DateInterval('P6M'))->setTime(0, 0)->getTimestamp();
 
                         // Initialize the variable to store the warning class
                         $expirySixMonths = '';
 
                         // Check if the expiry date exists and is within the next 6 months (excluding past dates)
-                        if (!empty($expiry) && $expiry != "" && $expiryDate >= $today && $expiryDate <= $sixMonthsFromNow) {
+                        if ($expiryTimestamp && $expiryTimestamp >= $todayTimestamp && $expiryTimestamp <= $sixMonthsFromNow) {
                             // Perform your action here (e.g., add a warning class)
                             $expirySixMonths = 'bold-warning';
                         }
