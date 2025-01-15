@@ -1352,33 +1352,13 @@ class Theme {
                         
                         $expSuppExpTotal += ((float)$expQtyAmount * $price);
 
-
-                        // Convert expiry date to a timestamp
-                        $expiryTimestamp = strtotime($expiry);
-
-                        // Get today's timestamp (start of today)
-                        $today = new DateTime();
-                        $todayTimestamp = $today->setTime(0, 0)->getTimestamp();
-
-                        // Calculate the timestamp for six months from now (start of that day)
-                        $sixMonthsFromNow = (clone $today)->add(new DateInterval('P6M'))->setTime(0, 0)->getTimestamp();
-
-                        // Initialize the variable to store the warning class
-                        $expirySixMonths = '';
-
-                        // Check if the expiry date exists and is within the next 6 months (excluding past dates)
-                        if ($expiryTimestamp && $expiryTimestamp >= $todayTimestamp && $expiryTimestamp <= $sixMonthsFromNow) {
-                            // Perform your action here (e.g., add a warning class)
-                            $expirySixMonths = 'bold-warning';
-                        }
-
                         
                         /** body */
                         $res .= "<tbody class='sup-container count-supplies' data-name='".$suppdeets['supply_name']."'>";
                         $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
-                        $res .= "<td class='".$expNameHTMLClass." ".$expirySixMOnths."'>".$suppdeets['supply_name']."</td>";
+                        $res .= "<td class='".$expNameHTMLClass."'>".$suppdeets['supply_name']."</td>";
                         $res .= "<td class='filter-lot'>".$lot."</td>";
-                        $res .= "<td class='filter-exp ".$expirySixMOnths."'>".$expiry."</td>";
+                        $res .= "<td class='filter-exp'>".$expiry."</td>";
                         $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
                         $res .= "<td class='filter-purchase'>".$purchase."</td>";
                         $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";

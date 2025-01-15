@@ -716,7 +716,7 @@ var Theme = {
             $('.sup-total span').html("&#8369 " + str2);
         }
 
-        //Theme.checkExpired($);
+        Theme.checkExpired($);
     },
 
     checkExpired: function($){
@@ -744,15 +744,7 @@ var Theme = {
                     // Select all <td> elements in the current row (parent <tr>)
                     const allTdsInRow = $(this).closest("tr").find("td");
                     
-                    // Apply bold and red color to all <td> if the date is already expired
-                    if (daysDifference < 0) {
-                        allTdsInRow.css({
-                            "font-weight": "bold",
-                            "color": "red"
-                        });
-                    } 
-                    // Apply bold to all <td> if the date is expiring within 6 months (180 days)
-                    else if (daysDifference <= 180) {
+                    if (daysDifference <= 180) {
                         allTdsInRow.css({
                             "font-weight": "bold"
                         });
