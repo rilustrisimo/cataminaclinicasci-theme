@@ -1359,16 +1359,18 @@ class Theme {
                         // Get today's date
                         $today = new DateTime();
 
-                        // Add 6 months to today's date
+                        // Add 6 months to today's date to calculate the threshold
                         $sixMonthsFromNow = (clone $today)->add(new DateInterval('P6M'));
 
-                        $expirySixMOnths = '';
+                        // Initialize the variable to store the warning class
+                        $expirySixMonths = '';
 
-                        // Check if expiry date is within 6 months
-                        if (!empty($expiry) && $expiry != "" && ($expiryDate <= $sixMonthsFromNow)) {
-                            // Perform your action here
-                            $expirySixMOnths = 'bold-warning';
+                        // Check if the expiry date exists and is within the next 6 months (excluding past dates)
+                        if (!empty($expiry) && $expiry != "" && $expiryDate >= $today && $expiryDate <= $sixMonthsFromNow) {
+                            // Perform your action here (e.g., add a warning class)
+                            $expirySixMonths = 'bold-warning';
                         }
+
                         
                         /** body */
                         $res .= "<tbody class='sup-container count-supplies' data-name='".$suppdeets['supply_name']."'>";
