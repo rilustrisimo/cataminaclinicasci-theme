@@ -1351,13 +1351,31 @@ class Theme {
                         $expNameHTMLClass = ($expQtyAmount && ($expQtyAmount > 0))?"red-warning":"";
                         
                         $expSuppExpTotal += ((float)$expQtyAmount * $price);
+
+
+                        // Convert expiry date to DateTime object
+                        $expiryDate = DateTime::createFromFormat('d/m/Y', $expiry);
+
+                        // Get today's date
+                        $today = new DateTime();
+
+                        // Add 6 months to today's date
+                        $sixMonthsFromNow = (clone $today)->add(new DateInterval('P6M'));
+
+                        $expirySixMOnths = '';
+
+                        // Check if expiry date is within 6 months
+                        if ($expiryDate <= $sixMonthsFromNow) {
+                            // Perform your action here
+                            $expirySixMOnths = 'bold-warning';
+                        }
                         
                         /** body */
                         $res .= "<tbody class='sup-container count-supplies' data-name='".$suppdeets['supply_name']."'>";
                         $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
-                        $res .= "<td class='".$expNameHTMLClass."'>".$suppdeets['supply_name']."</td>";
+                        $res .= "<td class='".$expNameHTMLClass." ".$expirySixMOnths."'>".$suppdeets['supply_name']."</td>";
                         $res .= "<td class='filter-lot'>".$lot."</td>";
-                        $res .= "<td class='filter-exp'>".$expiry."</td>";
+                        $res .= "<td class='filter-exp ".$expirySixMOnths."'>".$expiry."</td>";
                         $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
                         $res .= "<td class='filter-purchase'>".$purchase."</td>";
                         $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
