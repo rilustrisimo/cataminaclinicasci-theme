@@ -1437,7 +1437,7 @@ class Theme {
             ),
             array(
                 'key'   => 'supply_name',
-                'value' => $supid
+                'value' => $suppid
             )
         );
 
