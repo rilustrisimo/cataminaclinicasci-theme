@@ -1378,7 +1378,7 @@ class Theme {
                         $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
                         $res .= "<td class='".$expNameHTMLClass." ".$expirySixMOnths."'>".$suppdeets['supply_name']."</td>";
                         $res .= "<td class='filter-lot'>".$lot."</td>";
-                        $res .= "<td class='filter-exp ".$expirySixMOnths." ".$expNameHTMLClass."'>".$expiry."</td>";
+                        $res .= "<td class='filter-exp ".$expirySixMOnths."'>".$expiry."</td>";
                         $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
                         $res .= "<td class='filter-purchase'>".$purchase."</td>";
                         $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
