@@ -195,6 +195,7 @@ if ( have_posts() ) : ?>
                                     var html = '';
                                     if(response.data.length === 0) {
                                         html = '<tr><td colspan="2" class="text-center text-dark py-3">No results found</td></tr>';
+                                        $('#export-pdf').prop('disabled', true);
                                     } else {
                                         response.data.forEach(function(item) {
                                             html += '<tr>';
@@ -202,14 +203,17 @@ if ( have_posts() ) : ?>
                                             html += '<td class="text-end fw-medium text-dark">' + item.total_quantity + '</td>';
                                             html += '</tr>';
                                         });
+                                        $('#export-pdf').prop('disabled', false);
                                     }
                                     $('#filtered-results-body').html(html);
                                 } else {
                                     $('#filtered-results-body').html('<tr><td colspan="2" class="text-center text-danger py-3">Error loading results</td></tr>');
+                                    $('#export-pdf').prop('disabled', true);
                                 }
                             },
                             error: function() {
                                 $('#filtered-results-body').html('<tr><td colspan="2" class="text-center text-danger py-3">Error loading results</td></tr>');
+                                $('#export-pdf').prop('disabled', true);
                             },
                             complete: function() {
                                 // Hide loading indicator
@@ -221,44 +225,64 @@ if ( have_posts() ) : ?>
                     function exportToPDF() {
                         var fromDate = $('#filter-from-date').val();
                         var toDate = $('#filter-to-date').val();
-                        
-                        // Create a form and submit it
-                        var form = $('<form>', {
+
+                        // Create a temporary form
+                        var $form = $('<form>', {
+                            'action': ajaxurl,
                             'method': 'POST',
-                            'action': ajaxurl
+                            'target': '_blank'
                         });
-                        
-                        form.append($('<input>', {
+
+                        // Add the necessary fields
+                        $form.append($('<input>', {
                             'type': 'hidden',
                             'name': 'action',
                             'value': 'export_filtered_supplies_pdf'
                         }));
-                        
-                        form.append($('<input>', {
+
+                        $form.append($('<input>', {
                             'type': 'hidden',
                             'name': 'from_date',
                             'value': fromDate
                         }));
-                        
-                        form.append($('<input>', {
+
+                        $form.append($('<input>', {
                             'type': 'hidden',
                             'name': 'to_date',
                             'value': toDate
                         }));
-                        
-                        form.append($('<input>', {
+
+                        $form.append($('<input>', {
                             'type': 'hidden',
                             'name': 'nonce',
                             'value': '<?php echo wp_create_nonce("export_supplies_pdf"); ?>'
                         }));
-                        
-                        $('body').append(form);
-                        form.submit();
-                        form.remove();
+
+                        // Add form to body and submit
+                        $('body').append($form);
+                        $form.submit();
+                        $form.remove();
                     }
 
+                    // Event handlers
                     $('#filter-search').on('click', loadFilteredResults);
-                    $('#export-pdf').on('click', exportToPDF);
+                    $('#export-pdf').on('click', function(e) {
+                        e.preventDefault();
+                        if (!$(this).prop('disabled')) {
+                            // Show loading state
+                            var $btn = $(this);
+                            var originalText = $btn.html();
+                            $btn.html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Generating PDF...').prop('disabled', true);
+
+                            // Export to PDF
+                            exportToPDF();
+
+                            // Reset button after a short delay
+                            setTimeout(function() {
+                                $btn.html(originalText).prop('disabled', false);
+                            }, 2000);
+                        }
+                    });
                     
                     // Initialize tooltips
                     $('[data-bs-toggle="tooltip"]').tooltip();
