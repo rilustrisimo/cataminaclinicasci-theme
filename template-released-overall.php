@@ -203,7 +203,7 @@ if ( have_posts() ) : ?>
                                             
                                             html += '<tr>';
                                             html += '<td class="text-dark">' + item.supply_name + '</td>';
-                                            html += '<td class="text-end fw-medium text-dark">' + quantity.toFixed(2) + '</td>';
+                                            html += '<td class="text-end fw-medium text-dark">' + quantity + '</td>';
                                             html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toFixed(2) + '</td>';
                                             html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toFixed(2) + '</td>';
                                             html += '</tr>';
