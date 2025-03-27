@@ -441,11 +441,13 @@ class Theme {
             }
             
             $quantity = (float)get_field('quantity', $post->ID);
+            $price_per_unit = (float)get_field('price_per_unit', $supply_name->ID);
             
             if (!isset($grouped_supplies[$supply_name->ID])) {
                 $grouped_supplies[$supply_name->ID] = array(
                     'supply_name' => $supply_name->post_title,
-                    'total_quantity' => 0
+                    'total_quantity' => 0,
+                    'price_per_unit' => $price_per_unit
                 );
             }
             $grouped_supplies[$supply_name->ID]['total_quantity'] += $quantity;

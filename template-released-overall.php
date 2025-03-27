@@ -195,7 +195,7 @@ if ( have_posts() ) : ?>
                                     } else {
                                         response.data.forEach(function(item) {
                                             // Ensure proper number parsing and handle potential invalid values
-                                            var quantity = parseInt(item.total_quantity) || 0;
+                                            var quantity = parseFloat(item.total_quantity) || 0;
                                             var pricePerUnit = parseFloat(item.price_per_unit) || 0;
                                             var totalPrice = quantity * pricePerUnit;
                                             
@@ -203,7 +203,7 @@ if ( have_posts() ) : ?>
                                             
                                             html += '<tr>';
                                             html += '<td class="text-dark">' + item.supply_name + '</td>';
-                                            html += '<td class="text-end fw-medium text-dark">' + quantity + '</td>';
+                                            html += '<td class="text-end fw-medium text-dark">' + quantity.toFixed(2) + '</td>';
                                             html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toFixed(2) + '</td>';
                                             html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toFixed(2) + '</td>';
                                             html += '</tr>';
