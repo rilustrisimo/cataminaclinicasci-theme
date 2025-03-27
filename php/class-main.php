@@ -407,7 +407,50 @@ class Theme {
          */
 
          add_filter('acf/fields/post_object/query/name=supply_name', array($this, 'my_acf_fields_post_object_query_supply_name'), 10, 3);
+         add_action('wp_ajax_get_filtered_release_supplies', array($this, 'getFilteredReleaseSupplies'));
+    }
 
+    public function getFilteredReleaseSupplies() {
+        check_ajax_referer('filter_release_supplies', 'nonce');
+
+        $from_date = sanitize_text_field($_POST['from_date']);
+        $to_date = sanitize_text_field($_POST['to_date']);
+
+        // Query release supplies within date range
+        $meta_query = array(
+            'relation' => 'AND',
+            array(
+                'key'     => 'release_date',
+                'value'   => array(date('Y-m-d', strtotime($from_date)), date('Y-m-d', strtotime($to_date))),
+                'type'    => 'date',
+                'compare' => 'BETWEEN'
+            )
+        );
+
+        $query = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'ASC');
+        
+        // Group and sum quantities by supply name
+        $grouped_supplies = array();
+        foreach ($query->posts as $post) {
+            $supply_name = get_field('supply_name', $post->ID);
+            $quantity = (float)get_field('quantity', $post->ID);
+            
+            if (!isset($grouped_supplies[$supply_name->ID])) {
+                $grouped_supplies[$supply_name->ID] = array(
+                    'supply_name' => $supply_name->post_title,
+                    'total_quantity' => 0
+                );
+            }
+            $grouped_supplies[$supply_name->ID]['total_quantity'] += $quantity;
+        }
+
+        // Convert to array and sort by supply name
+        $results = array_values($grouped_supplies);
+        usort($results, function($a, $b) {
+            return strcmp($a['supply_name'], $b['supply_name']);
+        });
+
+        wp_send_json_success($results);
     }
 
     public function my_acf_fields_post_object_query_supply_name($args, $field, $post_id) {
