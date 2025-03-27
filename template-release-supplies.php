@@ -37,44 +37,44 @@ if ( have_posts() ) : ?>
                 </div>
 
                 <div class="filtered-release-supplies card mt-5">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h2 class="mb-0">Filtered Release Supplies</h2>
+                    <div class="card-header d-flex justify-content-between align-items-center py-3">
+                        <h2 class="mb-0 fs-5 fw-semibold text-dark">Filtered Release Supplies</h2>
                     </div>
-                    <div class="card-body">
-                        <div class="date-filter row mb-4">
+                    <div class="card-body p-4">
+                        <div class="date-filter row g-3 mb-4">
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="filter-from-date" class="form-label">From Date:</label>
-                                    <input type="date" id="filter-from-date" class="form-control" value="<?php echo date('Y-m-d', strtotime('last day of this month')); ?>">
+                                    <label for="filter-from-date" class="form-label small fw-medium text-muted mb-1">From Date</label>
+                                    <input type="date" id="filter-from-date" class="form-control form-control-sm" value="<?php echo date('Y-m-d', strtotime('first day of this month')); ?>">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="filter-to-date" class="form-label">To Date:</label>
-                                    <input type="date" id="filter-to-date" class="form-control" value="<?php echo date('Y-m-d', strtotime('first day of this month')); ?>">
+                                    <label for="filter-to-date" class="form-label small fw-medium text-muted mb-1">To Date</label>
+                                    <input type="date" id="filter-to-date" class="form-control form-control-sm" value="<?php echo date('Y-m-d', strtotime('last day of this month')); ?>">
                                 </div>
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
-                                <button id="filter-search" class="btn btn-primary">
-                                    <i class="fa-solid fa-search me-2"></i>Search
+                                <button id="filter-search" class="btn btn-primary btn-sm w-100">
+                                    <i class="fa-solid fa-search me-1"></i>Search
                                 </button>
                             </div>
                         </div>
                         <div class="filtered-results">
                             <div class="table-responsive">
-                                <table class="table table-striped table-hover">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Equipment / Supply Name</th>
-                                            <th class="text-end">Total Quantity Released</th>
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead>
+                                        <tr class="bg-light">
+                                            <th class="small fw-semibold text-muted py-2">Equipment / Supply Name</th>
+                                            <th class="small fw-semibold text-muted py-2 text-end">Total Quantity Released</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="filtered-results-body">
+                                    <tbody id="filtered-results-body" class="small">
                                     </tbody>
                                 </table>
                             </div>
-                            <div id="loading-indicator" class="text-center d-none">
-                                <div class="spinner-border text-primary" role="status">
+                            <div id="loading-indicator" class="text-center d-none py-4">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
                             </div>
@@ -85,44 +85,50 @@ if ( have_posts() ) : ?>
                 <style>
                 .filtered-release-supplies {
                     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+                    border: 1px solid rgba(0, 0, 0, 0.08);
                 }
                 .filtered-release-supplies .card-header {
                     background-color: #f8f9fa;
-                    border-bottom: 1px solid #e9ecef;
-                }
-                .filtered-release-supplies h2 {
-                    color: #333;
-                    font-size: 1.25rem;
-                }
-                .filtered-release-supplies .form-label {
-                    font-weight: 500;
-                    color: #666;
+                    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
                 }
                 .filtered-release-supplies .form-control {
                     border-color: #dee2e6;
+                    font-size: 0.875rem;
                 }
                 .filtered-release-supplies .form-control:focus {
                     border-color: #80bdff;
-                    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+                    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
                 }
                 .filtered-release-supplies .btn-primary {
-                    min-width: 120px;
+                    font-size: 0.875rem;
+                    padding: 0.375rem 0.75rem;
+                    font-weight: 500;
                 }
                 .filtered-release-supplies .table {
-                    margin-bottom: 0;
+                    font-size: 0.875rem;
                 }
                 .filtered-release-supplies .table th {
                     font-weight: 600;
+                    letter-spacing: 0.3px;
                 }
                 .filtered-release-supplies .table td {
-                    vertical-align: middle;
+                    padding: 0.75rem 1rem;
+                }
+                .filtered-release-supplies .table tbody tr {
+                    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+                }
+                .filtered-release-supplies .table tbody tr:last-child {
+                    border-bottom: none;
+                }
+                .filtered-release-supplies .table tbody tr:hover {
+                    background-color: rgba(0, 123, 255, 0.02);
                 }
                 @media (max-width: 768px) {
-                    .filtered-release-supplies .date-filter > div {
-                        margin-bottom: 1rem;
+                    .filtered-release-supplies .card-body {
+                        padding: 1rem;
                     }
-                    .filtered-release-supplies .btn-primary {
-                        width: 100%;
+                    .filtered-release-supplies .date-filter > div {
+                        margin-bottom: 0.5rem;
                     }
                 }
                 </style>
@@ -152,22 +158,22 @@ if ( have_posts() ) : ?>
                                 if(response.success) {
                                     var html = '';
                                     if(response.data.length === 0) {
-                                        html = '<tr><td colspan="2" class="text-center">No results found</td></tr>';
+                                        html = '<tr><td colspan="2" class="text-center text-muted py-3">No results found</td></tr>';
                                     } else {
                                         response.data.forEach(function(item) {
                                             html += '<tr>';
-                                            html += '<td>' + item.supply_name + '</td>';
-                                            html += '<td class="text-end">' + item.total_quantity + '</td>';
+                                            html += '<td class="text-dark">' + item.supply_name + '</td>';
+                                            html += '<td class="text-end fw-medium">' + item.total_quantity + '</td>';
                                             html += '</tr>';
                                         });
                                     }
                                     $('#filtered-results-body').html(html);
                                 } else {
-                                    $('#filtered-results-body').html('<tr><td colspan="2" class="text-center text-danger">Error loading results</td></tr>');
+                                    $('#filtered-results-body').html('<tr><td colspan="2" class="text-center text-danger py-3">Error loading results</td></tr>');
                                 }
                             },
                             error: function() {
-                                $('#filtered-results-body').html('<tr><td colspan="2" class="text-center text-danger">Error loading results</td></tr>');
+                                $('#filtered-results-body').html('<tr><td colspan="2" class="text-center text-danger py-3">Error loading results</td></tr>');
                             },
                             complete: function() {
                                 // Hide loading indicator
