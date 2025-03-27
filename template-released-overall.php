@@ -203,15 +203,15 @@ if ( have_posts() ) : ?>
                                             
                                             html += '<tr>';
                                             html += '<td class="text-dark">' + item.supply_name + '</td>';
-                                            html += '<td class="text-end fw-medium text-dark">' + quantity + '</td>';
-                                            html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toFixed(2) + '</td>';
-                                            html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toFixed(2) + '</td>';
+                                            html += '<td class="text-end fw-medium text-dark">' + quantity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
+                                            html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
+                                            html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
                                             html += '</tr>';
                                         });
                                         $('#export-pdf').prop('disabled', false);
                                     }
                                     $('#filtered-results-body').html(html);
-                                    $('#grand-total').text('₱' + grandTotal.toFixed(2));
+                                    $('#grand-total').text('₱' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                                 } else {
                                     $('#filtered-results-body').html('<tr><td colspan="4" class="text-center text-danger py-3">Error loading results</td></tr>');
                                     $('#export-pdf').prop('disabled', true);
@@ -237,7 +237,15 @@ if ( have_posts() ) : ?>
                         $('#filtered-results-body tr').each(function() {
                             var row = [];
                             $(this).find('td').each(function() {
-                                row.push($(this).text().trim());
+                                let text = $(this).text().trim();
+                                if (text.includes('₱')) {
+                                    // Remove ₱ symbol and store as number
+                                    text = text.replace('₱', '');
+                                    text = parseFloat(text.replace(/,/g, ''));
+                                } else {
+                                    text = parseFloat(text.replace(/,/g, ''));
+                                }
+                                row.push(text);
                             });
                             if (row.length > 0) {
                                 data.push(row);
@@ -246,46 +254,68 @@ if ( have_posts() ) : ?>
 
                         // Create PDF
                         const { jsPDF } = window.jspdf;
-                        const doc = new jsPDF();
+                        const doc = new jsPDF('p', 'mm', 'a4');
 
-                        // Add title
-                        doc.setFontSize(16);
-                        doc.text('Release Supplies Report', 14, 15);
+                        // Add title with better spacing
+                        doc.setFontSize(18);
+                        doc.setFont(undefined, 'bold');
+                        doc.text('Release Supplies Report', 105, 20, { align: 'center' });
+                        
+                        // Add subtitle with date range
                         doc.setFontSize(12);
-                        doc.text('Period: ' + fromDate + ' to ' + toDate, 14, 25);
+                        doc.setFont(undefined, 'normal');
+                        doc.text('Period: ' + fromDate + ' to ' + toDate, 105, 30, { align: 'center' });
 
-                        // Add table
+                        // Add table with improved styling
                         doc.autoTable({
-                            startY: 30,
+                            startY: 35,
                             head: [['Equipment / Supply Name', 'Quantity', 'Price per Unit', 'Total Price']],
                             body: data,
                             theme: 'grid',
                             styles: {
-                                fontSize: 10,
-                                cellPadding: 5,
+                                fontSize: 9,
+                                cellPadding: 3,
                                 cellWidth: 'auto',
-                                halign: 'left'
+                                halign: 'left',
+                                overflow: 'linebreak',
+                                minCellHeight: 5
                             },
                             columnStyles: {
-                                1: { halign: 'right' },
-                                2: { halign: 'right' },
-                                3: { halign: 'right' }
+                                0: { cellWidth: 'auto', minCellWidth: 60 }, // Equipment/Supply Name
+                                1: { cellWidth: 25, halign: 'right' }, // Quantity
+                                2: { cellWidth: 35, halign: 'right' }, // Price per Unit
+                                3: { cellWidth: 35, halign: 'right' }  // Total Price
                             },
                             headStyles: {
                                 fillColor: [0, 123, 255],
                                 textColor: 255,
-                                fontSize: 11,
-                                fontStyle: 'bold'
+                                fontSize: 10,
+                                fontStyle: 'bold',
+                                cellPadding: 4
                             },
                             footStyles: {
                                 fillColor: [248, 249, 250],
                                 textColor: 0,
-                                fontSize: 11,
-                                fontStyle: 'bold'
+                                fontSize: 10,
+                                fontStyle: 'bold',
+                                cellPadding: 4
+                            },
+                            didParseCell: function(data) {
+                                // Add currency symbol and format numbers
+                                if (data.section === 'body' && data.column.index > 0) {
+                                    const value = data.cell.text;
+                                    if (data.column.index === 1) {
+                                        // Quantity column
+                                        data.cell.text = value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                    } else {
+                                        // Price columns
+                                        data.cell.text = 'PHP ' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                    }
+                                }
                             },
                             didDrawPage: function(data) {
-                                // Add grand total at the bottom
-                                var grandTotal = $('#grand-total').text();
+                                // Add grand total at the bottom with better formatting
+                                var grandTotal = $('#grand-total').text().replace('₱', 'PHP ');
                                 doc.setFontSize(11);
                                 doc.setFont(undefined, 'bold');
                                 doc.text('Total Amount: ' + grandTotal, data.settings.margin.left, doc.internal.pageSize.height - 10);
