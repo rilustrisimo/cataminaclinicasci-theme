@@ -194,13 +194,17 @@ if ( have_posts() ) : ?>
                                         $('#export-pdf').prop('disabled', true);
                                     } else {
                                         response.data.forEach(function(item) {
-                                            var totalPrice = parseFloat(item.price_per_unit) * parseInt(item.total_quantity);
+                                            // Ensure proper number parsing and handle potential invalid values
+                                            var quantity = parseInt(item.total_quantity) || 0;
+                                            var pricePerUnit = parseFloat(item.price_per_unit) || 0;
+                                            var totalPrice = quantity * pricePerUnit;
+                                            
                                             grandTotal += totalPrice;
                                             
                                             html += '<tr>';
                                             html += '<td class="text-dark">' + item.supply_name + '</td>';
-                                            html += '<td class="text-end fw-medium text-dark">' + item.total_quantity + '</td>';
-                                            html += '<td class="text-end fw-medium text-dark">₱' + parseFloat(item.price_per_unit).toFixed(2) + '</td>';
+                                            html += '<td class="text-end fw-medium text-dark">' + quantity + '</td>';
+                                            html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toFixed(2) + '</td>';
                                             html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toFixed(2) + '</td>';
                                             html += '</tr>';
                                         });
