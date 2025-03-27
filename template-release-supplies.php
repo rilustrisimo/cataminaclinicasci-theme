@@ -228,7 +228,7 @@ if ( have_posts() ) : ?>
 
                         // Create a temporary form
                         var $form = $('<form>', {
-                            'action': ajaxurl,
+                            'action': '<?php echo esc_url(admin_url('admin-post.php')); ?>',
                             'method': 'POST',
                             'target': '_blank'
                         });
