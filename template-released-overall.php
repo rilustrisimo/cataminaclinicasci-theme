@@ -234,6 +234,8 @@ if ( have_posts() ) : ?>
                         
                         // Get the table data
                         var data = [];
+                        var grandTotal = 0;
+
                         $('#filtered-results-body tr').each(function() {
                             var row = [];
                             $(this).find('td').each(function(index) {
@@ -247,6 +249,9 @@ if ( have_posts() ) : ?>
                                         text = text.replace('₱', '');
                                     }
                                     text = parseFloat(text.replace(/,/g, '')) || 0;
+                                    if (index === 3) { // Total price column
+                                        grandTotal += text;
+                                    }
                                     row.push(text);
                                 }
                             });
@@ -254,6 +259,9 @@ if ( have_posts() ) : ?>
                                 data.push(row);
                             }
                         });
+
+                        // Add total row to the data array
+                        data.push(['', '', 'Total Amount:', grandTotal]);
 
                         // Create PDF
                         const { jsPDF } = window.jspdf;
@@ -298,56 +306,22 @@ if ( have_posts() ) : ?>
                             },
                             didParseCell: function(data) {
                                 // Add currency symbol and format numbers
-                                if (data.section === 'body' && data.column.index > 0) {
-                                    const cellValue = parseFloat(data.cell.text) || 0;
-                                    if (data.column.index === 1) {
-                                        // Quantity column
-                                        data.cell.text = cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                    } else {
-                                        // Price columns
-                                        data.cell.text = 'PHP ' + cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                if (data.section === 'body') {
+                                    if (data.column.index > 0) {
+                                        const cellValue = parseFloat(data.cell.text) || 0;
+                                        if (data.column.index === 1) {
+                                            // Quantity column
+                                            data.cell.text = cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        } else {
+                                            // Price columns
+                                            data.cell.text = 'PHP ' + cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        }
                                     }
-                                }
-                            },
-                            didDrawPage: function(data) {
-                                // Only add total amount on the last page
-                                if (data.pageNumber === data.pageCount) {
-                                    // Calculate grand total
-                                    var grandTotal = 0;
-                                    data.table.body.forEach(function(row) {
-                                        if (row[3]) { // Check if total price exists
-                                            grandTotal += parseFloat(row[3].replace(/[^0-9.-]+/g, '')) || 0;
-                                        }
-                                    });
-
-                                    // Add total row at the bottom of the last page
-                                    doc.autoTable({
-                                        startY: data.cursor.y + 5,
-                                        head: [],
-                                        body: [
-                                            ['', '', 'Total Amount:', 'PHP ' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })]
-                                        ],
-                                        theme: 'grid',
-                                        styles: {
-                                            fontSize: 10,
-                                            cellPadding: 4,
-                                            cellWidth: 'auto',
-                                            halign: 'left',
-                                            fontStyle: 'bold'
-                                        },
-                                        columnStyles: {
-                                            0: { cellWidth: 60 },
-                                            1: { cellWidth: 25, halign: 'right' },
-                                            2: { cellWidth: 35, halign: 'right' },
-                                            3: { cellWidth: 35, halign: 'right' }
-                                        },
-                                        headStyles: {
-                                            fillColor: [248, 249, 250],
-                                            textColor: 0,
-                                            fontSize: 10,
-                                            fontStyle: 'bold'
-                                        }
-                                    });
+                                    // Style the total row differently
+                                    if (data.row.index === data.table.body.length - 1) {
+                                        data.cell.styles.fontStyle = 'bold';
+                                        data.cell.styles.fillColor = [248, 249, 250];
+                                    }
                                 }
                             }
                         });
