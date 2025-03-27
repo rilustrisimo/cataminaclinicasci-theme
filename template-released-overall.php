@@ -269,18 +269,11 @@ if ( have_posts() ) : ?>
                         doc.setFont(undefined, 'normal');
                         doc.text('Period: ' + fromDate + ' to ' + toDate, 105, 30, { align: 'center' });
 
-                        // Calculate grand total
-                        var grandTotal = 0;
-                        data.forEach(function(row) {
-                            grandTotal += row[3]; // Add total price from each row
-                        });
-
                         // Add table with improved styling
                         doc.autoTable({
                             startY: 35,
                             head: [['Equipment / Supply Name', 'Quantity', 'Price per Unit', 'Total Price']],
                             body: data,
-                            foot: [['', '', 'Total Amount:', grandTotal]],
                             theme: 'grid',
                             styles: {
                                 fontSize: 9,
@@ -303,13 +296,6 @@ if ( have_posts() ) : ?>
                                 fontStyle: 'bold',
                                 cellPadding: 4
                             },
-                            footStyles: {
-                                fillColor: [248, 249, 250],
-                                textColor: 0,
-                                fontSize: 10,
-                                fontStyle: 'bold',
-                                cellPadding: 4
-                            },
                             didParseCell: function(data) {
                                 // Add currency symbol and format numbers
                                 if (data.section === 'body' && data.column.index > 0) {
@@ -321,13 +307,47 @@ if ( have_posts() ) : ?>
                                         // Price columns
                                         data.cell.text = 'PHP ' + cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                     }
-                                } else if (data.section === 'foot') {
-                                    // Format footer cells
-                                    if (data.column.index === 3) {
-                                        // Total amount
-                                        const totalValue = parseFloat(data.cell.text) || 0;
-                                        data.cell.text = 'PHP ' + totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                    }
+                                }
+                            },
+                            didDrawPage: function(data) {
+                                // Only add total amount on the last page
+                                if (data.pageNumber === data.pageCount) {
+                                    // Calculate grand total
+                                    var grandTotal = 0;
+                                    data.table.body.forEach(function(row) {
+                                        if (row[3]) { // Check if total price exists
+                                            grandTotal += parseFloat(row[3].replace(/[^0-9.-]+/g, '')) || 0;
+                                        }
+                                    });
+
+                                    // Add total row at the bottom of the last page
+                                    doc.autoTable({
+                                        startY: data.cursor.y + 5,
+                                        head: [],
+                                        body: [
+                                            ['', '', 'Total Amount:', 'PHP ' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })]
+                                        ],
+                                        theme: 'grid',
+                                        styles: {
+                                            fontSize: 10,
+                                            cellPadding: 4,
+                                            cellWidth: 'auto',
+                                            halign: 'left',
+                                            fontStyle: 'bold'
+                                        },
+                                        columnStyles: {
+                                            0: { cellWidth: 60 },
+                                            1: { cellWidth: 25, halign: 'right' },
+                                            2: { cellWidth: 35, halign: 'right' },
+                                            3: { cellWidth: 35, halign: 'right' }
+                                        },
+                                        headStyles: {
+                                            fillColor: [248, 249, 250],
+                                            textColor: 0,
+                                            fontSize: 10,
+                                            fontStyle: 'bold'
+                                        }
+                                    });
                                 }
                             }
                         });
