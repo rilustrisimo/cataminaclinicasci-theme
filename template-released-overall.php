@@ -313,19 +313,20 @@ if ( have_posts() ) : ?>
                             didParseCell: function(data) {
                                 // Add currency symbol and format numbers
                                 if (data.section === 'body' && data.column.index > 0) {
-                                    const value = data.cell.text;
+                                    const cellValue = parseFloat(data.cell.text) || 0;
                                     if (data.column.index === 1) {
                                         // Quantity column
-                                        data.cell.text = value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        data.cell.text = cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                     } else {
                                         // Price columns
-                                        data.cell.text = 'PHP ' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        data.cell.text = 'PHP ' + cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                     }
                                 } else if (data.section === 'foot') {
                                     // Format footer cells
                                     if (data.column.index === 3) {
                                         // Total amount
-                                        data.cell.text = 'PHP ' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        const totalValue = parseFloat(data.cell.text) || 0;
+                                        data.cell.text = 'PHP ' + totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                     }
                                 }
                             }
