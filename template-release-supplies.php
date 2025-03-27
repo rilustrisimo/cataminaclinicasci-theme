@@ -226,42 +226,31 @@ if ( have_posts() ) : ?>
                         var fromDate = $('#filter-from-date').val();
                         var toDate = $('#filter-to-date').val();
 
-                        // Create a temporary form
-                        var $form = $('<form>', {
-                            'action': '<?php echo esc_url(admin_url('admin-post.php')); ?>',
-                            'method': 'POST',
-                            'target': '_blank'
+                        $.ajax({
+                            url: ajaxurl,
+                            type: 'POST',
+                            data: {
+                                action: 'export_filtered_supplies_pdf',
+                                from_date: fromDate,
+                                to_date: toDate,
+                                nonce: '<?php echo wp_create_nonce("export_supplies_pdf"); ?>'
+                            },
+                            xhrFields: {
+                                responseType: 'blob'
+                            },
+                            success: function(response) {
+                                // Create blob link to download
+                                var blob = new Blob([response], { type: 'application/pdf' });
+                                var link = document.createElement('a');
+                                link.href = window.URL.createObjectURL(blob);
+                                link.download = 'release-supplies-' + fromDate + '-to-' + toDate + '.pdf';
+                                link.click();
+                                window.URL.revokeObjectURL(link.href);
+                            },
+                            error: function() {
+                                alert('Error generating PDF. Please try again.');
+                            }
                         });
-
-                        // Add the necessary fields
-                        $form.append($('<input>', {
-                            'type': 'hidden',
-                            'name': 'action',
-                            'value': 'export_filtered_supplies_pdf'
-                        }));
-
-                        $form.append($('<input>', {
-                            'type': 'hidden',
-                            'name': 'from_date',
-                            'value': fromDate
-                        }));
-
-                        $form.append($('<input>', {
-                            'type': 'hidden',
-                            'name': 'to_date',
-                            'value': toDate
-                        }));
-
-                        $form.append($('<input>', {
-                            'type': 'hidden',
-                            'name': 'nonce',
-                            'value': '<?php echo wp_create_nonce("export_supplies_pdf"); ?>'
-                        }));
-
-                        // Add form to body and submit
-                        $('body').append($form);
-                        $form.submit();
-                        $form.remove();
                     }
 
                     // Event handlers
