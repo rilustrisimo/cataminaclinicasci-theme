@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Release Supply Bak
+ * Template Name: Released Supply Overall
  *
  * @author    eyorsogood.com, Rouie Ilustrisimo
  * @package   SwishDesign
@@ -20,22 +20,6 @@ if ( have_posts() ) : ?>
 	<?php while ( have_posts() ) { the_post(); ?>
 		<div class="page-single">
 			<main class="page-single__content" role="main">
-                <div class="custom-post__add-form" form-id="134">
-				    <?php $theme->createAcfForm(134, 'releasesupplies', '<i class="fa-solid fa-plus"></i> Add Release Supply'); ?>
-                </div>
-                <div class="custom-post__search"><div class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></div><input type="text" class="search-ajax" placeholder="Search Name"></div>
-                <div class="custom-post__list" data-pt="releasesupplies">
-                    <?php 
-                    $header = array(
-                        'supply_name' => 'Equipment / Supply Name',
-                        'release_date' => 'Date Released',
-                        'quantity' => 'Quantity'
-                    );
-
-                    $theme->createCustomPostListHtml('releasesupplies', 20, $header);
-                    ?>
-                </div>
-
                 <div class="filtered-release-supplies card mt-5">
                     <div class="card-header d-flex justify-content-between align-items-center py-3">
                         <h2 class="mb-0 fs-5 fw-semibold text-dark">Filtered Release Supplies</h2>
@@ -69,11 +53,19 @@ if ( have_posts() ) : ?>
                                     <thead>
                                         <tr class="bg-light">
                                             <th class="fw-semibold text-dark py-2">Equipment / Supply Name</th>
-                                            <th class="fw-semibold text-dark py-2 text-end">Total Quantity Released</th>
+                                            <th class="fw-semibold text-dark py-2 text-end">Quantity</th>
+                                            <th class="fw-semibold text-dark py-2 text-end">Price per Unit</th>
+                                            <th class="fw-semibold text-dark py-2 text-end">Total Price</th>
                                         </tr>
                                     </thead>
                                     <tbody id="filtered-results-body">
                                     </tbody>
+                                    <tfoot>
+                                        <tr class="bg-light">
+                                            <td colspan="3" class="fw-bold text-end">Total Amount:</td>
+                                            <td id="grand-total" class="fw-bold text-end">₱0.00</td>
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                             <div id="loading-indicator" class="text-center d-none py-4">
@@ -195,26 +187,34 @@ if ( have_posts() ) : ?>
                             success: function(response) {
                                 if(response.success) {
                                     var html = '';
+                                    var grandTotal = 0;
+                                    
                                     if(response.data.length === 0) {
-                                        html = '<tr><td colspan="2" class="text-center text-dark py-3">No results found</td></tr>';
+                                        html = '<tr><td colspan="4" class="text-center text-dark py-3">No results found</td></tr>';
                                         $('#export-pdf').prop('disabled', true);
                                     } else {
                                         response.data.forEach(function(item) {
+                                            var totalPrice = parseFloat(item.price_per_unit) * parseInt(item.total_quantity);
+                                            grandTotal += totalPrice;
+                                            
                                             html += '<tr>';
                                             html += '<td class="text-dark">' + item.supply_name + '</td>';
                                             html += '<td class="text-end fw-medium text-dark">' + item.total_quantity + '</td>';
+                                            html += '<td class="text-end fw-medium text-dark">₱' + parseFloat(item.price_per_unit).toFixed(2) + '</td>';
+                                            html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toFixed(2) + '</td>';
                                             html += '</tr>';
                                         });
                                         $('#export-pdf').prop('disabled', false);
                                     }
                                     $('#filtered-results-body').html(html);
+                                    $('#grand-total').text('₱' + grandTotal.toFixed(2));
                                 } else {
-                                    $('#filtered-results-body').html('<tr><td colspan="2" class="text-center text-danger py-3">Error loading results</td></tr>');
+                                    $('#filtered-results-body').html('<tr><td colspan="4" class="text-center text-danger py-3">Error loading results</td></tr>');
                                     $('#export-pdf').prop('disabled', true);
                                 }
                             },
                             error: function() {
-                                $('#filtered-results-body').html('<tr><td colspan="2" class="text-center text-danger py-3">Error loading results</td></tr>');
+                                $('#filtered-results-body').html('<tr><td colspan="4" class="text-center text-danger py-3">Error loading results</td></tr>');
                                 $('#export-pdf').prop('disabled', true);
                             },
                             complete: function() {
@@ -253,7 +253,7 @@ if ( have_posts() ) : ?>
                         // Add table
                         doc.autoTable({
                             startY: 30,
-                            head: [['Equipment / Supply Name', 'Total Quantity Released']],
+                            head: [['Equipment / Supply Name', 'Quantity', 'Price per Unit', 'Total Price']],
                             body: data,
                             theme: 'grid',
                             styles: {
@@ -263,13 +263,28 @@ if ( have_posts() ) : ?>
                                 halign: 'left'
                             },
                             columnStyles: {
-                                1: { halign: 'right' }
+                                1: { halign: 'right' },
+                                2: { halign: 'right' },
+                                3: { halign: 'right' }
                             },
                             headStyles: {
                                 fillColor: [0, 123, 255],
                                 textColor: 255,
                                 fontSize: 11,
                                 fontStyle: 'bold'
+                            },
+                            footStyles: {
+                                fillColor: [248, 249, 250],
+                                textColor: 0,
+                                fontSize: 11,
+                                fontStyle: 'bold'
+                            },
+                            didDrawPage: function(data) {
+                                // Add grand total at the bottom
+                                var grandTotal = $('#grand-total').text();
+                                doc.setFontSize(11);
+                                doc.setFont(undefined, 'bold');
+                                doc.text('Total Amount: ' + grandTotal, data.settings.margin.left, doc.internal.pageSize.height - 10);
                             }
                         });
 
