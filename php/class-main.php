@@ -408,6 +408,7 @@ class Theme {
 
          add_filter('acf/fields/post_object/query/name=supply_name', array($this, 'my_acf_fields_post_object_query_supply_name'), 10, 3);
          add_action('wp_ajax_get_filtered_release_supplies', array($this, 'getFilteredReleaseSupplies'));
+         add_action('wp_ajax_export_filtered_supplies_pdf', array($this, 'export_filtered_supplies_pdf'));
     }
 
     public function getFilteredReleaseSupplies() {
@@ -433,6 +434,12 @@ class Theme {
         $grouped_supplies = array();
         foreach ($query->posts as $post) {
             $supply_name = get_field('supply_name', $post->ID);
+            
+            // Skip if supply name is null or empty
+            if (!$supply_name || empty($supply_name->post_title)) {
+                continue;
+            }
+            
             $quantity = (float)get_field('quantity', $post->ID);
             
             if (!isset($grouped_supplies[$supply_name->ID])) {
@@ -451,6 +458,114 @@ class Theme {
         });
 
         wp_send_json_success($results);
+    }
+
+    public function export_filtered_supplies_pdf() {
+        check_ajax_referer('export_supplies_pdf', 'nonce');
+
+        $from_date = sanitize_text_field($_POST['from_date']);
+        $to_date = sanitize_text_field($_POST['to_date']);
+
+        // Query release supplies within date range
+        $meta_query = array(
+            'relation' => 'AND',
+            array(
+                'key'     => 'release_date',
+                'value'   => array(date('Y-m-d', strtotime($from_date)), date('Y-m-d', strtotime($to_date))),
+                'type'    => 'date',
+                'compare' => 'BETWEEN'
+            )
+        );
+
+        $query = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'ASC');
+        
+        // Group and sum quantities by supply name
+        $grouped_supplies = array();
+        foreach ($query->posts as $post) {
+            $supply_name = get_field('supply_name', $post->ID);
+            
+            // Skip if supply name is null or empty
+            if (!$supply_name || empty($supply_name->post_title)) {
+                continue;
+            }
+            
+            $quantity = (float)get_field('quantity', $post->ID);
+            
+            if (!isset($grouped_supplies[$supply_name->ID])) {
+                $grouped_supplies[$supply_name->ID] = array(
+                    'supply_name' => $supply_name->post_title,
+                    'total_quantity' => 0
+                );
+            }
+            $grouped_supplies[$supply_name->ID]['total_quantity'] += $quantity;
+        }
+
+        // Convert to array and sort by supply name
+        $results = array_values($grouped_supplies);
+        usort($results, function($a, $b) {
+            return strcmp($a['supply_name'], $b['supply_name']);
+        });
+
+        // Generate PDF
+        require_once(ABSPATH . 'wp-content/plugins/woocommerce/includes/libraries/tcpdf/tcpdf.php');
+        
+        // Create new PDF document
+        $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        
+        // Set document information
+        $pdf->SetCreator(PDF_CREATOR);
+        $pdf->SetAuthor('Catamina Clinica');
+        $pdf->SetTitle('Release Supplies Report');
+        
+        // Set default header data
+        $pdf->SetHeaderData(PDF_HEADER_LOGO, PDF_HEADER_LOGO_WIDTH, 'Release Supplies Report', 'Period: ' . date('M d, Y', strtotime($from_date)) . ' - ' . date('M d, Y', strtotime($to_date)));
+        
+        // Set header and footer fonts
+        $pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+        $pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+        
+        // Set default monospaced font
+        $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+        
+        // Set margins
+        $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+        $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+        $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+        
+        // Set auto page breaks
+        $pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
+        
+        // Add a page
+        $pdf->AddPage();
+        
+        // Set font
+        $pdf->SetFont('helvetica', '', 10);
+        
+        // Add table
+        $html = '<table border="1" cellpadding="4">
+            <thead>
+                <tr style="background-color: #f8f9fa;">
+                    <th style="width: 70%;"><b>Equipment / Supply Name</b></th>
+                    <th style="width: 30%; text-align: right;"><b>Total Quantity Released</b></th>
+                </tr>
+            </thead>
+            <tbody>';
+        
+        foreach ($results as $item) {
+            $html .= '<tr>
+                <td>' . $item['supply_name'] . '</td>
+                <td style="text-align: right;">' . $item['total_quantity'] . '</td>
+            </tr>';
+        }
+        
+        $html .= '</tbody></table>';
+        
+        // Output the HTML content
+        $pdf->writeHTML($html, true, false, true, false, '');
+        
+        // Close and output PDF document
+        $pdf->Output('release_supplies_report.pdf', 'D');
+        exit;
     }
 
     public function my_acf_fields_post_object_query_supply_name($args, $field, $post_id) {

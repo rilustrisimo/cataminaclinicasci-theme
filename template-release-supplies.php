@@ -39,6 +39,9 @@ if ( have_posts() ) : ?>
                 <div class="filtered-release-supplies card mt-5">
                     <div class="card-header d-flex justify-content-between align-items-center py-3">
                         <h2 class="mb-0 fs-5 fw-semibold text-dark">Filtered Release Supplies</h2>
+                        <button id="export-pdf" class="btn btn-outline-primary btn-sm">
+                            <i class="fa-solid fa-file-pdf me-1"></i>Export PDF
+                        </button>
                     </div>
                     <div class="card-body p-4">
                         <div class="date-filter row g-3 mb-4">
@@ -104,6 +107,11 @@ if ( have_posts() ) : ?>
                     padding: 0.5rem 1rem;
                     font-weight: 500;
                 }
+                .filtered-release-supplies .btn-outline-primary {
+                    font-size: 0.875rem;
+                    padding: 0.375rem 0.75rem;
+                    font-weight: 500;
+                }
                 .filtered-release-supplies .table {
                     font-size: 0.95rem;
                 }
@@ -149,6 +157,14 @@ if ( have_posts() ) : ?>
                     }
                     .filtered-release-supplies .date-filter > div {
                         margin-bottom: 0.5rem;
+                    }
+                    .filtered-release-supplies .card-header {
+                        flex-direction: column;
+                        gap: 1rem;
+                        align-items: stretch !important;
+                    }
+                    .filtered-release-supplies .btn-outline-primary {
+                        width: 100%;
                     }
                 }
                 </style>
@@ -202,7 +218,47 @@ if ( have_posts() ) : ?>
                         });
                     }
 
+                    function exportToPDF() {
+                        var fromDate = $('#filter-from-date').val();
+                        var toDate = $('#filter-to-date').val();
+                        
+                        // Create a form and submit it
+                        var form = $('<form>', {
+                            'method': 'POST',
+                            'action': ajaxurl
+                        });
+                        
+                        form.append($('<input>', {
+                            'type': 'hidden',
+                            'name': 'action',
+                            'value': 'export_filtered_supplies_pdf'
+                        }));
+                        
+                        form.append($('<input>', {
+                            'type': 'hidden',
+                            'name': 'from_date',
+                            'value': fromDate
+                        }));
+                        
+                        form.append($('<input>', {
+                            'type': 'hidden',
+                            'name': 'to_date',
+                            'value': toDate
+                        }));
+                        
+                        form.append($('<input>', {
+                            'type': 'hidden',
+                            'name': 'nonce',
+                            'value': '<?php echo wp_create_nonce("export_supplies_pdf"); ?>'
+                        }));
+                        
+                        $('body').append(form);
+                        form.submit();
+                        form.remove();
+                    }
+
                     $('#filter-search').on('click', loadFilteredResults);
+                    $('#export-pdf').on('click', exportToPDF);
                     
                     // Initialize tooltips
                     $('[data-bs-toggle="tooltip"]').tooltip();
