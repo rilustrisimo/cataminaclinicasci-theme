@@ -269,11 +269,18 @@ if ( have_posts() ) : ?>
                         doc.setFont(undefined, 'normal');
                         doc.text('Period: ' + fromDate + ' to ' + toDate, 105, 30, { align: 'center' });
 
+                        // Calculate grand total
+                        var grandTotal = 0;
+                        data.forEach(function(row) {
+                            grandTotal += row[3]; // Add total price from each row
+                        });
+
                         // Add table with improved styling
                         doc.autoTable({
                             startY: 35,
                             head: [['Equipment / Supply Name', 'Quantity', 'Price per Unit', 'Total Price']],
                             body: data,
+                            foot: [['', '', 'Total Amount:', grandTotal]],
                             theme: 'grid',
                             styles: {
                                 fontSize: 9,
@@ -314,14 +321,13 @@ if ( have_posts() ) : ?>
                                         // Price columns
                                         data.cell.text = 'PHP ' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                     }
+                                } else if (data.section === 'foot') {
+                                    // Format footer cells
+                                    if (data.column.index === 3) {
+                                        // Total amount
+                                        data.cell.text = 'PHP ' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                    }
                                 }
-                            },
-                            didDrawPage: function(data) {
-                                // Add grand total at the bottom with better formatting
-                                var grandTotal = $('#grand-total').text().replace('₱', 'PHP ');
-                                doc.setFontSize(11);
-                                doc.setFont(undefined, 'bold');
-                                doc.text('Total Amount: ' + grandTotal, data.settings.margin.left, doc.internal.pageSize.height - 10);
                             }
                         });
 
