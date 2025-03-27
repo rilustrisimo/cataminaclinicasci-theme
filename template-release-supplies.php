@@ -169,6 +169,8 @@ if ( have_posts() ) : ?>
                 }
                 </style>
 
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
                 <script>
                 jQuery(document).ready(function($) {
                     var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
@@ -222,35 +224,57 @@ if ( have_posts() ) : ?>
                         });
                     }
 
-                    function exportToPDF() {
+                    function generatePDF() {
                         var fromDate = $('#filter-from-date').val();
                         var toDate = $('#filter-to-date').val();
-
-                        $.ajax({
-                            url: ajaxurl,
-                            type: 'POST',
-                            data: {
-                                action: 'export_filtered_supplies_pdf',
-                                from_date: fromDate,
-                                to_date: toDate,
-                                nonce: '<?php echo wp_create_nonce("export_supplies_pdf"); ?>'
-                            },
-                            xhrFields: {
-                                responseType: 'blob'
-                            },
-                            success: function(response) {
-                                // Create blob link to download
-                                var blob = new Blob([response], { type: 'application/pdf' });
-                                var link = document.createElement('a');
-                                link.href = window.URL.createObjectURL(blob);
-                                link.download = 'release-supplies-' + fromDate + '-to-' + toDate + '.pdf';
-                                link.click();
-                                window.URL.revokeObjectURL(link.href);
-                            },
-                            error: function() {
-                                alert('Error generating PDF. Please try again.');
+                        
+                        // Get the table data
+                        var data = [];
+                        $('#filtered-results-body tr').each(function() {
+                            var row = [];
+                            $(this).find('td').each(function() {
+                                row.push($(this).text().trim());
+                            });
+                            if (row.length > 0) {
+                                data.push(row);
                             }
                         });
+
+                        // Create PDF
+                        const { jsPDF } = window.jspdf;
+                        const doc = new jsPDF();
+
+                        // Add title
+                        doc.setFontSize(16);
+                        doc.text('Release Supplies Report', 14, 15);
+                        doc.setFontSize(12);
+                        doc.text('Period: ' + fromDate + ' to ' + toDate, 14, 25);
+
+                        // Add table
+                        doc.autoTable({
+                            startY: 30,
+                            head: [['Equipment / Supply Name', 'Total Quantity Released']],
+                            body: data,
+                            theme: 'grid',
+                            styles: {
+                                fontSize: 10,
+                                cellPadding: 5,
+                                cellWidth: 'auto',
+                                halign: 'left'
+                            },
+                            columnStyles: {
+                                1: { halign: 'right' }
+                            },
+                            headStyles: {
+                                fillColor: [0, 123, 255],
+                                textColor: 255,
+                                fontSize: 11,
+                                fontStyle: 'bold'
+                            }
+                        });
+
+                        // Save the PDF
+                        doc.save('release-supplies-' + fromDate + '-to-' + toDate + '.pdf');
                     }
 
                     // Event handlers
@@ -263,13 +287,13 @@ if ( have_posts() ) : ?>
                             var originalText = $btn.html();
                             $btn.html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Generating PDF...').prop('disabled', true);
 
-                            // Export to PDF
-                            exportToPDF();
+                            // Generate PDF
+                            generatePDF();
 
                             // Reset button after a short delay
                             setTimeout(function() {
                                 $btn.html(originalText).prop('disabled', false);
-                            }, 2000);
+                            }, 1000);
                         }
                     });
                     
