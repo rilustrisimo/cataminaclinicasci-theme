@@ -203,7 +203,7 @@ if ( have_posts() ) : ?>
                                             
                                             html += '<tr>';
                                             html += '<td class="text-dark">' + item.supply_name + '</td>';
-                                            html += '<td class="text-end fw-medium text-dark">' + quantity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
+                                            html += '<td class="text-end fw-medium text-dark">' + quantity + '</td>';
                                             html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
                                             html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
                                             html += '</tr>';
@@ -236,16 +236,19 @@ if ( have_posts() ) : ?>
                         var data = [];
                         $('#filtered-results-body tr').each(function() {
                             var row = [];
-                            $(this).find('td').each(function() {
+                            $(this).find('td').each(function(index) {
                                 let text = $(this).text().trim();
-                                if (text.includes('₱')) {
-                                    // Remove ₱ symbol and store as number
-                                    text = text.replace('₱', '');
-                                    text = parseFloat(text.replace(/,/g, ''));
+                                if (index === 0) {
+                                    // Keep supply name as is
+                                    row.push(text);
                                 } else {
-                                    text = parseFloat(text.replace(/,/g, ''));
+                                    // Parse numbers for quantity and price columns
+                                    if (text.includes('₱')) {
+                                        text = text.replace('₱', '');
+                                    }
+                                    text = parseFloat(text.replace(/,/g, '')) || 0;
+                                    row.push(text);
                                 }
-                                row.push(text);
                             });
                             if (row.length > 0) {
                                 data.push(row);
