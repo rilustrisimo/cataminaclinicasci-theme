@@ -428,7 +428,7 @@ class Theme {
             )
         );
 
-        $query = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'ASC');
+        $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC');
         
         // Group and sum quantities by supply name
         $grouped_supplies = array();
@@ -479,7 +479,7 @@ class Theme {
             )
         );
 
-        $query = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'ASC');
+        $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC');
         
         // Group and sum quantities by supply name
         $grouped_supplies = array();
@@ -599,6 +599,33 @@ class Theme {
                 $args['author'] = $u->ID;
             endif;
         endif;*/
+
+        $the_query = new WP_Query( $args );
+
+        return $the_query;
+    }
+
+    public function createQueryRoles($posttype, $meta_query = array(), $numberposts = -1, $orderby = 'date', $order = 'DESC', $aid = false) {
+        $args = array(
+            'orderby'			=> $orderby,
+            'order'				=> $order,
+            'numberposts'	=> $numberposts,
+            'post_type'		=> $posttype,
+            'meta_query'    => array($meta_query),
+            'posts_per_page' => $numberposts,
+            'post_status'    => 'publish'
+        );
+
+        $u = wp_get_current_user();
+        $roles = ( array ) $u->roles;
+
+        if(!current_user_can( 'manage_options' ) && !($roles[0] == "um_accounting")):
+            if($aid):
+                $args['author'] = $aid;
+            else:
+                $args['author'] = $u->ID;
+            endif;
+        endif;
 
         $the_query = new WP_Query( $args );
 
