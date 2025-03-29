@@ -29,70 +29,76 @@ if ( have_posts() ) : ?>
                     </div>
                     <div class="card-body p-4">
                         <div class="date-filter row g-3 mb-4">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="filter-from-date" class="form-label fw-medium text-dark mb-1">From Date</label>
+                                    <label for="filter-from-date" class="form-label fw-medium text-dark mb-1">
+                                        <i class="fa-regular fa-calendar me-1"></i>From Date
+                                    </label>
                                     <input type="date" id="filter-from-date" class="form-control" value="<?php echo date('Y-m-d', strtotime('first day of this month')); ?>">
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="filter-to-date" class="form-label fw-medium text-dark mb-1">To Date</label>
+                                    <label for="filter-to-date" class="form-label fw-medium text-dark mb-1">
+                                        <i class="fa-regular fa-calendar me-1"></i>To Date
+                                    </label>
                                     <input type="date" id="filter-to-date" class="form-control" value="<?php echo date('Y-m-d', strtotime('last day of this month')); ?>">
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="filter-department" class="form-label fw-medium text-dark mb-1">Department</label>
-                                    <select id="filter-department" class="form-select">
-                                        <?php 
-                                        // Get current user's roles
-                                        $user = wp_get_current_user();
-                                        $roles = $user->roles;
-                                        
-                                        // Department options with their IDs
-                                        $departments = array(
-                                            'ALL' => 0,
-                                            'NURSING' => 7,
-                                            'LABORATORY' => 6,
-                                            'PHARMACY' => 4,
-                                            'HOUSEKEEPING' => 8,
-                                            'MAINTENANCE' => 8,
-                                            'RADIOLOGY' => 5,
-                                            'BUSINESS OFFICE' => 9,
-                                            'INFORMATION / TRIAGE' => 10,
-                                            'PHYSICAL THERAPY' => 14,
-                                            'KONSULTA PROGRAM' => 11,
-                                            'CLINIC B' => 12,
-                                            'CLINIC C' => 12,
-                                            'CLINIC D' => 12
-                                        );
-                                        
-                                        // Check user permissions
-                                        if(current_user_can('manage_options') || in_array('um_accounting', $roles)):
-                                            // Admin or accounting user - show all departments
-                                            foreach($departments as $department => $id): ?>
-                                                <option value="<?php echo esc_attr($id); ?>"><?php echo esc_html($department); ?></option>
-                                            <?php endforeach;
-                                        else:
-                                            // Regular user - show only their department
-                                            // Get user's department
-                                            $user_department_id = get_user_meta($user->ID, 'department', true);
+                                    <label for="filter-department" class="form-label fw-medium text-dark mb-1">
+                                        <i class="fa-solid fa-building me-1"></i>Department
+                                    </label>
+                                    <div class="input-group">
+                                        <select id="filter-department" class="form-select">
+                                            <?php 
+                                            // Get current user's roles
+                                            $user = wp_get_current_user();
+                                            $roles = $user->roles;
                                             
-                                            // Display only the user's department
-                                            foreach($departments as $department => $id):
-                                                if($id == $user_department_id || $id == 0): ?>
+                                            // Department options with their IDs
+                                            $departments = array(
+                                                'ALL' => 0,
+                                                'NURSING' => 7,
+                                                'LABORATORY' => 6,
+                                                'PHARMACY' => 4,
+                                                'HOUSEKEEPING' => 8,
+                                                'MAINTENANCE' => 8,
+                                                'RADIOLOGY' => 5,
+                                                'BUSINESS OFFICE' => 9,
+                                                'INFORMATION / TRIAGE' => 10,
+                                                'PHYSICAL THERAPY' => 14,
+                                                'KONSULTA PROGRAM' => 11,
+                                                'CLINIC B' => 12,
+                                                'CLINIC C' => 12,
+                                                'CLINIC D' => 12
+                                            );
+                                            
+                                            // Check user permissions
+                                            if(current_user_can('manage_options') || in_array('um_accounting', $roles)):
+                                                // Admin or accounting user - show all departments
+                                                foreach($departments as $department => $id): ?>
                                                     <option value="<?php echo esc_attr($id); ?>"><?php echo esc_html($department); ?></option>
-                                                <?php endif;
-                                            endforeach;
-                                        endif; ?>
-                                    </select>
+                                                <?php endforeach;
+                                            else:
+                                                // Regular user - show only their department
+                                                // Get user's department
+                                                $user_department_id = $user->ID;
+                                                
+                                                // Display only the user's department
+                                                foreach($departments as $department => $id):
+                                                    if($id == $user_department_id): ?>
+                                                        <option value="<?php echo esc_attr($id); ?>"><?php echo esc_html($department); ?></option>
+                                                    <?php endif;
+                                                endforeach;
+                                            endif; ?>
+                                        </select>
+                                        <button id="filter-search" class="btn btn-primary">
+                                            <i class="fa-solid fa-search me-1"></i>Search
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-3 d-flex align-items-center">
-                                <button id="filter-search" class="btn btn-primary w-100">
-                                    <i class="fa-solid fa-search me-1"></i>Search
-                                </button>
                             </div>
                         </div>
                         <div class="filtered-results">
@@ -133,27 +139,82 @@ if ( have_posts() ) : ?>
                     background-color: #f8f9fa;
                     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
                 }
-                .filtered-release-supplies .form-control {
-                    border-color: #dee2e6;
-                    font-size: 0.95rem;
-                    padding: 0.5rem 0.75rem;
-                }
+                .filtered-release-supplies .form-control,
                 .filtered-release-supplies .form-select {
                     border-color: #dee2e6;
                     font-size: 0.95rem;
                     padding: 0.5rem 0.75rem;
-                    background-position: right 0.75rem center;
+                    height: 42px;
                 }
+                
+                .filtered-release-supplies .input-group .form-select {
+                    border-top-right-radius: 0;
+                    border-bottom-right-radius: 0;
+                    flex: 1;
+                    min-width: 0;
+                }
+                
+                .filtered-release-supplies .input-group .btn-primary {
+                    border-top-left-radius: 0;
+                    border-bottom-left-radius: 0;
+                    font-weight: 500;
+                    padding: 0.5rem 1.25rem;
+                    height: 42px;
+                }
+                
+                .filtered-release-supplies .form-select {
+                    background-position: right 0.75rem center;
+                    padding-right: 2rem;
+                    text-overflow: ellipsis;
+                    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+                }
+                
+                .filtered-release-supplies .input-group {
+                    transition: all 0.2s ease-in-out;
+                }
+                
+                .filtered-release-supplies .input-group:focus-within {
+                    transform: translateY(-1px);
+                }
+                
                 .filtered-release-supplies .form-control:focus,
                 .filtered-release-supplies .form-select:focus {
                     border-color: #80bdff;
                     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+                    z-index: 1;
                 }
+                
+                .filtered-release-supplies select option:checked {
+                    background-color: #e7f0ff;
+                    color: #0069d9;
+                }
+                
+                .filtered-release-supplies select option:hover {
+                    background-color: #f0f7ff;
+                }
+                
+                .filtered-release-supplies label i {
+                    opacity: 0.7;
+                    transition: opacity 0.2s ease-in-out;
+                }
+                
+                .filtered-release-supplies .form-group:hover label i {
+                    opacity: 1;
+                }
+                
                 .filtered-release-supplies .btn-primary {
                     font-size: 0.95rem;
                     padding: 0.5rem 1rem;
                     font-weight: 500;
+                    background-color: #007bff;
+                    border-color: #007bff;
                 }
+                
+                .filtered-release-supplies .btn-primary:hover {
+                    background-color: #0069d9;
+                    border-color: #0062cc;
+                }
+                
                 .filtered-release-supplies .btn-outline-primary {
                     font-size: 0.875rem;
                     padding: 0.375rem 0.75rem;
@@ -212,6 +273,17 @@ if ( have_posts() ) : ?>
                     }
                     .filtered-release-supplies .btn-outline-primary {
                         width: 100%;
+                    }
+                    .filtered-release-supplies .input-group {
+                        flex-wrap: nowrap;
+                    }
+                    .filtered-release-supplies .input-group .form-select {
+                        width: 75%;
+                    }
+                    .filtered-release-supplies .input-group .btn-primary {
+                        width: 25%;
+                        padding-left: 0.5rem;
+                        padding-right: 0.5rem;
                     }
                 }
                 </style>

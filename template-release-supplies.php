@@ -29,7 +29,8 @@ if ( have_posts() ) : ?>
                     $header = array(
                         'supply_name' => 'Equipment / Supply Name',
                         'release_date' => 'Date Released',
-                        'quantity' => 'Quantity'
+                        'quantity' => 'Quantity',
+                        'department' => 'Department'
                     );
 
                     $theme->createCustomPostListHtml('releasesupplies', 20, $header);
