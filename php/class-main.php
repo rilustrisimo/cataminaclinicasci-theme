@@ -320,19 +320,19 @@ class Theme {
     );
 
     protected $departmentArr = array(
-        '7' => 'NURSING',
-        '6' => 'LABORATORY',
-        '4' => 'PHARMACY',
-        '8' => 'HOUSEKEEPING',
-        '8' => 'MAINTENANCE',
-        '5' => 'RADIOLOGY',
-        '9' => 'BUSINESS OFFICE',
-        '10' => 'INFORMATION / TRIAGE',
-        '14' => 'PHYSICAL THERAPY',
-        '11' => 'KONSULTA PROGRAM',
-        '12' => 'CLINIC B',
-        '12' => 'CLINIC C',
-        '12' => 'CLINIC D'
+        'NURSING' => '7',
+        'LABORATORY' => '6',
+        'PHARMACY' => '4',
+        'HOUSEKEEPING' => '8',
+        'MAINTENANCE' => '8',
+        'RADIOLOGY' => '5',
+        'BUSINESS OFFICE' => '9',
+        'INFORMATION / TRIAGE' => '10',
+        'PHYSICAL THERAPY' => '14',
+        'KONSULTA PROGRAM' => '11',
+        'CLINIC B' => '12',
+        'CLINIC C' => '12',
+        'CLINIC D' => '12'
     );
     
 
@@ -432,7 +432,7 @@ class Theme {
 
         // If department is specified and not ALL (0), add department filter
         $author_id = null;
-        if ($department > 0) {
+        if ($department) {
             // Check current user permissions
             $current_user = wp_get_current_user();
             $is_admin = current_user_can('manage_options');
@@ -440,15 +440,10 @@ class Theme {
             
             if ($is_admin || $is_accounting) {
                 // For admin or accounting, filter by department ID
-                $users = get_users(array(
-                    'meta_key' => 'department',
-                    'meta_value' => $department
-                ));
+                $users_id = $this->departmentArr[$department];
                 
-                if (!empty($users)) {
-                    $author_ids = array_map(function($user) {
-                        return $user->ID;
-                    }, $users);
+                if (!empty($users_id)) {
+                    $author_ids = $users_id;
                     
                     $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC', $author_ids);
                 } else {
