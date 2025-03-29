@@ -417,7 +417,7 @@ class Theme {
 
         $from_date = sanitize_text_field($_POST['from_date']);
         $to_date = sanitize_text_field($_POST['to_date']);
-        $department = isset($_POST['department']) ? intval($_POST['department']) : 0;
+        $department = isset($_POST['department']) ? $_POST['department']: '';
 
         // Query release supplies within date range
         $meta_query = array(
@@ -440,7 +440,7 @@ class Theme {
             
             if ($is_admin || $is_accounting) {
                 // For admin or accounting, filter by department ID
-                $users_id = $this->departmentArr[$department];
+                $users_id = ($department == 'ALL') ? '' : $this->departmentArr[$department];
                 
                 if (!empty($users_id)) {
                     $author_ids = $users_id;
