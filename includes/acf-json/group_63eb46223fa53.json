@@ -64,6 +64,43 @@
             "step": "",
             "prepend": "",
             "append": ""
+        },
+        {
+            "key": "field_67e76678ffc0a",
+            "label": "department",
+            "name": "department",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "NURSING": "NURSING",
+                "LABORATORY": "LABORATORY",
+                "PHARMACY": "PHARMACY",
+                "HOUSEKEEPING": "HOUSEKEEPING",
+                "MAINTENANCE": "MAINTENANCE",
+                "RADIOLOGY": "RADIOLOGY",
+                "BUSINESS OFFICE": "BUSINESS OFFICE",
+                "INFORMATION \/ TRIAGE": "INFORMATION \/ TRIAGE",
+                "PHYSICAL THERAPY": "PHYSICAL THERAPY",
+                "KONSULTA PROGRAM": "KONSULTA PROGRAM",
+                "CLINIC B": "CLINIC B",
+                "CLINIC C": "CLINIC C",
+                "CLINIC D": "CLINIC D"
+            },
+            "default_value": false,
+            "return_format": "array",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
         }
     ],
     "location": [
@@ -83,6 +120,5 @@
     "hide_on_screen": "",
     "active": true,
     "description": "",
-    "show_in_rest": 0,
-    "modified": 1686537304
+    "show_in_rest": 0
 }
