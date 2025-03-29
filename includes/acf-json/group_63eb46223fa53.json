@@ -95,7 +95,7 @@
                 "CLINIC D": "CLINIC D"
             },
             "default_value": false,
-            "return_format": "array",
+            "return_format": "value",
             "multiple": 0,
             "allow_null": 0,
             "ui": 0,

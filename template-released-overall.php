@@ -79,7 +79,7 @@ if ( have_posts() ) : ?>
                                             if(current_user_can('manage_options') || in_array('um_accounting', $roles)):
                                                 // Admin or accounting user - show all departments
                                                 foreach($departments as $department => $id): ?>
-                                                    <option value="<?php echo esc_attr($id); ?>"><?php echo esc_html($department); ?></option>
+                                                    <option value="<?php echo esc_attr($department); ?>"><?php echo esc_html($department); ?></option>
                                                 <?php endforeach;
                                             else:
                                                 // Regular user - show only their department
@@ -89,7 +89,7 @@ if ( have_posts() ) : ?>
                                                 // Display only the user's department
                                                 foreach($departments as $department => $id):
                                                     if($id == $user_department_id): ?>
-                                                        <option value="<?php echo esc_attr($id); ?>"><?php echo esc_html($department); ?></option>
+                                                        <option value="<?php echo esc_attr($department); ?>"><?php echo esc_html($department); ?></option>
                                                     <?php endif;
                                                 endforeach;
                                             endif; ?>
