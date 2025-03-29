@@ -451,16 +451,18 @@ class Theme {
                 }
             } else {
                 // For regular users, only show their own department data
-                $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC', array($current_user->ID));
+                $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC', $current_user->ID);
             }
         } else {
+            $current_user = wp_get_current_user();
+
             // If no department filter or ALL is selected
             if (current_user_can('manage_options') || in_array('um_accounting', wp_get_current_user()->roles)) {
                 // Admin or accounting users can see all departments
                 $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC');
             } else {
                 // Regular users can only see their own data
-                $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC', array(get_current_user_id()));
+                $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC', $current_user->ID);
             }
         }
         
