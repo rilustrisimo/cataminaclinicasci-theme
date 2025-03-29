@@ -503,6 +503,7 @@ class Theme {
 
         $from_date = sanitize_text_field($_POST['from_date']);
         $to_date = sanitize_text_field($_POST['to_date']);
+        $department = isset($_POST['department']) ? $_POST['department'] : '';
 
         // Query release supplies within date range
         $meta_query = array(
@@ -515,7 +516,41 @@ class Theme {
             )
         );
 
-        $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC');
+        // If department is specified and not ALL (0), add department filter
+        $author_id = null;
+        if ($department) {
+            // Check current user permissions
+            $current_user = wp_get_current_user();
+            $is_admin = current_user_can('manage_options');
+            $is_accounting = in_array('um_accounting', $current_user->roles);
+            
+            if ($is_admin || $is_accounting) {
+                // For admin or accounting, filter by department ID
+                $users_id = ($department == 'ALL') ? '' : $this->departmentArr[$department];
+                
+                if (!empty($users_id)) {
+                    $author_ids = $users_id;
+                    
+                    $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC', $author_ids);
+                } else {
+                    $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC');
+                }
+            } else {
+                // For regular users, only show their own department data
+                $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC', $current_user->ID);
+            }
+        } else {
+            $current_user = wp_get_current_user();
+
+            // If no department filter or ALL is selected
+            if (current_user_can('manage_options') || in_array('um_accounting', wp_get_current_user()->roles)) {
+                // Admin or accounting users can see all departments
+                $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC');
+            } else {
+                // Regular users can only see their own data
+                $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC', $current_user->ID);
+            }
+        }
         
         // Group and sum quantities by supply name
         $grouped_supplies = array();
@@ -528,11 +563,13 @@ class Theme {
             }
             
             $quantity = (float)get_field('quantity', $post->ID);
+            $price_per_unit = (float)get_field('price_per_unit', $supply_name->ID);
             
             if (!isset($grouped_supplies[$supply_name->ID])) {
                 $grouped_supplies[$supply_name->ID] = array(
                     'supply_name' => $supply_name->post_title,
-                    'total_quantity' => 0
+                    'total_quantity' => 0,
+                    'price_per_unit' => $price_per_unit
                 );
             }
             $grouped_supplies[$supply_name->ID]['total_quantity'] += $quantity;
@@ -555,8 +592,15 @@ class Theme {
         $pdf->SetAuthor('Catamina Clinica');
         $pdf->SetTitle('Release Supplies Report');
         
+        // Add department info to header if specified
+        $header_subtitle = 'Period: ' . date('M d, Y', strtotime($from_date)) . ' - ' . date('M d, Y', strtotime($to_date));
+        if ($department && $department != 'ALL' && $department != '0') {
+            $department_name = array_search($department, $this->departmentArr) ?: 'Department: ' . $department;
+            $header_subtitle .= ' | ' . $department_name;
+        }
+        
         // Set default header data
-        $pdf->SetHeaderData(PDF_HEADER_LOGO, PDF_HEADER_LOGO_WIDTH, 'Release Supplies Report', 'Period: ' . date('M d, Y', strtotime($from_date)) . ' - ' . date('M d, Y', strtotime($to_date)));
+        $pdf->SetHeaderData(PDF_HEADER_LOGO, PDF_HEADER_LOGO_WIDTH, 'Release Supplies Report', $header_subtitle);
         
         // Set header and footer fonts
         $pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
@@ -583,18 +627,32 @@ class Theme {
         $html = '<table border="1" cellpadding="4">
             <thead>
                 <tr style="background-color: #f8f9fa;">
-                    <th style="width: 70%;"><b>Equipment / Supply Name</b></th>
-                    <th style="width: 30%; text-align: right;"><b>Total Quantity Released</b></th>
+                    <th style="width: 50%;"><b>Equipment / Supply Name</b></th>
+                    <th style="width: 20%; text-align: right;"><b>Quantity</b></th>
+                    <th style="width: 15%; text-align: right;"><b>Price per Unit</b></th>
+                    <th style="width: 15%; text-align: right;"><b>Total Price</b></th>
                 </tr>
             </thead>
             <tbody>';
         
+        $grand_total = 0;
         foreach ($results as $item) {
+            $total_price = $item['total_quantity'] * $item['price_per_unit'];
+            $grand_total += $total_price;
+            
             $html .= '<tr>
                 <td>' . $item['supply_name'] . '</td>
-                <td style="text-align: right;">' . $item['total_quantity'] . '</td>
+                <td style="text-align: right;">' . number_format($item['total_quantity'], 2) . '</td>
+                <td style="text-align: right;">PHP ' . number_format($item['price_per_unit'], 2) . '</td>
+                <td style="text-align: right;">PHP ' . number_format($total_price, 2) . '</td>
             </tr>';
         }
+        
+        // Add total row
+        $html .= '<tr style="background-color: #f8f9fa;">
+            <td colspan="3" style="text-align: right;"><b>Total Amount:</b></td>
+            <td style="text-align: right;"><b>PHP ' . number_format($grand_total, 2) . '</b></td>
+        </tr>';
         
         $html .= '</tbody></table>';
         
@@ -602,7 +660,7 @@ class Theme {
         $pdf->writeHTML($html, true, false, true, false, '');
         
         // Close and output PDF document
-        $pdf->Output('release_supplies_report.pdf', 'D');
+        $pdf->Output('release_supplies_report_' . date('Y-m-d') . '.pdf', 'D');
         exit;
     }
 
