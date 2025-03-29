@@ -29,19 +29,67 @@ if ( have_posts() ) : ?>
                     </div>
                     <div class="card-body p-4">
                         <div class="date-filter row g-3 mb-4">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="filter-from-date" class="form-label fw-medium text-dark mb-1">From Date</label>
                                     <input type="date" id="filter-from-date" class="form-control" value="<?php echo date('Y-m-d', strtotime('first day of this month')); ?>">
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="filter-to-date" class="form-label fw-medium text-dark mb-1">To Date</label>
                                     <input type="date" id="filter-to-date" class="form-control" value="<?php echo date('Y-m-d', strtotime('last day of this month')); ?>">
                                 </div>
                             </div>
-                            <div class="col-md-4 d-flex align-items-center">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="filter-department" class="form-label fw-medium text-dark mb-1">Department</label>
+                                    <select id="filter-department" class="form-select">
+                                        <?php 
+                                        // Get current user's roles
+                                        $user = wp_get_current_user();
+                                        $roles = $user->roles;
+                                        
+                                        // Department options with their IDs
+                                        $departments = array(
+                                            'ALL' => 0,
+                                            'NURSING' => 7,
+                                            'LABORATORY' => 6,
+                                            'PHARMACY' => 4,
+                                            'HOUSEKEEPING' => 8,
+                                            'MAINTENANCE' => 8,
+                                            'RADIOLOGY' => 5,
+                                            'BUSINESS OFFICE' => 9,
+                                            'INFORMATION / TRIAGE' => 10,
+                                            'PHYSICAL THERAPY' => 14,
+                                            'KONSULTA PROGRAM' => 11,
+                                            'CLINIC B' => 12,
+                                            'CLINIC C' => 12,
+                                            'CLINIC D' => 12
+                                        );
+                                        
+                                        // Check user permissions
+                                        if(current_user_can('manage_options') || in_array('um_accounting', $roles)):
+                                            // Admin or accounting user - show all departments
+                                            foreach($departments as $department => $id): ?>
+                                                <option value="<?php echo esc_attr($id); ?>"><?php echo esc_html($department); ?></option>
+                                            <?php endforeach;
+                                        else:
+                                            // Regular user - show only their department
+                                            // Get user's department
+                                            $user_department_id = get_user_meta($user->ID, 'department', true);
+                                            
+                                            // Display only the user's department
+                                            foreach($departments as $department => $id):
+                                                if($id == $user_department_id || $id == 0): ?>
+                                                    <option value="<?php echo esc_attr($id); ?>"><?php echo esc_html($department); ?></option>
+                                                <?php endif;
+                                            endforeach;
+                                        endif; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-center">
                                 <button id="filter-search" class="btn btn-primary w-100">
                                     <i class="fa-solid fa-search me-1"></i>Search
                                 </button>
@@ -90,7 +138,14 @@ if ( have_posts() ) : ?>
                     font-size: 0.95rem;
                     padding: 0.5rem 0.75rem;
                 }
-                .filtered-release-supplies .form-control:focus {
+                .filtered-release-supplies .form-select {
+                    border-color: #dee2e6;
+                    font-size: 0.95rem;
+                    padding: 0.5rem 0.75rem;
+                    background-position: right 0.75rem center;
+                }
+                .filtered-release-supplies .form-control:focus,
+                .filtered-release-supplies .form-select:focus {
                     border-color: #80bdff;
                     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
                 }
@@ -170,6 +225,7 @@ if ( have_posts() ) : ?>
                     function loadFilteredResults() {
                         var fromDate = $('#filter-from-date').val();
                         var toDate = $('#filter-to-date').val();
+                        var department = $('#filter-department').val();
                         
                         // Show loading indicator
                         $('#loading-indicator').removeClass('d-none');
@@ -182,6 +238,7 @@ if ( have_posts() ) : ?>
                                 action: 'get_filtered_release_supplies',
                                 from_date: fromDate,
                                 to_date: toDate,
+                                department: department,
                                 nonce: '<?php echo wp_create_nonce("filter_release_supplies"); ?>'
                             },
                             success: function(response) {
@@ -231,6 +288,8 @@ if ( have_posts() ) : ?>
                     function generatePDF() {
                         var fromDate = $('#filter-from-date').val();
                         var toDate = $('#filter-to-date').val();
+                        var departmentId = $('#filter-department').val();
+                        var departmentName = $('#filter-department option:selected').text();
                         
                         // Get the table data
                         var data = [];
@@ -276,10 +335,18 @@ if ( have_posts() ) : ?>
                         doc.setFontSize(12);
                         doc.setFont(undefined, 'normal');
                         doc.text('Period: ' + fromDate + ' to ' + toDate, 105, 30, { align: 'center' });
+                        
+                        // Add department info if selected
+                        let startY = 35;
+                        if (departmentId != '0') {
+                            doc.setFontSize(11);
+                            doc.text('Department: ' + departmentName, 105, 38, { align: 'center' });
+                            startY = 45;
+                        }
 
                         // Add table with improved styling
                         doc.autoTable({
-                            startY: 35,
+                            startY: startY,
                             head: [['Equipment / Supply Name', 'Quantity', 'Price per Unit', 'Total Price']],
                             body: data,
                             theme: 'grid',

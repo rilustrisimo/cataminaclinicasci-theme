@@ -77,7 +77,8 @@ class Theme {
             'header'        => array(
                 'supply_name' => 'Equipment / Supply Name',
                 'release_date' => 'Date Released',
-                'quantity' => 'Quantity'
+                'quantity' => 'Quantity',
+                'department' => 'Department',
             )
         ),
         array(
@@ -416,6 +417,7 @@ class Theme {
 
         $from_date = sanitize_text_field($_POST['from_date']);
         $to_date = sanitize_text_field($_POST['to_date']);
+        $department = isset($_POST['department']) ? intval($_POST['department']) : 0;
 
         // Query release supplies within date range
         $meta_query = array(
@@ -428,7 +430,44 @@ class Theme {
             )
         );
 
-        $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC');
+        // If department is specified and not ALL (0), add department filter
+        $author_id = null;
+        if ($department > 0) {
+            // Check current user permissions
+            $current_user = wp_get_current_user();
+            $is_admin = current_user_can('manage_options');
+            $is_accounting = in_array('um_accounting', $current_user->roles);
+            
+            if ($is_admin || $is_accounting) {
+                // For admin or accounting, filter by department ID
+                $users = get_users(array(
+                    'meta_key' => 'department',
+                    'meta_value' => $department
+                ));
+                
+                if (!empty($users)) {
+                    $author_ids = array_map(function($user) {
+                        return $user->ID;
+                    }, $users);
+                    
+                    $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC', $author_ids);
+                } else {
+                    $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC');
+                }
+            } else {
+                // For regular users, only show their own department data
+                $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC', array($current_user->ID));
+            }
+        } else {
+            // If no department filter or ALL is selected
+            if (current_user_can('manage_options') || in_array('um_accounting', wp_get_current_user()->roles)) {
+                // Admin or accounting users can see all departments
+                $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC');
+            } else {
+                // Regular users can only see their own data
+                $query = $this->createQueryRoles('releasesupplies', $meta_query, -1, 'date', 'ASC', array(get_current_user_id()));
+            }
+        }
         
         // Group and sum quantities by supply name
         $grouped_supplies = array();
@@ -624,6 +663,10 @@ class Theme {
                 $args['author'] = $aid;
             else:
                 $args['author'] = $u->ID;
+            endif;
+        else:
+            if($aid):
+                $args['author'] = $aid;
             endif;
         endif;
 
