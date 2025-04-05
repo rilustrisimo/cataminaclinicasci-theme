@@ -3964,10 +3964,35 @@ class Theme {
         $query = new WP_Query($args);
         $releases = array();
         
+        // Department mapping
+        $departments = array(
+            'ALL' => 0,
+            'NURSING' => 7,
+            'LABORATORY' => 6,
+            'PHARMACY' => 4,
+            'HOUSEKEEPING' => 8,
+            'MAINTENANCE' => 8,
+            'RADIOLOGY' => 5,
+            'BUSINESS OFFICE' => 9,
+            'INFORMATION / TRIAGE' => 10,
+            'PHYSICAL THERAPY' => 14,
+            'KONSULTA PROGRAM' => 11,
+            'CLINIC A' => 12,
+            'CLINIC B' => 12,
+            'CLINIC C' => 12,
+            'CLINIC D' => 12,
+            'PHILHEALTH - KP' => 11,
+            'PHILHEALTH - ASC' => 7,
+            'PHILHEALTH - CLINIC A' => 12,
+            'DSWD' => 10,
+        );
+        
         if ($query->have_posts()) {
             while ($query->have_posts()) {
                 $query->the_post();
                 $post_id = get_the_ID();
+                $post = get_post($post_id);
+                $author_id = $post->post_author;
                 $supply_id = get_field('supply_name', $post_id)->ID;
                 $supply_name = get_field('supply_name', $post_id)->post_title;
                 $quantity = get_field('quantity', $post_id);
@@ -3976,12 +4001,32 @@ class Theme {
                 // Get price per unit from original supply
                 $price_per_unit = get_field('price_per_unit', $supply_id);
                 
+                // Get author display name and department
+                $author_name = get_the_author_meta('display_name', $author_id);
+                $department_id = $author_id;
+                $department_name = '';
+                
+                // Find department name based on user ID
+                foreach ($departments as $dept => $id) {
+                    if ($id == $department_id) {
+                        $department_name = $dept;
+                        break;
+                    }
+                }
+                
+                // If no department match, just use user ID
+                $released_by = $author_name;
+                if (!empty($department_name)) {
+                    $released_by .= ' (' . $department_name . ')';
+                }
+                
                 $releases[] = array(
                     'id' => $post_id,
                     'supply_name' => $supply_name,
                     'quantity' => $quantity,
                     'release_date' => $release_date,
-                    'price_per_unit' => $price_per_unit
+                    'price_per_unit' => $price_per_unit,
+                    'released_by' => $released_by
                 );
             }
             wp_reset_postdata();

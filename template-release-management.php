@@ -91,19 +91,20 @@ if ( have_posts() ) : ?>
                                         <th class="fw-semibold text-dark py-2 text-end">Quantity</th>
                                         <th class="fw-semibold text-dark py-2 text-end">Price per Unit</th>
                                         <th class="fw-semibold text-dark py-2 text-end">Total</th>
+                                        <th class="fw-semibold text-dark py-2">Released By</th>
                                         <th class="fw-semibold text-dark py-2 text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="pending-releases-body">
                                     <tr>
-                                        <td colspan="6" class="text-center py-4">Loading pending releases...</td>
+                                        <td colspan="7" class="text-center py-4">Loading pending releases...</td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
                                     <tr class="bg-light">
                                         <td colspan="4" class="fw-bold text-end">Total Amount:</td>
                                         <td id="pending-total" class="fw-bold text-end">₱0.00</td>
-                                        <td></td>
+                                        <td colspan="2"></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -120,22 +121,35 @@ if ( have_posts() ) : ?>
                                         <th class="fw-semibold text-dark py-2 text-end">Quantity</th>
                                         <th class="fw-semibold text-dark py-2 text-end">Price per Unit</th>
                                         <th class="fw-semibold text-dark py-2 text-end">Total</th>
+                                        <th class="fw-semibold text-dark py-2">Released By</th>
                                         <th class="fw-semibold text-dark py-2 text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="confirmed-releases-body">
                                     <tr>
-                                        <td colspan="6" class="text-center py-4">Loading confirmed releases...</td>
+                                        <td colspan="7" class="text-center py-4">Loading confirmed releases...</td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
                                     <tr class="bg-light">
                                         <td colspan="4" class="fw-bold text-end">Total Amount:</td>
                                         <td id="confirmed-total" class="fw-bold text-end">₱0.00</td>
-                                        <td></td>
+                                        <td colspan="2"></td>
                                     </tr>
                                 </tfoot>
                             </table>
+                            
+                            <!-- Pagination for confirmed releases -->
+                            <div class="d-flex justify-content-between align-items-center mt-3" id="confirmed-pagination-container">
+                                <div class="pagination-info">
+                                    Showing <span id="pagination-start">0</span> to <span id="pagination-end">0</span> of <span id="pagination-total">0</span> entries
+                                </div>
+                                <nav aria-label="Confirmed releases pagination">
+                                    <ul class="pagination pagination-sm mb-0" id="confirmed-pagination">
+                                        <!-- Pagination will be generated here -->
+                                    </ul>
+                                </nav>
+                            </div>
                         </div>
                         
                         <!-- Loading Indicator -->
@@ -273,6 +287,9 @@ if ( have_posts() ) : ?>
                     var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
                     var userId = '<?php echo esc_js($user_id); ?>';
                     var hasAdvancedAccess = <?php echo json_encode($has_advanced_access); ?>;
+                    var itemsPerPage = 50;
+                    var currentConfirmedPage = 1;
+                    var allConfirmedItems = [];
                     
                     // Function to load releases based on status and department
                     function loadReleases(status) {
@@ -280,7 +297,7 @@ if ( have_posts() ) : ?>
                         var tableId = (status === 'pending') ? '#pending-releases-body' : '#confirmed-releases-body';
                         var totalId = (status === 'pending') ? '#pending-total' : '#confirmed-total';
                         
-                        $(tableId).html('<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
+                        $(tableId).html('<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
                         
                         $.ajax({
                             url: ajaxurl,
@@ -294,47 +311,166 @@ if ( have_posts() ) : ?>
                             },
                             success: function(response) {
                                 if(response.success) {
-                                    var html = '';
-                                    var totalAmount = 0;
-                                    
-                                    if(response.data.length === 0) {
-                                        html = '<tr><td colspan="6" class="text-center py-4">No ' + status + ' releases found</td></tr>';
+                                    if(status === 'pending') {
+                                        displayPendingReleases(response.data);
                                     } else {
-                                        response.data.forEach(function(item) {
-                                            var quantity = parseFloat(item.quantity) || 0;
-                                            var pricePerUnit = parseFloat(item.price_per_unit) || 0;
-                                            var totalPrice = quantity * pricePerUnit;
-                                            totalAmount += totalPrice;
-                                            
-                                            html += '<tr data-id="' + item.id + '">';
-                                            html += '<td class="text-dark">' + item.supply_name + '</td>';
-                                            html += '<td>' + item.release_date + '</td>';
-                                            html += '<td class="text-end fw-medium text-dark">' + quantity + '</td>';
-                                            html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
-                                            html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
-                                            html += '<td class="text-center">';
-                                            
-                                            if (status === 'pending') {
-                                                html += '<button class="btn btn-sm btn-success action-btn confirm-release" data-id="' + item.id + '"><i class="fa-solid fa-check me-1"></i>Confirm</button>';
-                                            } else {
-                                                html += '<button class="btn btn-sm btn-warning action-btn revert-confirmation" data-id="' + item.id + '"><i class="fa-solid fa-rotate-left me-1"></i>Revert</button>';
-                                            }
-                                            
-                                            html += '</td>';
-                                            html += '</tr>';
-                                        });
+                                        // Store all confirmed items and display first page
+                                        allConfirmedItems = response.data;
+                                        currentConfirmedPage = 1;
+                                        displayConfirmedReleases();
                                     }
-                                    
-                                    $(tableId).html(html);
-                                    $(totalId).text('₱' + totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                                 } else {
-                                    $(tableId).html('<tr><td colspan="6" class="text-center text-danger py-4">Error loading releases</td></tr>');
+                                    $(tableId).html('<tr><td colspan="7" class="text-center text-danger py-4">Error loading releases</td></tr>');
                                 }
                             },
                             error: function() {
-                                $(tableId).html('<tr><td colspan="6" class="text-center text-danger py-4">Error loading releases</td></tr>');
+                                $(tableId).html('<tr><td colspan="7" class="text-center text-danger py-4">Error loading releases</td></tr>');
                             }
                         });
+                    }
+                    
+                    // Function to display pending releases
+                    function displayPendingReleases(items) {
+                        var html = '';
+                        var totalAmount = 0;
+                        
+                        if(items.length === 0) {
+                            html = '<tr><td colspan="7" class="text-center py-4">No pending releases found</td></tr>';
+                        } else {
+                            items.forEach(function(item) {
+                                var quantity = parseFloat(item.quantity) || 0;
+                                var pricePerUnit = parseFloat(item.price_per_unit) || 0;
+                                var totalPrice = quantity * pricePerUnit;
+                                totalAmount += totalPrice;
+                                
+                                html += '<tr data-id="' + item.id + '">';
+                                html += '<td class="text-dark">' + item.supply_name + '</td>';
+                                html += '<td>' + item.release_date + '</td>';
+                                html += '<td class="text-end fw-medium text-dark">' + quantity + '</td>';
+                                html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
+                                html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
+                                html += '<td class="text-dark">' + item.released_by + '</td>';
+                                html += '<td class="text-center">';
+                                html += '<button class="btn btn-sm btn-success action-btn confirm-release" data-id="' + item.id + '"><i class="fa-solid fa-check me-1"></i>Confirm</button>';
+                                html += '</td>';
+                                html += '</tr>';
+                            });
+                        }
+                        
+                        $('#pending-releases-body').html(html);
+                        $('#pending-total').text('₱' + totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                    }
+                    
+                    // Function to display paginated confirmed releases
+                    function displayConfirmedReleases() {
+                        var totalItems = allConfirmedItems.length;
+                        var totalPages = Math.ceil(totalItems / itemsPerPage);
+                        var startIndex = (currentConfirmedPage - 1) * itemsPerPage;
+                        var endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+                        var currentPageItems = allConfirmedItems.slice(startIndex, endIndex);
+                        
+                        var html = '';
+                        var totalAmount = calculateTotalAmount(allConfirmedItems);
+                        
+                        if(totalItems === 0) {
+                            html = '<tr><td colspan="7" class="text-center py-4">No confirmed releases found</td></tr>';
+                        } else {
+                            currentPageItems.forEach(function(item) {
+                                var quantity = parseFloat(item.quantity) || 0;
+                                var pricePerUnit = parseFloat(item.price_per_unit) || 0;
+                                var totalPrice = quantity * pricePerUnit;
+                                
+                                html += '<tr data-id="' + item.id + '">';
+                                html += '<td class="text-dark">' + item.supply_name + '</td>';
+                                html += '<td>' + item.release_date + '</td>';
+                                html += '<td class="text-end fw-medium text-dark">' + quantity + '</td>';
+                                html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
+                                html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
+                                html += '<td class="text-dark">' + item.released_by + '</td>';
+                                html += '<td class="text-center">';
+                                html += '<button class="btn btn-sm btn-warning action-btn revert-confirmation" data-id="' + item.id + '"><i class="fa-solid fa-rotate-left me-1"></i>Revert</button>';
+                                html += '</td>';
+                                html += '</tr>';
+                            });
+                        }
+                        
+                        $('#confirmed-releases-body').html(html);
+                        $('#confirmed-total').text('₱' + totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                        
+                        // Update pagination information
+                        $('#pagination-start').text(totalItems > 0 ? startIndex + 1 : 0);
+                        $('#pagination-end').text(endIndex);
+                        $('#pagination-total').text(totalItems);
+                        
+                        // Generate pagination
+                        generatePagination(totalPages);
+                    }
+                    
+                    // Calculate total amount for all items
+                    function calculateTotalAmount(items) {
+                        var totalAmount = 0;
+                        items.forEach(function(item) {
+                            var quantity = parseFloat(item.quantity) || 0;
+                            var pricePerUnit = parseFloat(item.price_per_unit) || 0;
+                            totalAmount += quantity * pricePerUnit;
+                        });
+                        return totalAmount;
+                    }
+                    
+                    // Generate pagination links
+                    function generatePagination(totalPages) {
+                        var paginationHtml = '';
+                        
+                        // Previous button
+                        paginationHtml += '<li class="page-item' + (currentConfirmedPage === 1 ? ' disabled' : '') + '">';
+                        paginationHtml += '<a class="page-link" href="#" data-page="prev" aria-label="Previous">';
+                        paginationHtml += '<span aria-hidden="true">&laquo;</span>';
+                        paginationHtml += '</a></li>';
+                        
+                        // Page numbers
+                        var startPage = Math.max(1, currentConfirmedPage - 2);
+                        var endPage = Math.min(totalPages, startPage + 4);
+                        
+                        if (endPage - startPage < 4 && startPage > 1) {
+                            startPage = Math.max(1, endPage - 4);
+                        }
+                        
+                        // First page
+                        if (startPage > 1) {
+                            paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>';
+                            if (startPage > 2) {
+                                paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                            }
+                        }
+                        
+                        // Page numbers
+                        for (var i = startPage; i <= endPage; i++) {
+                            paginationHtml += '<li class="page-item' + (i === currentConfirmedPage ? ' active' : '') + '">';
+                            paginationHtml += '<a class="page-link" href="#" data-page="' + i + '">' + i + '</a></li>';
+                        }
+                        
+                        // Last page
+                        if (endPage < totalPages) {
+                            if (endPage < totalPages - 1) {
+                                paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                            }
+                            paginationHtml += '<li class="page-item"><a class="page-link" href="#" data-page="' + totalPages + '">' + totalPages + '</a></li>';
+                        }
+                        
+                        // Next button
+                        paginationHtml += '<li class="page-item' + (currentConfirmedPage === totalPages || totalPages === 0 ? ' disabled' : '') + '">';
+                        paginationHtml += '<a class="page-link" href="#" data-page="next" aria-label="Next">';
+                        paginationHtml += '<span aria-hidden="true">&raquo;</span>';
+                        paginationHtml += '</a></li>';
+                        
+                        $('#confirmed-pagination').html(paginationHtml);
+                        
+                        // Hide pagination if only one page
+                        if(totalPages <= 1) {
+                            $('#confirmed-pagination-container').hide();
+                        } else {
+                            $('#confirmed-pagination-container').show();
+                        }
                     }
 
                     // Function to update release status
@@ -402,6 +538,30 @@ if ( have_posts() ) : ?>
                     $(document).on('click', '.revert-confirmation', function() {
                         var releaseId = $(this).data('id');
                         updateReleaseStatus(releaseId, 'pending');
+                    });
+                    
+                    // Pagination click event
+                    $(document).on('click', '#confirmed-pagination .page-link', function(e) {
+                        e.preventDefault();
+                        var page = $(this).data('page');
+                        
+                        if (page === 'prev') {
+                            if (currentConfirmedPage > 1) {
+                                currentConfirmedPage--;
+                            }
+                        } else if (page === 'next') {
+                            var totalPages = Math.ceil(allConfirmedItems.length / itemsPerPage);
+                            if (currentConfirmedPage < totalPages) {
+                                currentConfirmedPage++;
+                            }
+                        } else {
+                            currentConfirmedPage = parseInt(page);
+                        }
+                        
+                        displayConfirmedReleases();
+                        
+                        // Scroll to top of table
+                        $('#confirmed-releases-table').get(0).scrollIntoView({ behavior: 'smooth', block: 'start' });
                     });
                     
                     // Load initial data
