@@ -21,6 +21,72 @@
 	<link rel="profile" href="http://gmpg.org/xfn/11">
 	<?php acf_form_head(); ?>
 	<?php wp_head(); ?>
+	<script>
+	jQuery(document).ready(function($) {
+	    // Only run if user is logged in
+	    <?php if (is_user_logged_in()): ?>
+	    
+	    // Function to get count of pending releases
+	    function getPendingReleaseCount() {
+	        var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+	        
+	        $.ajax({
+	            url: ajaxurl,
+	            type: 'POST',
+	            data: {
+	                action: 'get_pending_release_count',
+	                user_id: <?php echo get_current_user_id(); ?>,
+	                nonce: '<?php echo wp_create_nonce("get_pending_release_count"); ?>'
+	            },
+	            success: function(response) {
+	                if (response.success && response.data > 0) {
+	                    // Find the Release Management menu item
+	                    $('li.menu-item a').each(function() {
+	                        if ($(this).text().trim() === 'Release Management') {
+	                            // Add badge with count
+	                            var badge = $('<span class="badge-counter">' + response.data + '</span>');
+	                            
+	                            // Remove existing badge if any
+	                            $(this).find('.badge-counter').remove();
+	                            
+	                            // Add new badge
+	                            $(this).append(badge);
+	                        }
+	                    });
+	                }
+	            }
+	        });
+	    }
+	    
+	    // Add styles for the counter badge
+	    $('<style>\
+	        .badge-counter {\
+	            display: inline-flex;\
+	            justify-content: center;\
+	            align-items: center;\
+	            position: relative;\
+	            margin-left: 8px;\
+	            min-width: 18px;\
+	            height: 18px;\
+	            font-size: 11px;\
+	            font-weight: 600;\
+	            line-height: 1;\
+	            background-color: #dc3545;\
+	            color: white;\
+	            border-radius: 10px;\
+	            padding: 0 6px;\
+	        }\
+	    </style>').appendTo('head');
+	    
+	    // Initial load
+	    getPendingReleaseCount();
+	    
+	    // Refresh every minute
+	    setInterval(getPendingReleaseCount, 60000);
+	    
+	    <?php endif; ?>
+	});
+	</script>
 </head>
 <body <?php body_class(); ?>>
 <div class="modal-container">

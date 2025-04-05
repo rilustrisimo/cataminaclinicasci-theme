@@ -132,7 +132,12 @@ if ( have_posts() ) : ?>
                                 </tbody>
                                 <tfoot>
                                     <tr class="bg-light">
-                                        <td colspan="4" class="fw-bold text-end">Total Amount:</td>
+                                        <td colspan="4" class="fw-bold text-end">Current Page Total:</td>
+                                        <td id="confirmed-page-total" class="fw-bold text-end">₱0.00</td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    <tr class="bg-light">
+                                        <td colspan="4" class="fw-bold text-end">Overall Total:</td>
                                         <td id="confirmed-total" class="fw-bold text-end">₱0.00</td>
                                         <td colspan="2"></td>
                                     </tr>
@@ -154,133 +159,187 @@ if ( have_posts() ) : ?>
                         
                         <!-- Loading Indicator -->
                         <div id="loading-indicator" class="text-center d-none py-4">
-                            <div class="custom-loader"></div>
-                            <div class="mt-2 text-dark">Processing...</div>
+                            <div class="spinner"></div>
                         </div>
-                    </div>
-                </div>
+                        
+                        <style>
+                        .release-management {
+                            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+                            border: 1px solid rgba(0, 0, 0, 0.08);
+                        }
+                        .release-management .card-header {
+                            background-color: #f8f9fa;
+                            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+                        }
+                        .release-management .form-control,
+                        .release-management .form-select {
+                            border-color: #dee2e6;
+                            font-size: 0.95rem;
+                            padding: 0.5rem 0.75rem;
+                            height: 42px;
+                        }
+                        
+                        .release-management .input-group .form-select {
+                            border-top-right-radius: 0;
+                            border-bottom-right-radius: 0;
+                            flex: 1;
+                            min-width: 0;
+                        }
+                        
+                        .release-management .input-group .btn-primary {
+                            border-top-left-radius: 0;
+                            border-bottom-left-radius: 0;
+                            font-weight: 500;
+                            padding: 0.5rem 1.25rem;
+                            height: 42px;
+                        }
+                        
+                        .release-management .table {
+                            font-size: 0.95rem;
+                        }
+                        .release-management .table th {
+                            font-weight: 600;
+                            letter-spacing: 0.3px;
+                        }
+                        .release-management .table td {
+                            padding: 0.75rem 1rem;
+                        }
+                        .release-management .table tbody tr {
+                            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+                        }
+                        .release-management .table tbody tr:last-child {
+                            border-bottom: none;
+                        }
+                        .release-management .table tbody tr:hover {
+                            background-color: rgba(0, 123, 255, 0.02);
+                        }
+                        
+                        .action-btn {
+                            padding: 0.25rem 0.5rem;
+                            font-size: 0.85rem;
+                        }
+                        .action-btn:hover {
+                            transform: translateY(-1px);
+                        }
+                        
+                        /* Custom Loader */
+                        .custom-loader {
+                            width: 50px;
+                            height: 50px;
+                            border-radius: 50%;
+                            background: 
+                                radial-gradient(farthest-side,#007bff 94%,#0000) top/8px 8px no-repeat,
+                                conic-gradient(#0000 30%,#007bff);
+                            -webkit-mask: radial-gradient(farthest-side,#0000 calc(100% - 8px),#000 0);
+                            animation: spinner-animation 1s infinite linear;
+                            margin: 0 auto;
+                        }
 
-                <style>
-                .release-management {
-                    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-                    border: 1px solid rgba(0, 0, 0, 0.08);
-                }
-                .release-management .card-header {
-                    background-color: #f8f9fa;
-                    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-                }
-                .release-management .form-control,
-                .release-management .form-select {
-                    border-color: #dee2e6;
-                    font-size: 0.95rem;
-                    padding: 0.5rem 0.75rem;
-                    height: 42px;
-                }
-                
-                .release-management .input-group .form-select {
-                    border-top-right-radius: 0;
-                    border-bottom-right-radius: 0;
-                    flex: 1;
-                    min-width: 0;
-                }
-                
-                .release-management .input-group .btn-primary {
-                    border-top-left-radius: 0;
-                    border-bottom-left-radius: 0;
-                    font-weight: 500;
-                    padding: 0.5rem 1.25rem;
-                    height: 42px;
-                }
-                
-                .release-management .table {
-                    font-size: 0.95rem;
-                }
-                .release-management .table th {
-                    font-weight: 600;
-                    letter-spacing: 0.3px;
-                }
-                .release-management .table td {
-                    padding: 0.75rem 1rem;
-                }
-                .release-management .table tbody tr {
-                    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-                }
-                .release-management .table tbody tr:last-child {
-                    border-bottom: none;
-                }
-                .release-management .table tbody tr:hover {
-                    background-color: rgba(0, 123, 255, 0.02);
-                }
-                
-                .action-btn {
-                    padding: 0.25rem 0.5rem;
-                    font-size: 0.85rem;
-                }
-                .action-btn:hover {
-                    transform: translateY(-1px);
-                }
-                
-                /* Custom Loader */
-                .custom-loader {
-                    width: 50px;
-                    height: 50px;
-                    border-radius: 50%;
-                    background: 
-                        radial-gradient(farthest-side,#007bff 94%,#0000) top/8px 8px no-repeat,
-                        conic-gradient(#0000 30%,#007bff);
-                    -webkit-mask: radial-gradient(farthest-side,#0000 calc(100% - 8px),#000 0);
-                    animation: spinner-animation 1s infinite linear;
-                    margin: 0 auto;
-                }
+                        @keyframes spinner-animation {
+                            100% {
+                                transform: rotate(360deg);
+                            }
+                        }
 
-                @keyframes spinner-animation {
-                    100% {
-                        transform: rotate(360deg);
-                    }
-                }
+                        /* Clean Spinner */
+                        .spinner {
+                            width: 40px;
+                            height: 40px;
+                            margin: 0 auto;
+                            border: 4px solid rgba(0, 123, 255, 0.1);
+                            border-left-color: #007bff;
+                            border-radius: 50%;
+                            animation: spinner-animation 1s linear infinite;
+                        }
+                        
+                        @keyframes spinner-animation {
+                            to {
+                                transform: rotate(360deg);
+                            }
+                        }
 
-                /* Status badges */
-                .badge-pending {
-                    background-color: #ffc107;
-                    color: #212529;
-                }
-                .badge-confirmed {
-                    background-color: #28a745;
-                    color: #fff;
-                }
-                
-                /* Table empty state */
-                .table-empty-state {
-                    padding: 2rem;
-                    text-align: center;
-                    color: #6c757d;
-                }
-                
-                @media (max-width: 768px) {
-                    .release-management .card-body {
-                        padding: 1rem;
-                    }
-                    .release-management .department-filter > div {
-                        margin-bottom: 0.5rem;
-                    }
-                    .release-management .card-header {
-                        flex-direction: column;
-                        gap: 1rem;
-                        align-items: stretch !important;
-                    }
-                    .release-management .input-group {
-                        flex-wrap: nowrap;
-                    }
-                    .release-management .input-group .form-select {
-                        width: 75%;
-                    }
-                    .release-management .input-group .btn-primary {
-                        width: 25%;
-                        padding-left: 0.5rem;
-                        padding-right: 0.5rem;
-                    }
-                }
-                </style>
+                        /* Status badges */
+                        .badge-pending {
+                            background-color: #ffc107;
+                            color: #212529;
+                        }
+                        .badge-confirmed {
+                            background-color: #28a745;
+                            color: #fff;
+                        }
+                        
+                        /* Table empty state */
+                        .table-empty-state {
+                            padding: 2rem;
+                            text-align: center;
+                            color: #6c757d;
+                        }
+                        
+                        /* Pagination styling */
+                        .pagination {
+                            list-style: none;
+                            padding-left: 0;
+                        }
+                        
+                        .pagination .page-item {
+                            display: inline-block;
+                            margin: 0 2px;
+                        }
+                        
+                        .pagination .page-link {
+                            padding: 0.25rem 0.5rem;
+                            font-size: 0.875rem;
+                            border-radius: 3px;
+                            color: #007bff;
+                            background-color: #fff;
+                            border: 1px solid #dee2e6;
+                            text-decoration: none;
+                            transition: all 0.2s;
+                        }
+                        
+                        .pagination .page-item.active .page-link {
+                            color: #fff;
+                            background-color: #007bff;
+                            border-color: #007bff;
+                        }
+                        
+                        .pagination .page-item.disabled .page-link {
+                            color: #6c757d;
+                            background-color: #fff;
+                            border-color: #dee2e6;
+                            pointer-events: none;
+                        }
+                        
+                        .pagination .page-link:hover:not(.active) {
+                            background-color: #e9ecef;
+                            border-color: #dee2e6;
+                        }
+                        
+                        @media (max-width: 768px) {
+                            .release-management .card-body {
+                                padding: 1rem;
+                            }
+                            .release-management .department-filter > div {
+                                margin-bottom: 0.5rem;
+                            }
+                            .release-management .card-header {
+                                flex-direction: column;
+                                gap: 1rem;
+                                align-items: stretch !important;
+                            }
+                            .release-management .input-group {
+                                flex-wrap: nowrap;
+                            }
+                            .release-management .input-group .form-select {
+                                width: 75%;
+                            }
+                            .release-management .input-group .btn-primary {
+                                width: 25%;
+                                padding-left: 0.5rem;
+                                padding-right: 0.5rem;
+                            }
+                        }
+                        </style>
 
                 <script>
                 jQuery(document).ready(function($) {
@@ -371,6 +430,7 @@ if ( have_posts() ) : ?>
                         
                         var html = '';
                         var totalAmount = calculateTotalAmount(allConfirmedItems);
+                        var pageAmount = calculateTotalAmount(currentPageItems);
                         
                         if(totalItems === 0) {
                             html = '<tr><td colspan="7" class="text-center py-4">No confirmed releases found</td></tr>';
@@ -395,6 +455,7 @@ if ( have_posts() ) : ?>
                         }
                         
                         $('#confirmed-releases-body').html(html);
+                        $('#confirmed-page-total').text('₱' + pageAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                         $('#confirmed-total').text('₱' + totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                         
                         // Update pagination information

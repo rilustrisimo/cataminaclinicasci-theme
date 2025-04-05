@@ -321,24 +321,25 @@ class Theme {
     );
 
     protected $departmentArr = array(
-        'NURSING' => '7',
-        'LABORATORY' => '6',
-        'PHARMACY' => '4',
-        'HOUSEKEEPING' => '8',
-        'MAINTENANCE' => '8',
-        'RADIOLOGY' => '5',
-        'BUSINESS OFFICE' => '9',
-        'INFORMATION / TRIAGE' => '10',
-        'PHYSICAL THERAPY' => '14',
-        'KONSULTA PROGRAM' => '11',
-        'CLINIC A' => '12',
-        'CLINIC B' => '12',
-        'CLINIC C' => '12',
-        'CLINIC D' => '12',
-        'PHILHEALTH - KP' => '11',
-        'PHILHEALTH - ASC' => '7',
-        'PHILHEALTH - CLINIC A' => '12',
-        'DSWD' => '10',
+        'ALL' => 0,
+        'NURSING' => 7,
+        'LABORATORY' => 6,
+        'PHARMACY' => 4,
+        'HOUSEKEEPING' => 8,
+        'MAINTENANCE' => 8,
+        'RADIOLOGY' => 5,
+        'BUSINESS OFFICE' => 9,
+        'INFORMATION / TRIAGE' => 10,
+        'PHYSICAL THERAPY' => 14,
+        'KONSULTA PROGRAM' => 11,
+        'CLINIC A' => 12,
+        'CLINIC B' => 12,
+        'CLINIC C' => 12,
+        'CLINIC D' => 12,
+        'PHILHEALTH - KP' => 11,
+        'PHILHEALTH - ASC' => 7,
+        'PHILHEALTH - CLINIC A' => 12,
+        'DSWD' => 10,
     );
     
 
@@ -409,6 +410,7 @@ class Theme {
 
         add_action('wp_ajax_get_department_releases', array($this, 'get_department_releases'));
         add_action('wp_ajax_update_release_status', array($this, 'update_release_status'));
+        add_action('wp_ajax_get_pending_release_count', array($this, 'get_pending_release_count'));
     }
 
     protected function initFilters() {
@@ -4065,5 +4067,86 @@ class Theme {
         } else {
             wp_send_json_error('Failed to update status');
         }
+    }
+
+    /**
+     * Get count of pending release supplies for badge
+     */
+    public function get_pending_release_count() {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'get_pending_release_count')) {
+            wp_send_json_error('Security check failed');
+        }
+
+        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        
+        // Check if user has advanced permissions
+        $has_advanced_access = current_user_can('manage_options') || 
+                               in_array('um_accounting', wp_get_current_user()->roles) || 
+                               $user_id == 4;
+        
+        // Set up meta query
+        $meta_query = array(
+            'relation' => 'OR',
+            array(
+                'key' => 'confirmed',
+                'value' => '1',
+                'compare' => '!='
+            ),
+            array(
+                'key' => 'confirmed',
+                'compare' => 'NOT EXISTS'
+            )
+        );
+        
+        // If not admin/accounting/pharmacy, filter by department
+        if (!$has_advanced_access) {
+            // Get the department ID from the user ID
+            $department_id = $user_id;
+            
+            // Find department name from ID
+            $department_name = '';
+            foreach ($this->departmentArr as $dept => $id) {
+                if ($id == $department_id) {
+                    $department_name = $dept;
+                    break;
+                }
+            }
+            
+            if ($department_name) {
+                $meta_query = array(
+                    'relation' => 'AND',
+                    array(
+                        'relation' => 'OR',
+                        array(
+                            'key' => 'confirmed',
+                            'value' => '1',
+                            'compare' => '!='
+                        ),
+                        array(
+                            'key' => 'confirmed',
+                            'compare' => 'NOT EXISTS'
+                        )
+                    ),
+                    array(
+                        'key' => 'department',
+                        'value' => $department_name,
+                        'compare' => '='
+                    )
+                );
+            }
+        }
+        
+        // Query for pending releases
+        $args = array(
+            'post_type' => 'releasesupplies',
+            'posts_per_page' => -1,
+            'meta_query' => $meta_query
+        );
+        
+        $query = new WP_Query($args);
+        $count = $query->found_posts;
+        
+        wp_send_json_success($count);
     }
 }
