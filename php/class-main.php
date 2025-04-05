@@ -3630,6 +3630,12 @@ class Theme {
                     continue;
                 endif;
 
+                if($key == "confirmed"):
+                    $conf = get_field('confirmed', $postid);
+                    echo '<td>'.($conf)?"CONFIRMED":"PENDING".'</td>';
+                    continue;
+                endif;
+
                 if($key == "account_number"):
                     $bid = get_field('name_of_bank', $postid);
 
