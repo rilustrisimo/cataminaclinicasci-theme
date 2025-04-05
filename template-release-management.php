@@ -92,19 +92,20 @@ if ( have_posts() ) : ?>
                                         <th class="fw-semibold text-dark py-2 text-end">Price per Unit</th>
                                         <th class="fw-semibold text-dark py-2 text-end">Total</th>
                                         <th class="fw-semibold text-dark py-2">Released By</th>
+                                        <th class="fw-semibold text-dark py-2">Released To</th>
                                         <th class="fw-semibold text-dark py-2 text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="pending-releases-body">
                                     <tr>
-                                        <td colspan="7" class="text-center py-4">Loading pending releases...</td>
+                                        <td colspan="8" class="text-center py-4">Loading pending releases...</td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
                                     <tr class="bg-light">
                                         <td colspan="4" class="fw-bold text-end">Total Amount:</td>
                                         <td id="pending-total" class="fw-bold text-end">₱0.00</td>
-                                        <td colspan="2"></td>
+                                        <td colspan="3"></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -122,24 +123,25 @@ if ( have_posts() ) : ?>
                                         <th class="fw-semibold text-dark py-2 text-end">Price per Unit</th>
                                         <th class="fw-semibold text-dark py-2 text-end">Total</th>
                                         <th class="fw-semibold text-dark py-2">Released By</th>
+                                        <th class="fw-semibold text-dark py-2">Released To</th>
                                         <th class="fw-semibold text-dark py-2 text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="confirmed-releases-body">
                                     <tr>
-                                        <td colspan="7" class="text-center py-4">Loading confirmed releases...</td>
+                                        <td colspan="8" class="text-center py-4">Loading confirmed releases...</td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
                                     <tr class="bg-light">
                                         <td colspan="4" class="fw-bold text-end">Current Page Total:</td>
                                         <td id="confirmed-page-total" class="fw-bold text-end">₱0.00</td>
-                                        <td colspan="2"></td>
+                                        <td colspan="3"></td>
                                     </tr>
                                     <tr class="bg-light">
                                         <td colspan="4" class="fw-bold text-end">Overall Total:</td>
                                         <td id="confirmed-total" class="fw-bold text-end">₱0.00</td>
-                                        <td colspan="2"></td>
+                                        <td colspan="3"></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -361,7 +363,7 @@ if ( have_posts() ) : ?>
                         var tableId = (status === 'pending') ? '#pending-releases-body' : '#confirmed-releases-body';
                         var totalId = (status === 'pending') ? '#pending-total' : '#confirmed-total';
                         
-                        $(tableId).html('<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>');
+                        $(tableId).html('<tr><td colspan="8" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>');
                         
                         $.ajax({
                             url: ajaxurl,
@@ -384,11 +386,11 @@ if ( have_posts() ) : ?>
                                         displayConfirmedReleases();
                                     }
                                 } else {
-                                    $(tableId).html('<tr><td colspan="7" class="text-center text-danger py-4">Error loading releases</td></tr>');
+                                    $(tableId).html('<tr><td colspan="8" class="text-center text-danger py-4">Error loading releases</td></tr>');
                                 }
                             },
                             error: function() {
-                                $(tableId).html('<tr><td colspan="7" class="text-center text-danger py-4">Error loading releases</td></tr>');
+                                $(tableId).html('<tr><td colspan="8" class="text-center text-danger py-4">Error loading releases</td></tr>');
                             }
                         });
                     }
@@ -399,7 +401,7 @@ if ( have_posts() ) : ?>
                         var totalAmount = 0;
                         
                         if(items.length === 0) {
-                            html = '<tr><td colspan="7" class="text-center py-4">No pending releases found</td></tr>';
+                            html = '<tr><td colspan="8" class="text-center py-4">No pending releases found</td></tr>';
                         } else {
                             items.forEach(function(item) {
                                 var quantity = parseFloat(item.quantity) || 0;
@@ -414,6 +416,7 @@ if ( have_posts() ) : ?>
                                 html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
                                 html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
                                 html += '<td class="text-dark">' + item.released_by + '</td>';
+                                html += '<td class="text-dark">' + item.released_to + '</td>';
                                 html += '<td class="text-center">';
                                 html += '<button class="btn btn-sm btn-success action-btn confirm-release" data-id="' + item.id + '"><i class="fa-solid fa-check me-1"></i>Confirm</button>';
                                 html += '</td>';
@@ -438,7 +441,7 @@ if ( have_posts() ) : ?>
                         var pageAmount = calculateTotalAmount(currentPageItems);
                         
                         if(totalItems === 0) {
-                            html = '<tr><td colspan="7" class="text-center py-4">No confirmed releases found</td></tr>';
+                            html = '<tr><td colspan="8" class="text-center py-4">No confirmed releases found</td></tr>';
                         } else {
                             currentPageItems.forEach(function(item) {
                                 var quantity = parseFloat(item.quantity) || 0;
@@ -452,6 +455,7 @@ if ( have_posts() ) : ?>
                                 html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
                                 html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
                                 html += '<td class="text-dark">' + item.released_by + '</td>';
+                                html += '<td class="text-dark">' + item.released_to + '</td>';
                                 html += '<td class="text-center">';
                                 html += '<button class="btn btn-sm btn-warning action-btn revert-confirmation" data-id="' + item.id + '"><i class="fa-solid fa-rotate-left me-1"></i>Revert</button>';
                                 html += '</td>';
