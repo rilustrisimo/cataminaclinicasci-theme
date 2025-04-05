@@ -330,9 +330,14 @@ class Theme {
         'INFORMATION / TRIAGE' => '10',
         'PHYSICAL THERAPY' => '14',
         'KONSULTA PROGRAM' => '11',
+        'CLINIC A' => '12',
         'CLINIC B' => '12',
         'CLINIC C' => '12',
-        'CLINIC D' => '12'
+        'CLINIC D' => '12',
+        'PHILHEALTH - KP' => '11',
+        'PHILHEALTH - ASC' => '7',
+        'PHILHEALTH - CLINIC A' => '12',
+        'DSWD' => '10',
     );
     
 
@@ -410,6 +415,32 @@ class Theme {
          add_filter('acf/fields/post_object/query/name=supply_name', array($this, 'my_acf_fields_post_object_query_supply_name'), 10, 3);
          add_action('wp_ajax_get_filtered_release_supplies', array($this, 'getFilteredReleaseSupplies'));
          add_action('wp_ajax_export_filtered_supplies_pdf', array($this, 'export_filtered_supplies_pdf'));
+         
+         // Add validation for department field
+         add_filter('acf/validate_value/key=field_67e76678ffc0a', array($this, 'validate_department_selection'), 10, 4);
+    }
+
+    /**
+     * Validate department selection to prevent "SELECT DEPARTMENT" submissions
+     *
+     * @param bool|string $valid Whether the value is valid
+     * @param mixed $value The field value
+     * @param array $field The field array
+     * @param string $input The input name attribute
+     * @return bool|string
+     */
+    public function validate_department_selection($valid, $value, $field, $input) {
+        // If $valid is not true, another validation has already failed, so return that error
+        if ($valid !== true) {
+            return $valid;
+        }
+        
+        // Check if value is "SELECT DEPARTMENT" or empty
+        if ($value === "SELECT DEPARTMENT" || empty($value)) {
+            return "Please Select Department to Release Supply";
+        }
+        
+        return $valid;
     }
 
     public function getFilteredReleaseSupplies() {

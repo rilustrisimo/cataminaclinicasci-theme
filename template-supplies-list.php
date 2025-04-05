@@ -43,9 +43,14 @@ if ( have_posts() ) : ?>
                         <option value="INFORMATION / TRIAGE">INFORMATION / TRIAGE</option>
                         <option value="PHYSICAL THERAPY">PHYSICAL THERAPY</option>
                         <option value="KONSULTA PROGRAM">KONSULTA PROGRAM</option>
+                        <option value="CLINIC A">CLINIC A</option>
                         <option value="CLINIC B">CLINIC B</option>
                         <option value="CLINIC C">CLINIC C</option>
                         <option value="CLINIC D">CLINIC D</option>
+                        <option value="PHILHEALTH - KP">PHILHEALTH - KP</option>
+                        <option value="PHILHEALTH - ASC">PHILHEALTH - ASC</option>
+                        <option value="PHILHEALTH - CLINIC A">PHILHEALTH - CLINIC A</option>
+                        <option value="DSWD">DSWD</option>
                     </select>
                 </div>
                 <?php 

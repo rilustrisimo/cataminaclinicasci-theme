@@ -47,9 +47,14 @@
                 "INFORMATION \/ TRIAGE": "INFORMATION \/ TRIAGE",
                 "PHYSICAL THERAPY": "PHYSICAL THERAPY",
                 "KONSULTA PROGRAM": "KONSULTA PROGRAM",
+                "CLINIC A": "CLINIC A",
                 "CLINIC B": "CLINIC B",
                 "CLINIC C": "CLINIC C",
-                "CLINIC D": "CLINIC D"
+                "CLINIC D": "CLINIC D",
+                "PHILHEALTH - KP": "PHILHEALTH - KP",
+                "PHILHEALTH - ASC": "PHILHEALTH - ASC",
+                "PHILHEALTH - CLINIC A": "PHILHEALTH - CLINIC A",
+                "DSWD": "DSWD"
             },
             "default_value": false,
             "return_format": "value",
@@ -211,7 +216,7 @@
             "aria-label": "",
             "type": "date_picker",
             "instructions": "",
-            "required": 0,
+            "required": 1,
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
@@ -229,7 +234,7 @@
             "aria-label": "",
             "type": "date_picker",
             "instructions": "",
-            "required": 0,
+            "required": 1,
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
@@ -280,6 +285,5 @@
     "hide_on_screen": "",
     "active": true,
     "description": "",
-    "show_in_rest": 0,
-    "modified": 1691454108
+    "show_in_rest": 0
 }

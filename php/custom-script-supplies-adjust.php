@@ -26,9 +26,14 @@ $deptuser = array(
     'INFORMATION / TRIAGE' => 10,
     'PHYSICAL THERAPY' => 14,
     'KONSULTA PROGRAM' => 11,
+    'CLINIC A' => 12,
     'CLINIC B' => 12,
     'CLINIC C' => 12,
-    'CLINIC D' => 12
+    'CLINIC D' => 12,
+    'PHILHEALTH - KP' => 11,
+    'PHILHEALTH - ASC' => 7,
+    'PHILHEALTH - CLINIC A' => 12,
+    'DSWD' => 10,
 );
 
 foreach($deptuser as $d => $i):

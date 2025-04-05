@@ -37,9 +37,14 @@ if ( have_posts() ) : ?>
                                     <option value="INFORMATION / TRIAGE">INFORMATION / TRIAGE</option>
                                     <option value="PHYSICAL THERAPY">PHYSICAL THERAPY</option>
                                     <option value="KONSULTA PROGRAM">KONSULTA PROGRAM</option>
+                                    <option value="CLINIC A">CLINIC A</option>
                                     <option value="CLINIC B">CLINIC B</option>
                                     <option value="CLINIC C">CLINIC C</option>
                                     <option value="CLINIC D">CLINIC D</option>
+                                    <option value="PHILHEALTH - KP">PHILHEALTH - KP</option>
+                                    <option value="PHILHEALTH - ASC">PHILHEALTH - ASC</option>
+                                    <option value="PHILHEALTH - CLINIC A">PHILHEALTH - CLINIC A</option>
+                                    <option value="DSWD">DSWD</option>
                                 </select>
                             </div>
                         <?php 
@@ -62,9 +67,14 @@ if ( have_posts() ) : ?>
                                 echo ($u->ID == 10)?'        <option value="INFORMATION / TRIAGE">INFORMATION / TRIAGE</option>':'';
                                 echo ($u->ID == 14)?'        <option value="PHYSICAL THERAPY">PHYSICAL THERAPY</option>':'';
                                 echo ($u->ID == 11)?'        <option value="KONSULTA PROGRAM">KONSULTA PROGRAM</option>':'';
+                                echo ($u->ID == 12)?'        <option value="CLINIC A">CLINIC A</option>':'';
                                 echo ($u->ID == 12)?'        <option value="CLINIC B">CLINIC B</option>':'';
                                 echo ($u->ID == 12)?'        <option value="CLINIC C">CLINIC C</option>':'';
                                 echo ($u->ID == 12)?'        <option value="CLINIC D">CLINIC D</option>':'';
+                                echo ($u->ID == 11)?'        <option value="PHILHEALTH - KP">PHILHEALTH - KP</option>':'';
+                                echo ($u->ID == 7)?'        <option value="PHILHEALTH - ASC">PHILHEALTH - ASC</option>':'';
+                                echo ($u->ID == 12)?'        <option value="PHILHEALTH - CLINIC A">PHILHEALTH - CLINIC A</option>':'';
+                                echo ($u->ID == 10)?'        <option value="DSWD">DSWD</option>':'';
                                 echo '    </select>';
                                 echo '</div>';
 

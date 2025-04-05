@@ -80,6 +80,7 @@
                 "id": ""
             },
             "choices": {
+                "SELECT DEPARTMENT": "SELECT DEPARTMENT",
                 "NURSING": "NURSING",
                 "LABORATORY": "LABORATORY",
                 "PHARMACY": "PHARMACY",
@@ -90,9 +91,14 @@
                 "INFORMATION \/ TRIAGE": "INFORMATION \/ TRIAGE",
                 "PHYSICAL THERAPY": "PHYSICAL THERAPY",
                 "KONSULTA PROGRAM": "KONSULTA PROGRAM",
+                "CLINIC A": "CLINIC A",
                 "CLINIC B": "CLINIC B",
                 "CLINIC C": "CLINIC C",
-                "CLINIC D": "CLINIC D"
+                "CLINIC D": "CLINIC D",
+                "PHILHEALTH - KP": "PHILHEALTH - KP",
+                "PHILHEALTH - ASC": "PHILHEALTH - ASC",
+                "PHILHEALTH - CLINIC A": "PHILHEALTH - CLINIC A",
+                "DSWD": "DSWD"
             },
             "default_value": false,
             "return_format": "value",
@@ -101,6 +107,26 @@
             "ui": 0,
             "ajax": 0,
             "placeholder": ""
+        },
+        {
+            "key": "field_67f08cf4903cb",
+            "label": "Confimed",
+            "name": "confimed",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "ui": 0,
+            "ui_on_text": "",
+            "ui_off_text": ""
         }
     ],
     "location": [
