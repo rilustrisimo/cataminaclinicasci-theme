@@ -3632,8 +3632,8 @@ class Theme {
 
                 if($key == "confirmed"):
                     $conf = get_field('confirmed', $postid);
-                    var_dump($conf);
-                    //echo '<td>'.($conf)?"CONFIRMED":"PENDING".'</td>';
+                    $result = ($conf)?"CONFIRMED":"PENDING";
+                    echo '<td>'.$result.'</td>';
                     continue;
                 endif;
 
