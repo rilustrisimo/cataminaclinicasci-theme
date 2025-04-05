@@ -406,6 +406,9 @@ class Theme {
 
         add_action( 'wp_ajax_render_recon_output', array($this, 'render_recon_output') );
         add_action( 'wp_ajax_nopriv_render_recon_output', array($this, 'render_recon_output') ); 
+
+        add_action('wp_ajax_get_department_releases', array($this, 'get_department_releases'));
+        add_action('wp_ajax_update_release_status', array($this, 'update_release_status'));
     }
 
     protected function initFilters() {
@@ -3869,5 +3872,153 @@ class Theme {
         }
 
         return true;
+    }
+
+    /**
+     * Get releases for a specific department and status
+     */
+    public function get_department_releases() {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'get_department_releases')) {
+            wp_send_json_error('Security check failed');
+        }
+
+        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'pending';
+        $department = isset($_POST['department']) ? sanitize_text_field($_POST['department']) : 'ALL';
+        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+        
+        // Set up meta query
+        $meta_query = array('relation' => 'AND');
+        
+        // Filter by confirmation status
+        if ($status === 'pending') {
+            // Get releases that are not confirmed or where confirmed is false
+            $meta_query[] = array(
+                'relation' => 'OR',
+                array(
+                    'key' => 'confirmed',
+                    'value' => '1',
+                    'compare' => '!='
+                ),
+                array(
+                    'key' => 'confirmed',
+                    'compare' => 'NOT EXISTS'
+                )
+            );
+        } else {
+            // Get confirmed releases
+            $meta_query[] = array(
+                'key' => 'confirmed',
+                'value' => '1',
+                'compare' => '='
+            );
+        }
+        
+        // Filter by department if not ALL and not admin/accounting
+        if ($department !== 'ALL' && !current_user_can('manage_options') && !in_array('um_accounting', wp_get_current_user()->roles) && $user_id != 4) {
+            $meta_query[] = array(
+                'key' => 'department',
+                'value' => $department,
+                'compare' => '='
+            );
+        } else if ($department !== 'ALL') {
+            // Admin/accounting/pharmacy with specific department selected
+            $meta_query[] = array(
+                'key' => 'department',
+                'value' => $department,
+                'compare' => '='
+            );
+        } else if (!current_user_can('manage_options') && !in_array('um_accounting', wp_get_current_user()->roles) && $user_id != 4) {
+            // Regular user without department filter - get releases for their department
+            // Get the department ID from the user ID
+            $department_id = $user_id;
+            
+            // Find department name from ID
+            $department_name = '';
+            foreach ($this->departmentArr as $dept => $id) {
+                if ($id == $department_id) {
+                    $department_name = $dept;
+                    break;
+                }
+            }
+            
+            if ($department_name) {
+                $meta_query[] = array(
+                    'key' => 'department',
+                    'value' => $department_name,
+                    'compare' => '='
+                );
+            }
+        }
+        
+        // Query for releases
+        $args = array(
+            'post_type' => 'releasesupplies',
+            'posts_per_page' => -1,
+            'meta_query' => $meta_query,
+            'orderby' => 'meta_value',
+            'meta_key' => 'release_date',
+            'order' => 'DESC'
+        );
+        
+        $query = new WP_Query($args);
+        $releases = array();
+        
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $post_id = get_the_ID();
+                $supply_id = get_field('supply_name', $post_id)->ID;
+                $supply_name = get_field('supply_name', $post_id)->post_title;
+                $quantity = get_field('quantity', $post_id);
+                $release_date = get_field('release_date', $post_id);
+                
+                // Get price per unit from original supply
+                $price_per_unit = get_field('price_per_unit', $supply_id);
+                
+                $releases[] = array(
+                    'id' => $post_id,
+                    'supply_name' => $supply_name,
+                    'quantity' => $quantity,
+                    'release_date' => $release_date,
+                    'price_per_unit' => $price_per_unit
+                );
+            }
+            wp_reset_postdata();
+        }
+        
+        wp_send_json_success($releases);
+    }
+
+    /**
+     * Update release status (confirmed/pending)
+     */
+    public function update_release_status() {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'update_release_status')) {
+            wp_send_json_error('Security check failed');
+        }
+        
+        $release_id = isset($_POST['release_id']) ? intval($_POST['release_id']) : 0;
+        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'pending';
+        
+        if (!$release_id) {
+            wp_send_json_error('Invalid release ID');
+        }
+        
+        // Check if post exists and is correct type
+        $post = get_post($release_id);
+        if (!$post || $post->post_type !== 'releasesupplies') {
+            wp_send_json_error('Release supply not found');
+        }
+        
+        // Update the confirmation status
+        $result = update_field('confirmed', ($status === 'confirmed' ? true : false), $release_id);
+        
+        if ($result) {
+            wp_send_json_success('Status updated successfully');
+        } else {
+            wp_send_json_error('Failed to update status');
+        }
     }
 }
