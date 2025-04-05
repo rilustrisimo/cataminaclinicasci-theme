@@ -285,6 +285,11 @@ if ( have_posts() ) : ?>
                             display: inline-block;
                             margin: 0 2px;
                         }
+
+                        .pagination .page-item:before {
+                            content: '';
+                            display: none!important;
+                        }
                         
                         .pagination .page-link {
                             padding: 0.25rem 0.5rem;
@@ -356,7 +361,7 @@ if ( have_posts() ) : ?>
                         var tableId = (status === 'pending') ? '#pending-releases-body' : '#confirmed-releases-body';
                         var totalId = (status === 'pending') ? '#pending-total' : '#confirmed-total';
                         
-                        $(tableId).html('<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
+                        $(tableId).html('<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>');
                         
                         $.ajax({
                             url: ajaxurl,
