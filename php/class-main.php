@@ -79,6 +79,7 @@ class Theme {
                 'release_date' => 'Date Released',
                 'quantity' => 'Quantity',
                 'department' => 'Department',
+                'confirmed' => 'Confirmed',
             )
         ),
         array(
