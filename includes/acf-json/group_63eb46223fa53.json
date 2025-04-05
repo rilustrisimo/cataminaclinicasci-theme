@@ -119,7 +119,7 @@
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
-                "class": "",
+                "class": "hide",
                 "id": ""
             },
             "message": "",
