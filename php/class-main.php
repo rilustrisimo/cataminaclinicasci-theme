@@ -1312,9 +1312,6 @@ class Theme {
                 wp_send_json_error('Invalid data structure');
                 return;
             }
-
-            wp_send_json_success($data);
-            return;
             
             $overallupplies = $reconarray['overallupplies'];
             $datesupplies = $reconarray['datesupplies'];
