@@ -771,9 +771,9 @@ var Theme = {
                     action: 'render_recon_output',
                     fromdate: tfromdate,
                     todate: ttodate,
-                    suppdata: submissionData
+                    //suppdata: submissionData
+                    suppdata: Theme.reconsupplies
                 },
-                timeout: 120000, // 2-minute timeout for large datasets
                 success: function(resp) {
                     console.log('AJAX request completed successfully', resp);
                     console.timeEnd('Final Report Rendering');
