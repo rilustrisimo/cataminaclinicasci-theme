@@ -758,12 +758,12 @@ var Theme = {
                 method: 'POST',
                 contentType: 'application/json', // important
                 dataType: 'json',
-                data: {
+                data: JSON.stringify({
                     action: 'render_recon_output',
                     fromdate: tfromdate,
                     todate: ttodate,
-                    suppdata: JSON.stringify(Theme.reconsupplies)
-                },
+                    suppdata: Theme.reconsupplies
+                  })
                 success: function(resp) {
                     console.log('AJAX request completed successfully', resp);
                     console.timeEnd('Final Report Rendering');
