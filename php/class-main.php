@@ -1297,14 +1297,10 @@ class Theme {
             $raw_input = file_get_contents('php://input');
             $data = json_decode($raw_input, true);
 
-            // Now return it
-            wp_send_json_success($data);
-            return;
 
             // Get raw input and validate it's proper JSON
-            $reconarray = (isset($_POST['suppdata'])) ? $_POST['suppdata'] : null;
+            $reconarray = (isset($data['suppdata'])) ? $data['suppdata'] : null;
 
-            
 
             if (empty($reconarray)) {
                 wp_send_json_error('Missing supply data');
@@ -1316,6 +1312,9 @@ class Theme {
                 wp_send_json_error('Invalid data structure');
                 return;
             }
+
+            wp_send_json_success($data);
+            return;
             
             $overallupplies = $reconarray['overallupplies'];
             $datesupplies = $reconarray['datesupplies'];
