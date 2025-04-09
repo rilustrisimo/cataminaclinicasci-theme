@@ -1294,11 +1294,17 @@ class Theme {
 
     public function render_recon_output() {
         try {
+            $raw_input = file_get_contents('php://input');
+            $data = json_decode($raw_input, true);
+
+            // Now return it
+            wp_send_json_success($data);
+            return;
+
             // Get raw input and validate it's proper JSON
             $reconarray = (isset($_POST['suppdata'])) ? $_POST['suppdata'] : null;
 
-            wp_send_json_success($_POST);
-            return;
+            
 
             if (empty($reconarray)) {
                 wp_send_json_error('Missing supply data');
