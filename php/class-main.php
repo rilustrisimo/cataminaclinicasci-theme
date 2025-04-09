@@ -853,15 +853,28 @@ class Theme {
     }
 
     public function getQtyOfSupplyAfterDate($supid, $date, $expired = false) {
+        static $cache = [];
+        $cache_key = $supid . '_' . $date . '_' . ($expired ? '1' : '0');
+        
+        // Check if result already exists in cache
+        if (isset($cache[$cache_key])) {
+            return $cache[$cache_key];
+        }
+        
+        // Format date once to avoid multiple conversions
+        $formatted_date = date('Y-m-d', strtotime($date));
+        
+        // Get actual supplies and release supplies in a single operation
         $addqty = 0;
         $expqty = 0;
         $relqty = 0;
-    
+        
+        // Query actualsupplies with optimized parameters
         $meta_query = array(
             'relation' => 'AND',
             array(
                 'key'     => 'date_added',
-                'value'   => date('Y-m-d', strtotime($date)),
+                'value'   => $formatted_date,
                 'type'    => 'date',
                 'compare' => '<='
             ),
@@ -870,25 +883,29 @@ class Theme {
                 'value' => $supid
             )
         );
-    
+        
         $query = $this->createQuery('actualsupplies', $meta_query);
-    
+        
+        // Process actual supplies with a single loop
         foreach ($query->posts as $supp) {
             $quantity = (float)get_field('quantity', $supp->ID);
-            $expiry_date = get_field('expiry_date', $supp->ID);
-        
-            if ($expired && !empty($expiry_date) && trim($expiry_date) !== '' && strtotime($date) > strtotime($expiry_date)) {
-                $expqty += $quantity;
-            }
-        
             $addqty += $quantity;
+            
+            // Check expiry only if needed
+            if ($expired) {
+                $expiry_date = get_field('expiry_date', $supp->ID);
+                if (!empty($expiry_date) && trim($expiry_date) !== '' && strtotime($date) > strtotime($expiry_date)) {
+                    $expqty += $quantity;
+                }
+            }
         }
-    
+        
+        // Query release supplies
         $meta_query = array(
             'relation' => 'AND',
             array(
                 'key'     => 'release_date',
-                'value'   => date('Y-m-d', strtotime($date)),
+                'value'   => $formatted_date,
                 'type'    => 'date',
                 'compare' => '<='
             ),
@@ -897,21 +914,23 @@ class Theme {
                 'value' => $supid
             )
         );
-    
+        
         $query = $this->createQuery('releasesupplies', $meta_query);
-    
+        
+        // Sum up release quantities directly
         foreach ($query->posts as $supp) {
             $relqty += (float)get_field('quantity', $supp->ID);
         }
-    
-        $diffexprel = 0;
-
-        if ($expired) {
-            $diffexprel = ($expqty > $relqty) ? $expqty - $relqty : 0;
-            return array(($addqty - $relqty), $diffexprel);
-        } else {
-            return $addqty - $relqty;
-        }
+        
+        // Prepare result based on whether we need expired info
+        $result = $expired ? 
+            array(($addqty - $relqty), ($expqty > $relqty) ? $expqty - $relqty : 0) : 
+            $addqty - $relqty;
+        
+        // Cache the result
+        $cache[$cache_key] = $result;
+        
+        return $result;
     }
 
     public function getReconciliationReport($from, $to, $dept = false, $aid = false) {
@@ -1371,103 +1390,176 @@ class Theme {
         $to = $_POST['to'];
         $from = $_POST['from'];
         $reconarray = array();
-        $relsupplies = array();
-        $datesupplies = array();
-
-        foreach($batchData as $suppid => $supp):
+        
+        // Prepare data structures
+        $overallupplies = [];
+        $datesupplies = [];
+        $relsupplies = [];
+        
+        // Format dates once to avoid repetitive conversion
+        $formatted_from = date('Y-m-d', strtotime($from));
+        $formatted_to = date('Y-m-d', strtotime($to));
+        
+        // Get all supplies and actual supplies in batch for the date range
+        $supply_ids = array_keys($batchData);
+        
+        if (empty($supply_ids)) {
+            wp_send_json_success([
+                'overallupplies' => [],
+                'datesupplies' => [],
+                'relsupplies' => []
+            ]);
+            return;
+        }
+        
+        // Batch process all supplies
+        foreach ($supply_ids as $suppid) {
             $name[$suppid] = get_field('supply_name', $suppid);
-            $supplyid = $suppid;
             $dept = get_field('department', $suppid);
-            $deptslug = str_replace(" ", "_", strtolower($dept));
             $type = get_field('type', $suppid);
-            $typeslug = strtolower($type);
-
-            if($type == "Adjustment"):
+            
+            // Skip adjustment type
+            if ($type == "Adjustment") {
                 continue;
-            endif;
-
-            $curqty = $this->getQtyOfSupplyAfterDate($supplyid, $from);
+            }
+            
+            $deptslug = str_replace(" ", "_", strtolower($dept));
+            $typeslug = strtolower($type);
+            
+            // Get current quantities - this is the bottleneck function that we optimized
+            $curqty = $this->getQtyOfSupplyAfterDate($suppid, $from);
             $price = (float)get_field('price_per_unit', $suppid);
-            $expQtySup = $this->getQtyOfSupplyAfterDate($supplyid, $to, true);
-
-            $overallupplies[$deptslug][$typeslug][$supplyid] = array(
-                'supply_name' => get_field('supply_name', $supplyid),
+            $expQtySup = $this->getQtyOfSupplyAfterDate($suppid, $to, true);
+            
+            // Store in overall supplies
+            if (!isset($overallupplies[$deptslug])) {
+                $overallupplies[$deptslug] = [];
+            }
+            
+            if (!isset($overallupplies[$deptslug][$typeslug])) {
+                $overallupplies[$deptslug][$typeslug] = [];
+            }
+            
+            $overallupplies[$deptslug][$typeslug][$suppid] = array(
+                'supply_name' => get_field('supply_name', $suppid),
                 'department' => $dept,
                 'type' => $type,
                 'quantity' => $curqty,
                 'expired_qty' => $expQtySup[1]
             );
-
-            $meta_query = array(
+        }
+        
+        // Create optimized meta query for actual supplies
+        $meta_query = array(
+            'key'     => 'date_added',
+            'value'   => array($formatted_from, $formatted_to),
+            'type'    => 'date',
+            'compare' => 'between'
+        );
+        
+        // Batch fetch all actual supplies in the date range
+        $all_actual_supplies = $this->createQuery('actualsupplies', [
+            'meta_query' => array(
                 'relation' => 'AND',
-                array(
-                    'key'     => 'date_added',
-                    'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
-                    'type'      =>  'date',
-                    'compare' =>  'between'   
-                ),
+                $meta_query,
                 array(
                     'key'     => 'supply_name',
-                    'value'   =>  $suppid
+                    'value'   => $supply_ids,
+                    'compare' => 'IN'
                 )
-            );
-
-            $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'ASC');
-            $qty = array();
-            $lotn = array();
-
-            foreach($addquery->posts as $p):
-                $name[$p->ID] = get_field('supply_name', $p->ID);
-                $supplyid = $name[$p->ID]->ID;
-                $qty[$supplyid] = (isset($qty[$supplyid]))?(float)$qty[$supplyid] + (float)get_field('quantity', $p->ID):get_field('quantity', $p->ID);
-                
-                if(get_field('lot_number', $p->ID)){
-                    $lotn[$supplyid][] = get_field('lot_number', $p->ID);
+            )
+        ], -1, 'date', 'ASC');
+        
+        // Process all actual supplies
+        $qty = [];
+        $lotn = [];
+        
+        foreach ($all_actual_supplies->posts as $p) {
+            $supply_obj = get_field('supply_name', $p->ID);
+            if (!$supply_obj) continue;
+            
+            $supplyid = $supply_obj->ID;
+            
+            // Skip if not in our batch data
+            if (!in_array($supplyid, $supply_ids)) continue;
+            
+            // Sum quantities
+            $qty[$supplyid] = isset($qty[$supplyid]) ? 
+                (float)$qty[$supplyid] + (float)get_field('quantity', $p->ID) : 
+                (float)get_field('quantity', $p->ID);
+            
+            // Collect lot numbers
+            $lot_number = get_field('lot_number', $p->ID);
+            if ($lot_number) {
+                if (!isset($lotn[$supplyid])) {
+                    $lotn[$supplyid] = [];
                 }
-
-                $datesupplies[$supplyid] = array(
-                    'supply_name' => get_field('supply_name', $supplyid),
-                    'quantity' => $qty[$supplyid],
-                    'serial' => (!empty(get_field('serial', $p->ID)))?get_field('serial', $p->ID):false,
-                    'states__status' => (!empty(get_field('states__status', $p->ID)))?get_field('states__status', $p->ID):false,
-                    'lot_number' => (isset($lotn[$supplyid]))?implode(',', $lotn[$supplyid]):'',
-                    'expiry_date' => (!empty(get_field('expiry_date', $p->ID)))?get_field('expiry_date', $p->ID):''
-                );
-            endforeach;
-
-            $meta_query = array(
+                $lotn[$supplyid][] = $lot_number;
+            }
+            
+            // Prepare date supplies data
+            $datesupplies[$supplyid] = array(
+                'supply_name' => get_field('supply_name', $supplyid),
+                'quantity' => $qty[$supplyid],
+                'serial' => (!empty(get_field('serial', $p->ID))) ? get_field('serial', $p->ID) : false,
+                'states__status' => (!empty(get_field('states__status', $p->ID))) ? get_field('states__status', $p->ID) : false,
+                'lot_number' => (isset($lotn[$supplyid])) ? implode(',', array_unique($lotn[$supplyid])) : '',
+                'expiry_date' => (!empty(get_field('expiry_date', $p->ID))) ? get_field('expiry_date', $p->ID) : ''
+            );
+        }
+        
+        // Create optimized meta query for release supplies
+        $meta_query = array(
+            'key'     => 'release_date',
+            'value'   => array($formatted_from, $formatted_to),
+            'type'    => 'date',
+            'compare' => 'between'
+        );
+        
+        // Batch fetch all release supplies in the date range
+        $all_release_supplies = $this->createQuery('releasesupplies', [
+            'meta_query' => array(
                 'relation' => 'AND',
-                array(
-                    'key'     => 'release_date',
-                    'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
-                    'type'      =>  'date',
-                    'compare' =>  'between'  
-                ),
+                $meta_query,
                 array(
                     'key'     => 'supply_name',
-                    'value'   =>  $suppid
+                    'value'   => $supply_ids,
+                    'compare' => 'IN'
                 )
+            )
+        ], -1, 'date', 'ASC');
+        
+        // Process all release supplies
+        $qty = [];
+        
+        foreach ($all_release_supplies->posts as $p) {
+            $supply_obj = get_field('supply_name', $p->ID);
+            if (!$supply_obj) continue;
+            
+            $supplyid = $supply_obj->ID;
+            
+            // Skip if not in our batch data
+            if (!in_array($supplyid, $supply_ids)) continue;
+            
+            // Sum quantities
+            $qty[$supplyid] = isset($qty[$supplyid]) ? 
+                (float)$qty[$supplyid] + (float)get_field('quantity', $p->ID) : 
+                (float)get_field('quantity', $p->ID);
+            
+            // Prepare release supplies data
+            $relsupplies[$supplyid] = array(
+                'supply_name' => get_field('supply_name', $supplyid),
+                'quantity' => $qty[$supplyid]
             );
-
-            $addquery = $this->createQuery('releasesupplies', $meta_query, -1, 'date', 'ASC');
-            $qty = array();
-
-            foreach($addquery->posts as $p):
-                $name[$p->ID] = get_field('supply_name', $p->ID);
-                $supplyid = $name[$p->ID]->ID;
-                $qty[$supplyid] = (isset($qty[$supplyid]))?(float)$qty[$supplyid] + (float)get_field('quantity', $p->ID):get_field('quantity', $p->ID);
-
-                $relsupplies[$supplyid] = array(
-                    'supply_name' => get_field('supply_name', $supplyid),
-                    'quantity' => $qty[$supplyid]
-                );
-            endforeach;
-        endforeach;
-
-        $reconarray['overallupplies'] = $overallupplies;
-        $reconarray['datesupplies'] = $datesupplies;
-        $reconarray['relsupplies'] = $relsupplies;
-
+        }
+        
+        // Prepare final result
+        $reconarray = array(
+            'overallupplies' => $overallupplies,
+            'datesupplies' => $datesupplies,
+            'relsupplies' => $relsupplies
+        );
+        
         wp_send_json_success($reconarray);
     }
 
