@@ -530,7 +530,7 @@ class Theme {
             }
             
             // Use department name if found, otherwise use author name
-            $released_from = $department_name ?: $author_name;
+            $released_by = $department_name ?: $author_name;
             
             // Get released to department
             $released_to = get_field('department', $post->ID);
@@ -540,12 +540,12 @@ class Theme {
                     'supply_name' => $supply_name->post_title,
                     'total_quantity' => 0,
                     'price_per_unit' => $price_per_unit,
-                    'released_from' => $released_from,
+                    'released_by' => $released_by,
                     'released_to' => $released_to
                 );
             } else {
                 // Maintain the released from/to values - we'll use the last one in the group
-                $grouped_supplies[$supply_name->ID]['released_from'] = $released_from;
+                $grouped_supplies[$supply_name->ID]['released_by'] = $released_by;
                 $grouped_supplies[$supply_name->ID]['released_to'] = $released_to;
             }
             $grouped_supplies[$supply_name->ID]['total_quantity'] += $quantity;
