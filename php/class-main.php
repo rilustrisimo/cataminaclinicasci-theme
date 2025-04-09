@@ -1384,20 +1384,25 @@ class Theme {
                                 continue;
                             }
                             
-                            // Check if section exists
-                            $section = get_field('section', $suppid);
+                            // Use section and subsection from passed data if available, otherwise query database
+                            $section = isset($suppdeets['section']) ? $suppdeets['section'] : get_field('section', $suppid);
                             if (!$section) $section = '';
                             
-                            $subsection = ($section == "Ambulatory Surgery Center (ASC)") ? get_field('sub_section', $suppid) : '';
+                            $subsection = '';
+                            if ($section == "Ambulatory Surgery Center (ASC)") {
+                                $subsection = isset($suppdeets['sub_section']) ? $suppdeets['sub_section'] : get_field('sub_section', $suppid);
+                            }
                             if (!$subsection) $subsection = '';
+                            
+                            // Get price_per_unit from passed data if available
+                            $price = isset($suppdeets['price_per_unit']) ? (float)$suppdeets['price_per_unit'] : 0;
                             
                             if(strtoupper($type) == "EQUIPMENT") {
                                 // Calculate equipment values
                                 $purchase = (isset($datesupplies[$suppid]['quantity'])) ? (float)$datesupplies[$suppid]['quantity'] : 0;
                                 $release = (isset($relsupplies[$suppid]['quantity'])) ? (float)$relsupplies[$suppid]['quantity'] : 0;
-                                $price = (float)get_field('price_per_unit', $suppid);
                                 
-                                // Fetch serial and states data
+                                // Fetch serial and states data from the passed data, if available
                                 $serial = (!empty($datesupplies[$suppid]['serial'])) ? $datesupplies[$suppid]['serial'] : get_field('serial', $suppid);
                                 $states = (!empty($datesupplies[$suppid]['states__status'])) ? $datesupplies[$suppid]['states__status'] : get_field('states__status', $suppid);
                                 
@@ -1426,12 +1431,12 @@ class Theme {
                                 // Calculate supply values
                                 $purchase = (isset($datesupplies[$suppid]['quantity'])) ? (float)$datesupplies[$suppid]['quantity'] : 0;
                                 $release = (isset($relsupplies[$suppid]['quantity'])) ? (float)$relsupplies[$suppid]['quantity'] : 0;
-                                $price = (float)get_field('price_per_unit', $suppid);
                                 
                                 $beginQuantity = isset($suppdeets['quantity']) ? (float)$suppdeets['quantity'] : 0;
                                 $endInventory = (($beginQuantity + $purchase) - $release);
                                 $suptots = $endInventory * $price;
                                 
+                                // Get lot number and expiry date from the passed data if available
                                 $lot = (!empty($datesupplies[$suppid]['lot_number'])) ? $datesupplies[$suppid]['lot_number'] : '';
                                 $expiry = (!empty($datesupplies[$suppid]['expiry_date'])) ? $datesupplies[$suppid]['expiry_date'] : $this->getLastExpDate($suppid, $beginQuantity, $to);
                                 
@@ -1513,7 +1518,6 @@ class Theme {
             wp_send_json_error('An error occurred while generating the report: ' . $e->getMessage());
         }
     }
-
 
     public function batch_process_supplies_recon() {
         $batchData = (array)$_POST['batchData'];
