@@ -760,8 +760,8 @@ var Theme = {
                     action: 'render_recon_output',
                     fromdate: tfromdate,
                     todate: ttodate,
-                    overallupplies: Theme.reconsupplies.overallupplies,
-                    datesupplies: Theme.reconsupplies.datesupplies,
+                    //overallupplies: Theme.reconsupplies.overallupplies,
+                    //datesupplies: Theme.reconsupplies.datesupplies,
                     relsupplies: Theme.reconsupplies.relsupplies
                 },
                 success: function(resp) {
