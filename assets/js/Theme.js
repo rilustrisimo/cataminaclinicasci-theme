@@ -314,8 +314,8 @@ var Theme = {
 
         function processNextBatch() {
             // Calculate the end index for the current batch
-            if(batchSize > 200){
-                batchSize = 200;
+            if(batchSize > 50){
+                batchSize = 50;
             }else{
                 batchSize += batchInc;
             }
@@ -535,8 +535,8 @@ var Theme = {
 
         function processNextBatchRecon() {
             // Calculate the end index for the current batch
-            if(batchSize > 100){
-                batchSize = 100;
+            if(batchSize > 50){
+                batchSize = 50;
             }else{
                 batchSize += batchInc;
             }

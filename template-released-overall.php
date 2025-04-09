@@ -115,13 +115,15 @@ if ( have_posts() ) : ?>
                                             <th class="fw-semibold text-dark py-2 text-end">Quantity</th>
                                             <th class="fw-semibold text-dark py-2 text-end">Price per Unit</th>
                                             <th class="fw-semibold text-dark py-2 text-end">Total Price</th>
+                                            <th class="fw-semibold text-dark py-2">Released By</th>
+                                            <th class="fw-semibold text-dark py-2">Released To</th>
                                         </tr>
                                     </thead>
                                     <tbody id="filtered-results-body">
                                     </tbody>
                                     <tfoot>
                                         <tr class="bg-light">
-                                            <td colspan="3" class="fw-bold text-end">Total Amount:</td>
+                                            <td colspan="5" class="fw-bold text-end">Total Amount:</td>
                                             <td id="grand-total" class="fw-bold text-end">₱0.00</td>
                                         </tr>
                                     </tfoot>
@@ -324,7 +326,7 @@ if ( have_posts() ) : ?>
                                     var grandTotal = 0;
                                     
                                     if(response.data.length === 0) {
-                                        html = '<tr><td colspan="4" class="text-center text-dark py-3">No results found</td></tr>';
+                                        html = '<tr><td colspan="6" class="text-center text-dark py-3">No results found</td></tr>';
                                         $('#export-pdf').prop('disabled', true);
                                     } else {
                                         response.data.forEach(function(item) {
@@ -340,6 +342,8 @@ if ( have_posts() ) : ?>
                                             html += '<td class="text-end fw-medium text-dark">' + quantity + '</td>';
                                             html += '<td class="text-end fw-medium text-dark">₱' + pricePerUnit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
                                             html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
+                                            html += '<td class="text-dark">' + item.released_by + '</td>';
+                                            html += '<td class="text-dark">' + item.released_to + '</td>';
                                             html += '</tr>';
                                         });
                                         $('#export-pdf').prop('disabled', false);
@@ -347,12 +351,12 @@ if ( have_posts() ) : ?>
                                     $('#filtered-results-body').html(html);
                                     $('#grand-total').text('₱' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                                 } else {
-                                    $('#filtered-results-body').html('<tr><td colspan="4" class="text-center text-danger py-3">Error loading results</td></tr>');
+                                    $('#filtered-results-body').html('<tr><td colspan="6" class="text-center text-danger py-3">Error loading results</td></tr>');
                                     $('#export-pdf').prop('disabled', true);
                                 }
                             },
                             error: function() {
-                                $('#filtered-results-body').html('<tr><td colspan="4" class="text-center text-danger py-3">Error loading results</td></tr>');
+                                $('#filtered-results-body').html('<tr><td colspan="6" class="text-center text-danger py-3">Error loading results</td></tr>');
                                 $('#export-pdf').prop('disabled', true);
                             },
                             complete: function() {
@@ -376,8 +380,8 @@ if ( have_posts() ) : ?>
                             var row = [];
                             $(this).find('td').each(function(index) {
                                 let text = $(this).text().trim();
-                                if (index === 0) {
-                                    // Keep supply name as is
+                                if (index === 0 || index === 4 || index === 5) {
+                                    // Keep supply name, released by, and released to as is
                                     row.push(text);
                                 } else {
                                     // Parse numbers for quantity and price columns
@@ -397,7 +401,7 @@ if ( have_posts() ) : ?>
                         });
 
                         // Add total row to the data array
-                        data.push(['', '', 'Total Amount:', grandTotal]);
+                        data.push(['', '', '', 'Total Amount:', '', grandTotal]);
 
                         // Create PDF
                         const { jsPDF } = window.jspdf;
@@ -424,7 +428,7 @@ if ( have_posts() ) : ?>
                         // Add table with improved styling
                         doc.autoTable({
                             startY: startY,
-                            head: [['Equipment / Supply Name', 'Quantity', 'Price per Unit', 'Total Price']],
+                            head: [['Equipment / Supply Name', 'Quantity', 'Price per Unit', 'Total Price', 'Released By', 'Released To']],
                             body: data,
                             theme: 'grid',
                             styles: {
@@ -439,7 +443,9 @@ if ( have_posts() ) : ?>
                                 0: { cellWidth: 'auto', minCellWidth: 60 }, // Equipment/Supply Name
                                 1: { cellWidth: 25, halign: 'right' }, // Quantity
                                 2: { cellWidth: 35, halign: 'right' }, // Price per Unit
-                                3: { cellWidth: 35, halign: 'right' }  // Total Price
+                                3: { cellWidth: 35, halign: 'right' }, // Total Price
+                                4: { cellWidth: 'auto', minCellWidth: 40 }, // Released By
+                                5: { cellWidth: 'auto', minCellWidth: 40 }  // Released To
                             },
                             headStyles: {
                                 fillColor: [0, 123, 255],
@@ -451,7 +457,7 @@ if ( have_posts() ) : ?>
                             didParseCell: function(data) {
                                 // Add currency symbol and format numbers
                                 if (data.section === 'body') {
-                                    if (data.column.index > 0) {
+                                    if (data.column.index > 0 && data.column.index < 4) {
                                         const cellValue = parseFloat(data.cell.text) || 0;
                                         if (data.column.index === 1) {
                                             // Quantity column

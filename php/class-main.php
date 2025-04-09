@@ -516,12 +516,37 @@ class Theme {
             $quantity = (float)get_field('quantity', $post->ID);
             $price_per_unit = (float)get_field('price_per_unit', $supply_name->ID);
             
+            // Get author/released from information
+            $author_id = $post->post_author;
+            $author_name = get_the_author_meta('display_name', $author_id);
+            $department_name = '';
+                
+            // Find department name based on user ID
+            foreach ($this->departmentArr as $dept => $id) {
+                if ($id == $author_id) {
+                    $department_name = $dept;
+                    break;
+                }
+            }
+            
+            // Use department name if found, otherwise use author name
+            $released_from = $department_name ?: $author_name;
+            
+            // Get released to department
+            $released_to = get_field('department', $post->ID);
+            
             if (!isset($grouped_supplies[$supply_name->ID])) {
                 $grouped_supplies[$supply_name->ID] = array(
                     'supply_name' => $supply_name->post_title,
                     'total_quantity' => 0,
-                    'price_per_unit' => $price_per_unit
+                    'price_per_unit' => $price_per_unit,
+                    'released_from' => $released_from,
+                    'released_to' => $released_to
                 );
+            } else {
+                // Maintain the released from/to values - we'll use the last one in the group
+                $grouped_supplies[$supply_name->ID]['released_from'] = $released_from;
+                $grouped_supplies[$supply_name->ID]['released_to'] = $released_to;
             }
             $grouped_supplies[$supply_name->ID]['total_quantity'] += $quantity;
         }
@@ -3675,7 +3700,7 @@ class Theme {
         }
         echo '</tbody>';
 
-        echo '</table>';
+        echo '<table>';
 
         echo $pagination;
     }
