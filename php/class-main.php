@@ -989,6 +989,52 @@ class Theme {
         return $result;
     }
 
+    public function getLastExpDate($suppid, $quantity, $date) {
+        // Early return if quantity is zero
+        if ((int)$quantity == 0) return '';
+        
+        // Use static cache to avoid redundant database queries for the same parameters
+        static $cache = [];
+        $cache_key = $suppid . '_' . $date;
+        
+        if (isset($cache[$cache_key])) {
+            return $cache[$cache_key];
+        }
+        
+        // Use direct SQL query which is much faster than WP_Query + ACF loops
+        global $wpdb;
+        
+        $query = $wpdb->prepare(
+            "SELECT pm2.meta_value 
+            FROM {$wpdb->postmeta} pm1 
+            JOIN {$wpdb->postmeta} pm2 ON pm1.post_id = pm2.post_id AND pm2.meta_key = 'expiry_date'
+            JOIN {$wpdb->postmeta} pm3 ON pm1.post_id = pm3.post_id AND pm3.meta_key = 'date_added'
+            JOIN {$wpdb->posts} p ON p.ID = pm1.post_id 
+            WHERE p.post_type = 'actualsupplies' 
+            AND p.post_status = 'publish' 
+            AND pm1.meta_key = 'supply_name' 
+            AND pm1.meta_value = %d
+            AND pm3.meta_value <= %s
+            AND pm2.meta_value != ''
+            ORDER BY STR_TO_DATE(pm2.meta_value, '%%Y-%%m-%%d') DESC
+            LIMIT 1",
+            $suppid,
+            date('Y-m-d', strtotime($date))
+        );
+        
+        $result = $wpdb->get_var($query);
+        
+        // Maintain a reasonably sized cache to prevent memory issues
+        if (count($cache) > 100) {
+            array_shift($cache); // Remove oldest entry
+        }
+        
+        // Store result in cache
+        $cache[$cache_key] = $result ?: '';
+        
+        return $result ?: '';
+    }
+
     public function getReconciliationReport($from, $to, $dept = false, $aid = false) {
         $res = "";
         $res .= "<h2>AS OF ".date('M d, Y', strtotime($from))." - ".date('M d, Y', strtotime($to))."</h2>";
@@ -1468,36 +1514,6 @@ class Theme {
         }
     }
 
-    public function getLastExpDate($suppid, $quantity, $date) {
-        if((int)$quantity == 0) return '';
-
-        $meta_query = array(
-            'relation' => 'AND',
-            array(
-                'key'     => 'date_added',
-                'value'   => date('Y-m-d', strtotime($date)),
-                'type'    => 'date',
-                'compare' => '<='
-            ),
-            array(
-                'key'   => 'supply_name',
-                'value' => $suppid
-            )
-        );
-
-        $addquery = $this->createQuery('actualsupplies', $meta_query, -1, 'date', 'ASC');
-        $expd = array();
-
-        foreach($addquery->posts as $p):
-            $expfield = get_field('expiry_date', $p->ID);
-            if(!empty($expfield) && trim($expfield) !== ''):
-                $expd[] = $expfield;  
-            endif;
-        endforeach;
-
-        $cnt = count($expd);
-        return ($cnt > 0) ? $expd[$cnt-1] : '';
-    }
 
     public function batch_process_supplies_recon() {
         $batchData = (array)$_POST['batchData'];
@@ -1531,6 +1547,9 @@ class Theme {
             $name[$suppid] = get_field('supply_name', $suppid);
             $dept = get_field('department', $suppid);
             $type = get_field('type', $suppid);
+            $section = get_field('section', $suppid);
+            $price_per_unit = (float)get_field('price_per_unit', $suppid);
+            $sub_section = ($section == "Ambulatory Surgery Center (ASC)") ? get_field('sub_section', $suppid) : '';
             
             // Skip adjustment type
             if ($type == "Adjustment") {
@@ -1542,7 +1561,6 @@ class Theme {
             
             // Get current quantities - this is the bottleneck function that we optimized
             $curqty = $this->getQtyOfSupplyAfterDate($suppid, $from);
-            $price = (float)get_field('price_per_unit', $suppid);
             $expQtySup = $this->getQtyOfSupplyAfterDate($suppid, $to, true);
             
             // Store in overall supplies
@@ -1557,9 +1575,12 @@ class Theme {
             $overallupplies[$deptslug][$typeslug][$suppid] = array(
                 'supply_name' => get_field('supply_name', $suppid),
                 'department' => $dept,
+                'section' => $section,
+                'sub_section' => $sub_section,
                 'type' => $type,
                 'quantity' => $curqty,
-                'expired_qty' => $expQtySup[1]
+                'expired_qty' => $expQtySup[1],
+                'price_per_unit' => $price_per_unit
             );
         }
         
@@ -3335,3 +3356,4 @@ class Theme {
         wp_send_json_success($count);
     }
 }
+?>
