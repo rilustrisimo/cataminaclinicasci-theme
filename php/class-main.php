@@ -1295,7 +1295,7 @@ class Theme {
     public function render_recon_output() {
         try {
             // Get raw input and validate it's proper JSON
-            $reconarray = isset($_POST['suppdata']) ? json_decode($_POST['suppdata'], true) : null;
+            $reconarray = isset($_POST['suppdata']) ? $_POST['suppdata'] : null;
 
             wp_send_json_success($reconarray);
             return;
