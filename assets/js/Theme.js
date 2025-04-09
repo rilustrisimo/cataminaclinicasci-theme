@@ -775,6 +775,7 @@ var Theme = {
                 },
                 timeout: 120000, // 2-minute timeout for large datasets
                 success: function(resp) {
+                    console.log('AJAX request completed successfully', resp);
                     console.timeEnd('Final Report Rendering');
                     
                     if (resp && resp.success) {
