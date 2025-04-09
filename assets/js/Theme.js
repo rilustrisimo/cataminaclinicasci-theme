@@ -526,146 +526,254 @@ var Theme = {
     },
 
     processBatchRecon:function($, supjson){
+        // Store start time to measure performance
+        var startTime = new Date().getTime();
+        
         var totalRecords = Object.keys(supjson).length;
-        var currentRecord = 0; // Start with the first record
-        var batchSize = 1; // Set the batch size to 1 record initially
-        var batchInc = 5; // Set the batch size to + 5 each time
+        var currentRecord = 0;
+        
+        // Adaptive batch size strategy
+        var batchSize = 10; // Start with moderate batch size
+        var maxBatchSize = 100; // Hard limit on batch size
+        var minBatchSize = 5; // Minimum batch size
+        var processingTimes = []; // Track processing times for adaptivity
+        var timeoutThreshold = 8000; // 8 seconds threshold for timeout detection
+        var lastBatchTime = 0;
 
-        Theme.reconsupplies = {}; // clear records
-
-        function processNextBatchRecon() {
-            // Calculate the end index for the current batch
-            if(batchSize > 50){
-                batchSize = 50;
-            }else{
-                batchSize += batchInc;
+        // Queue system to manage batches
+        var queue = [];
+        var isProcessing = false;
+        
+        // Clear old data
+        Theme.reconsupplies = {}; 
+        
+        // Initialize progress tracking
+        $("#progress").css("width", "0%").text("0%");
+        $('.report__result').addClass('overlay');
+        
+        // Create batches with optimal size
+        function createBatches() {
+            queue = [];
+            var keys = Object.keys(supjson);
+            
+            for (var i = 0; i < keys.length; i += batchSize) {
+                var batchData = {};
+                var endIndex = Math.min(i + batchSize, keys.length);
+                
+                for (var j = i; j < endIndex; j++) {
+                    var recordKey = keys[j];
+                    batchData[recordKey] = supjson[recordKey];
+                }
+                
+                queue.push(batchData);
             }
-
-
-            var endRecord = Math.min(currentRecord + batchSize, totalRecords);
-
-            var batchData = {};
-            // Extract the records for the current batch
-            for (var i = currentRecord; i < endRecord; i++) {
-                var recordKey = Object.keys(supjson)[i];
-                batchData[recordKey] = supjson[recordKey];
+            
+            console.log('Created ' + queue.length + ' batches of approximately ' + batchSize + ' items each');
+        }
+        
+        // Process each batch with built-in throttling
+        function processQueue() {
+            if (queue.length === 0 || isProcessing) {
+                return;
             }
-
-            console.log(batchData);
-
-            // Calculate progress for the current batch
-            var progress = Math.min(((currentRecord / totalRecords) * 100).toFixed(2), 100);
+            
+            isProcessing = true;
+            var batchData = queue.shift();
+            var batchStartTime = new Date().getTime();
+            
+            // Update progress display
+            var progress = Math.min(((currentRecord / totalRecords) * 100).toFixed(1), 99.9);
             $("#progress").css("width", progress + "%").text(progress + "%");
-
+            
+            // Get date range data
             var to = $('.date-to').val();
             var from = $('.date-from').val();
-            var ttodate =  (to.length == 0)?$('#report__result').attr('dto'):to;
-            var tfromdate =  (from.length == 0)?$('#report__result').attr('dfrom'):from;
+            var ttodate =  (to.length == 0) ? $('#report__result').attr('dto') : to;
+            var tfromdate =  (from.length == 0) ? $('#report__result').attr('dfrom') : from;
             
-            // Make the AJAX request with the current batch data
+            // Make the AJAX request for this batch
             Theme.ajaxsupply = $.ajax({
                 url: $('#ajax-url').val(),
                 type: 'POST',
                 dataType: 'JSON',
                 data: {
-                    action: 'batch_process_supplies_recon', // Corrected the action name
-                    batchData: batchData, // Pass the data for the current batch
+                    action: 'batch_process_supplies_recon',
+                    batchData: batchData,
                     to: ttodate,
                     from: tfromdate
                 },
-                beforeSend : function()   {           
-                   $('.report__result').addClass('overlay');
-                },
                 success: function(response) {
                     if (response.success) {
-
+                        var batchEndTime = new Date().getTime();
+                        var batchProcessingTime = batchEndTime - batchStartTime;
+                        
+                        // Track processing time for this batch
+                        processingTimes.push(batchProcessingTime);
+                        if (processingTimes.length > 5) {
+                            processingTimes.shift(); // Keep last 5 readings only
+                        }
+                        
+                        // Adapt batch size based on processing time
+                        adaptBatchSize(batchProcessingTime);
+                        
+                        // Update current record count
+                        var batchKeys = Object.keys(batchData);
+                        currentRecord += batchKeys.length;
+                        
+                        // Process data
                         var bdata = response.data;
-                        // Process successful, update the UI or do something with the response
-
-                        currentRecord += batchSize; // Move to the next batch
-
-                        Theme.reconsupplies = JSON.parse(Theme.mergeAndSumJSON(JSON.stringify(bdata), JSON.stringify(Theme.reconsupplies)));
-                        console.log(Theme.reconsupplies);
-
-                        if (currentRecord < totalRecords) {
-                            // If there are more records, continue with the next batch
-                            processNextBatchRecon();
+                        
+                        // Use optimized backend response data
+                        Theme.reconsupplies = JSON.parse(Theme.mergeAndSumJSON(
+                            JSON.stringify(bdata), 
+                            JSON.stringify(Theme.reconsupplies)
+                        ));
+                        
+                        // Continue processing queue or finalize
+                        isProcessing = false;
+                        
+                        if (queue.length > 0) {
+                            // Add small delay to prevent overwhelming the server
+                            setTimeout(processQueue, 50);
                         } else {
-                            var from = $('.date-from').val();
-                            var to = $('.date-to').val();
-
-
-                            var tfromdate = (from.length == 0)?$('#report__result').attr('dfrom'):from;
-                            var ttodate =  (to.length == 0)?$('#report__result').attr('dto'):to;
-
-                            $.ajax ({
-                                url: $('#ajax-url').val(),
-                                type: 'POST',
-                                dataType: 'JSON',
-                                data: {
-                                    // the value of data.action is the part AFTER 'wp_ajax_' in
-                                    // the add_action ('wp_ajax_xxx', 'yyy') in the PHP above
-                                    action: 'render_recon_output',
-                                    // ANY other properties of data are passed to your_function()
-                                    // in the PHP global $_REQUEST (or $_POST in this case)
-                                    fromdate: tfromdate,
-                                    todate: ttodate,
-                                    suppdata: Theme.reconsupplies
-                                    },
-                                success: function (resp) {
-                                    console.log(resp);
-                                       if(resp.success){
-                                            $('.report__result').html(resp.data);
-                                            $('.filter-show__item input').prop('checked', true);
-                                       }
-                    
-                                       $('.report__result').removeClass('overlay');
-                                       // All records processed
-                                       $("#progress").css("width", "100%").text("100%");
-
-                                        Theme.actualCountCalculator($);
-                                        Theme.sectionFilter($);
-                                        Theme.reconTotal($);
-                                        Theme.recalculateReconTotal($);
-                                        Theme.sortRecon($);
-                                    },
-                                error: function (xhr, ajaxOptions, thrownError) {
-                                    // this error case means that the ajax call, itself, failed, e.g., a syntax error
-                                    // in your_function()
-                                    console.log('Request failed: ' + thrownError.message) ;
-                                    $('.report__result').removeClass('overlay');
-                                    },
-                            });
+                            finalizeReconciliation(from, to, tfromdate, ttodate);
                         }
                     } else {
-                        // Handle the error
-                        $("#result").append(response.data + "<br>");
+                        // Handle error by reducing batch size and retrying
+                        console.error("Batch processing error:", response);
+                        batchSize = Math.max(Math.floor(batchSize / 2), minBatchSize);
+                        queue.unshift(batchData); // Put this batch back in the queue
+                        isProcessing = false;
+                        setTimeout(processQueue, 1000); // Wait a bit before retry
                     }
                 },
                 error: function(xhr, status, error) {
-                    // Handle AJAX error
+                    // Handle AJAX error - likely a timeout
                     console.error("Error processing batch:", error);
-                    //$("#result").append("An error occurred while processing the batch.<br>");
+                    
+                    if (xhr.statusText === "timeout" || batchProcessingTime > timeoutThreshold) {
+                        // Reduce batch size significantly on timeout
+                        batchSize = Math.max(Math.floor(batchSize / 3), minBatchSize);
+                        console.log("Timeout detected, reducing batch size to " + batchSize);
+                    } else {
+                        // For other errors, reduce batch size less aggressively
+                        batchSize = Math.max(Math.floor(batchSize / 2), minBatchSize);
+                    }
+                    
+                    // Requeue the failed batch with smaller chunks
+                    var batchKeys = Object.keys(batchData);
+                    var mid = Math.floor(batchKeys.length / 2);
+                    
+                    if (mid > 0) {
+                        // Split the batch in half and requeue both parts
+                        var firstHalf = {};
+                        var secondHalf = {};
+                        
+                        batchKeys.forEach(function(key, index) {
+                            if (index < mid) {
+                                firstHalf[key] = batchData[key];
+                            } else {
+                                secondHalf[key] = batchData[key];
+                            }
+                        });
+                        
+                        queue.unshift(secondHalf);
+                        queue.unshift(firstHalf);
+                    } else {
+                        // If batch is already minimal, just retry
+                        queue.unshift(batchData);
+                    }
+                    
+                    isProcessing = false;
+                    setTimeout(processQueue, 2000); // Longer wait before retry after error
                 }
             });
-
-            Theme.recalculateReconTotal($);
         }
-
+        
+        // Adapt batch size based on processing time
+        function adaptBatchSize(processingTime) {
+            // Calculate average processing time
+            var sum = processingTimes.reduce(function(a, b) { return a + b; }, 0);
+            var avgTime = sum / processingTimes.length;
+            
+            // If processing times are fast, gradually increase batch size
+            if (avgTime < 1000 && batchSize < maxBatchSize) {
+                batchSize = Math.min(batchSize + 5, maxBatchSize);
+            }
+            // If processing times are slow, decrease batch size
+            else if (avgTime > 3000 && batchSize > minBatchSize) {
+                batchSize = Math.max(batchSize - 5, minBatchSize);
+            }
+            
+            // If we detect that we're getting close to timeout threshold, reduce more aggressively
+            if (processingTime > timeoutThreshold * 0.7) {
+                batchSize = Math.max(Math.floor(batchSize * 0.7), minBatchSize);
+                console.log("Long processing time detected, reducing batch size to " + batchSize);
+            }
+        }
+        
+        // Final step after all batches are processed
+        function finalizeReconciliation(from, to, tfromdate, ttodate) {
+            // Update progress to 100%
+            $("#progress").css("width", "100%").text("100%");
+            
+            console.log("All batches processed in " + ((new Date().getTime() - startTime)/1000).toFixed(2) + " seconds");
+            
+            // Render the reconciliation output
+            $.ajax({
+                url: $('#ajax-url').val(),
+                type: 'POST',
+                dataType: 'JSON',
+                data: {
+                    action: 'render_recon_output',
+                    fromdate: tfromdate,
+                    todate: ttodate,
+                    suppdata: Theme.reconsupplies
+                },
+                success: function (resp) {
+                    if (resp.success) {
+                        $('.report__result').html(resp.data);
+                        $('.filter-show__item input').prop('checked', true);
+                    }
+                    
+                    $('.report__result').removeClass('overlay');
+                    
+                    // Initialize related components
+                    Theme.actualCountCalculator($);
+                    Theme.sectionFilter($);
+                    Theme.reconTotal($);
+                    Theme.recalculateReconTotal($);
+                    Theme.sortRecon($);
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log('Final rendering request failed: ' + thrownError.message);
+                    $('.report__result').removeClass('overlay');
+                }
+            });
+        }
+        
+        // Handle filter button clicks to abort processing
         $('.report__filter a.btn').click(function(){
             var from = $('.date-from').val();
             var to = $('.date-to').val();
-
-            if(from.length == 0 || to.length == 0){
+            
+            if (from.length == 0 || to.length == 0) {
                 return false;
             }
-
-            Theme.ajaxsupply.abort();
-            console.log('Request aborted');
+            
+            if (Theme.ajaxsupply) {
+                Theme.ajaxsupply.abort();
+            }
+            
+            // Clear processing queue
+            queue = [];
+            isProcessing = false;
+            console.log('Reconciliation processing aborted by user');
         });
-
-        // Start processing the first batch
-        processNextBatchRecon();
+        
+        // Start the process
+        createBatches();
+        processQueue();
     },
 
     sortRecon: function($){
