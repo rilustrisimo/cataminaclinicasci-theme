@@ -526,6 +526,10 @@ var Theme = {
     },
 
     processBatchRecon:function($, supjson){
+        console.group('Reconciliation Batch Processing');
+        console.log('Starting batch reconciliation process');
+        console.log('Total records to process:', Object.keys(supjson).length);
+        
         var totalRecords = Object.keys(supjson).length;
         var currentRecord = 0; // Start with the first record
         var batchSize = 1; // Start with small batch size
@@ -535,6 +539,12 @@ var Theme = {
         var consecutiveSuccess = 0; // Track consecutive successful batches
         var consecutiveErrors = 0; // Track consecutive errors
         var requestDelay = 300; // Delay between requests in ms (adjustable)
+        
+        console.log('Initial configuration:', {
+            batchSize: batchSize,
+            maxBatchSize: maxBatchSize,
+            requestDelay: requestDelay
+        });
 
         Theme.reconsupplies = {}; // clear records
         
@@ -542,11 +552,14 @@ var Theme = {
         function updateProgressBar(progress) {
             requestAnimationFrame(function() {
                 $("#progress").css("width", progress + "%").text(progress + "%");
+                console.debug(`Progress updated: ${progress}%`);
             });
         }
         
         // Dynamic batch sizing - increases on success, decreases on failure
         function adjustBatchSize(success) {
+            var oldBatchSize = batchSize;
+            
             if (success) {
                 consecutiveSuccess++;
                 consecutiveErrors = 0;
@@ -560,15 +573,22 @@ var Theme = {
                     batchSize = Math.max(Math.floor(batchSize / 2), 1);
                 }
             }
+            
+            if (oldBatchSize !== batchSize) {
+                console.log(`Batch size adjusted: ${oldBatchSize} → ${batchSize} (${success ? 'Success' : 'Error'} triggered adjustment)`);
+            }
+            
             return batchSize;
         }
         
         // Process next batch with better throttling
         function processNextBatchRecon() {
             if (isProcessing || currentRecord >= totalRecords) {
+                console.debug('Skipping batch processing - already processing or completed');
                 return;
             }
             
+            console.log(`Processing next batch starting at record ${currentRecord}`);
             isProcessing = true;
             
             // Calculate the end index for the current batch
@@ -581,6 +601,8 @@ var Theme = {
                 batchData[recordKey] = supjson[recordKey];
             }
             
+            console.log(`Batch details: Processing records ${currentRecord} to ${endRecord-1} (${Object.keys(batchData).length} records)`);
+            
             // Calculate progress and update UI efficiently
             var progress = Math.min(Math.round((currentRecord / totalRecords) * 100), 100);
             updateProgressBar(progress);
@@ -590,7 +612,10 @@ var Theme = {
             var ttodate = (to.length == 0) ? $('#report__result').attr('dto') : to;
             var tfromdate = (from.length == 0) ? $('#report__result').attr('dfrom') : from;
             
+            console.log('Date range for batch:', { from: tfromdate, to: ttodate });
+            
             // Make the AJAX request with the current batch data
+            console.time('Batch AJAX Request');
             Theme.ajaxsupply = $.ajax({
                 url: $('#ajax-url').val(),
                 type: 'POST',
@@ -603,15 +628,23 @@ var Theme = {
                 },
                 beforeSend: function() {
                     $('.report__result').addClass('overlay');
+                    console.debug('AJAX request started, overlay added');
                 },
                 success: function(response) {
+                    console.timeEnd('Batch AJAX Request');
+                    
                     if (response.success) {
                         var bdata = response.data;
+                        console.log('Batch processed successfully');
                         
                         // Process successful, update the UI or do something with the response
                         currentRecord = endRecord; // Move to the next batch
                         
+                        var beforeMergeSize = JSON.stringify(Theme.reconsupplies).length;
                         Theme.reconsupplies = JSON.parse(Theme.mergeAndSumJSON(JSON.stringify(bdata), JSON.stringify(Theme.reconsupplies)));
+                        var afterMergeSize = JSON.stringify(Theme.reconsupplies).length;
+                        
+                        console.log(`Data merged: Size changed from ${beforeMergeSize} to ${afterMergeSize} bytes`);
                         
                         // Adjust batch size up on success
                         adjustBatchSize(true);
@@ -619,15 +652,19 @@ var Theme = {
                         isProcessing = false;
                         
                         if (currentRecord < totalRecords) {
+                            console.log(`Progress: ${currentRecord}/${totalRecords} records processed (${Math.round((currentRecord/totalRecords)*100)}%)`);
                             // If there are more records, continue with the next batch after a short delay
+                            console.debug(`Scheduling next batch in ${requestDelay}ms`);
                             setTimeout(processNextBatchRecon, requestDelay);
                         } else {
                             // All batches processed, finalize the report
+                            console.log('All batches processed. Finalizing report...');
                             finalizeReport();
                         }
                     } else {
                         // Handle the error
                         console.error("Error in batch:", response.data);
+                        console.warn("Batch processing error occurred, adjusting batch size and retrying");
                         
                         // Adjust batch size down on error
                         adjustBatchSize(false);
@@ -635,12 +672,20 @@ var Theme = {
                         isProcessing = false;
                         
                         // Try again with smaller batch size after a delay
+                        console.debug(`Retrying with smaller batch size in ${requestDelay * 2}ms`);
                         setTimeout(processNextBatchRecon, requestDelay * 2);
                     }
                 },
                 error: function(xhr, status, error) {
+                    console.timeEnd('Batch AJAX Request');
+                    
                     // Handle AJAX error with retry logic
-                    console.error("Error processing batch:", error);
+                    console.error("Error processing batch:", {
+                        status: status,
+                        error: error,
+                        statusCode: xhr.status,
+                        responseText: xhr.responseText.substring(0, 100) + '...' // Show start of response for debugging
+                    });
                     
                     // Adjust batch size down on error
                     adjustBatchSize(false);
@@ -648,6 +693,7 @@ var Theme = {
                     isProcessing = false;
                     
                     // Retry after a longer delay
+                    console.debug(`Retrying after error with smaller batch in ${requestDelay * 3}ms`);
                     setTimeout(processNextBatchRecon, requestDelay * 3);
                 }
             });
@@ -655,20 +701,28 @@ var Theme = {
         
         // Process multiple batches in parallel but controlled
         function startBatchProcessing() {
+            console.log('Starting batch processing sequence');
             // Start with one batch, the system will adjust dynamically
             processNextBatchRecon();
             
             // Start additional batches with a delay between them
+            console.debug(`Scheduling second parallel batch in ${requestDelay * 2}ms`);
             setTimeout(processNextBatchRecon, requestDelay * 2);
         }
         
         // Function to finalize the report after all batches are processed
         function finalizeReport() {
+            console.log('Finalizing report with processed data');
+            
             var from = $('.date-from').val();
             var to = $('.date-to').val();
             var tfromdate = (from.length == 0) ? $('#report__result').attr('dfrom') : from;
             var ttodate = (to.length == 0) ? $('#report__result').attr('dto') : to;
             
+            console.log('Final date range:', { from: tfromdate, to: ttodate });
+            console.log('Final data size:', JSON.stringify(Theme.reconsupplies).length, 'bytes');
+            
+            console.time('Final Report Rendering');
             $.ajax({
                 url: $('#ajax-url').val(),
                 type: 'POST',
@@ -680,25 +734,40 @@ var Theme = {
                     suppdata: Theme.reconsupplies
                 },
                 success: function(resp) {
-                    console.log(resp);
+                    console.timeEnd('Final Report Rendering');
+                    
                     if (resp.success) {
+                        console.log('Report successfully rendered');
                         $('.report__result').html(resp.data);
                         $('.filter-show__item input').prop('checked', true);
+                    } else {
+                        console.error('Failed to render final report', resp);
                     }
                     
                     $('.report__result').removeClass('overlay');
                     // All records processed
                     updateProgressBar(100);
                     
+                    console.log('Initializing report UI components');
                     Theme.actualCountCalculator($);
                     Theme.sectionFilter($);
                     Theme.reconTotal($);
                     Theme.recalculateReconTotal($);
                     Theme.sortRecon($);
+                    
+                    console.log('Report generation complete');
+                    console.groupEnd();
                 },
                 error: function(xhr, ajaxOptions, thrownError) {
-                    console.log('Request failed: ' + thrownError.message);
+                    console.timeEnd('Final Report Rendering');
+                    console.error('Final report rendering failed:', {
+                        error: thrownError.message,
+                        status: xhr.status,
+                        responseText: xhr.responseText.substring(0, 100) + '...'
+                    });
+                    
                     $('.report__result').removeClass('overlay');
+                    console.groupEnd();
                 }
             });
         }
@@ -709,17 +778,22 @@ var Theme = {
             var to = $('.date-to').val();
             
             if (from.length == 0 || to.length == 0) {
+                console.warn('Filter dates incomplete, canceling operation');
                 return false;
             }
             
+            console.log('User initiated filter change, aborting current process');
+            
             if (Theme.ajaxsupply) {
                 Theme.ajaxsupply.abort();
-                console.log('Request aborted');
+                console.log('Active AJAX request aborted');
             }
             
             // Reset processing state
             isProcessing = false;
             currentRecord = totalRecords; // This prevents further processing
+            console.log('Processing state reset');
+            console.groupEnd();
         });
         
         // Start processing the batches
