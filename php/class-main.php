@@ -1318,8 +1318,8 @@ class Theme {
             $relsupplies = $reconarray['relsupplies'];
             
             // Validate date inputs
-            $from = isset($_POST['fromdate']) ? sanitize_text_field($_POST['fromdate']) : '';
-            $to = isset($_POST['todate']) ? sanitize_text_field($_POST['todate']) : '';
+            $from = isset($data['fromdate']) ? sanitize_text_field($data['fromdate']) : '';
+            $to = isset($data['todate']) ? sanitize_text_field($data['todate']) : '';
             
             if (empty($from) || empty($to)) {
                 wp_send_json_error('Missing date range');
