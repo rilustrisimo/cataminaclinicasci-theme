@@ -1300,7 +1300,7 @@ class Theme {
             $reconarray['datesupplies'] = (isset($_POST['datesupplies'])) ? $_POST['datesupplies'] : null;
             $reconarray['relsupplies'] = (isset($_POST['relsupplies'])) ? $_POST['relsupplies'] : null;
 
-            wp_send_json_success($_POST['relsupplies']);
+            wp_send_json_success($_POST);
             return;
 
             if (empty($reconarray)) {
