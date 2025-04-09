@@ -528,39 +528,67 @@ var Theme = {
     processBatchRecon:function($, supjson){
         var totalRecords = Object.keys(supjson).length;
         var currentRecord = 0; // Start with the first record
-        var batchSize = 1; // Set the batch size to 1 record initially
-        var batchInc = 5; // Set the batch size to + 5 each time
+        var batchSize = 1; // Start with small batch size
+        var maxBatchSize = 50; // Maximum batch size
+        var processingQueue = []; // Queue for batch processing
+        var isProcessing = false; // Flag to track if a batch is being processed
+        var consecutiveSuccess = 0; // Track consecutive successful batches
+        var consecutiveErrors = 0; // Track consecutive errors
+        var requestDelay = 300; // Delay between requests in ms (adjustable)
 
         Theme.reconsupplies = {}; // clear records
-
-        function processNextBatchRecon() {
-            // Calculate the end index for the current batch
-            if(batchSize > 50){
-                batchSize = 50;
-            }else{
-                batchSize += batchInc;
+        
+        // Update progress bar more efficiently
+        function updateProgressBar(progress) {
+            requestAnimationFrame(function() {
+                $("#progress").css("width", progress + "%").text(progress + "%");
+            });
+        }
+        
+        // Dynamic batch sizing - increases on success, decreases on failure
+        function adjustBatchSize(success) {
+            if (success) {
+                consecutiveSuccess++;
+                consecutiveErrors = 0;
+                if (consecutiveSuccess >= 2 && batchSize < maxBatchSize) {
+                    batchSize = Math.min(batchSize + 5, maxBatchSize);
+                }
+            } else {
+                consecutiveErrors++;
+                consecutiveSuccess = 0;
+                if (consecutiveErrors >= 1 && batchSize > 5) {
+                    batchSize = Math.max(Math.floor(batchSize / 2), 1);
+                }
             }
-
-
+            return batchSize;
+        }
+        
+        // Process next batch with better throttling
+        function processNextBatchRecon() {
+            if (isProcessing || currentRecord >= totalRecords) {
+                return;
+            }
+            
+            isProcessing = true;
+            
+            // Calculate the end index for the current batch
             var endRecord = Math.min(currentRecord + batchSize, totalRecords);
-
+            
             var batchData = {};
             // Extract the records for the current batch
             for (var i = currentRecord; i < endRecord; i++) {
                 var recordKey = Object.keys(supjson)[i];
                 batchData[recordKey] = supjson[recordKey];
             }
-
-            console.log(batchData);
-
-            // Calculate progress for the current batch
-            var progress = Math.min(((currentRecord / totalRecords) * 100).toFixed(2), 100);
-            $("#progress").css("width", progress + "%").text(progress + "%");
-
+            
+            // Calculate progress and update UI efficiently
+            var progress = Math.min(Math.round((currentRecord / totalRecords) * 100), 100);
+            updateProgressBar(progress);
+            
             var to = $('.date-to').val();
             var from = $('.date-from').val();
-            var ttodate =  (to.length == 0)?$('#report__result').attr('dto'):to;
-            var tfromdate =  (from.length == 0)?$('#report__result').attr('dfrom'):from;
+            var ttodate = (to.length == 0) ? $('#report__result').attr('dto') : to;
+            var tfromdate = (from.length == 0) ? $('#report__result').attr('dfrom') : from;
             
             // Make the AJAX request with the current batch data
             Theme.ajaxsupply = $.ajax({
@@ -568,104 +596,134 @@ var Theme = {
                 type: 'POST',
                 dataType: 'JSON',
                 data: {
-                    action: 'batch_process_supplies_recon', // Corrected the action name
-                    batchData: batchData, // Pass the data for the current batch
+                    action: 'batch_process_supplies_recon',
+                    batchData: batchData,
                     to: ttodate,
                     from: tfromdate
                 },
-                beforeSend : function()   {           
-                   $('.report__result').addClass('overlay');
+                beforeSend: function() {
+                    $('.report__result').addClass('overlay');
                 },
                 success: function(response) {
                     if (response.success) {
-
                         var bdata = response.data;
+                        
                         // Process successful, update the UI or do something with the response
-
-                        currentRecord += batchSize; // Move to the next batch
-
+                        currentRecord = endRecord; // Move to the next batch
+                        
                         Theme.reconsupplies = JSON.parse(Theme.mergeAndSumJSON(JSON.stringify(bdata), JSON.stringify(Theme.reconsupplies)));
-                        console.log(Theme.reconsupplies);
-
+                        
+                        // Adjust batch size up on success
+                        adjustBatchSize(true);
+                        
+                        isProcessing = false;
+                        
                         if (currentRecord < totalRecords) {
-                            // If there are more records, continue with the next batch
-                            processNextBatchRecon();
+                            // If there are more records, continue with the next batch after a short delay
+                            setTimeout(processNextBatchRecon, requestDelay);
                         } else {
-                            var from = $('.date-from').val();
-                            var to = $('.date-to').val();
-
-
-                            var tfromdate = (from.length == 0)?$('#report__result').attr('dfrom'):from;
-                            var ttodate =  (to.length == 0)?$('#report__result').attr('dto'):to;
-
-                            $.ajax ({
-                                url: $('#ajax-url').val(),
-                                type: 'POST',
-                                dataType: 'JSON',
-                                data: {
-                                    // the value of data.action is the part AFTER 'wp_ajax_' in
-                                    // the add_action ('wp_ajax_xxx', 'yyy') in the PHP above
-                                    action: 'render_recon_output',
-                                    // ANY other properties of data are passed to your_function()
-                                    // in the PHP global $_REQUEST (or $_POST in this case)
-                                    fromdate: tfromdate,
-                                    todate: ttodate,
-                                    suppdata: Theme.reconsupplies
-                                    },
-                                success: function (resp) {
-                                    console.log(resp);
-                                       if(resp.success){
-                                            $('.report__result').html(resp.data);
-                                            $('.filter-show__item input').prop('checked', true);
-                                       }
-                    
-                                       $('.report__result').removeClass('overlay');
-                                       // All records processed
-                                       $("#progress").css("width", "100%").text("100%");
-
-                                        Theme.actualCountCalculator($);
-                                        Theme.sectionFilter($);
-                                        Theme.reconTotal($);
-                                        Theme.recalculateReconTotal($);
-                                        Theme.sortRecon($);
-                                    },
-                                error: function (xhr, ajaxOptions, thrownError) {
-                                    // this error case means that the ajax call, itself, failed, e.g., a syntax error
-                                    // in your_function()
-                                    console.log('Request failed: ' + thrownError.message) ;
-                                    $('.report__result').removeClass('overlay');
-                                    },
-                            });
+                            // All batches processed, finalize the report
+                            finalizeReport();
                         }
                     } else {
                         // Handle the error
-                        $("#result").append(response.data + "<br>");
+                        console.error("Error in batch:", response.data);
+                        
+                        // Adjust batch size down on error
+                        adjustBatchSize(false);
+                        
+                        isProcessing = false;
+                        
+                        // Try again with smaller batch size after a delay
+                        setTimeout(processNextBatchRecon, requestDelay * 2);
                     }
                 },
                 error: function(xhr, status, error) {
-                    // Handle AJAX error
+                    // Handle AJAX error with retry logic
                     console.error("Error processing batch:", error);
-                    //$("#result").append("An error occurred while processing the batch.<br>");
+                    
+                    // Adjust batch size down on error
+                    adjustBatchSize(false);
+                    
+                    isProcessing = false;
+                    
+                    // Retry after a longer delay
+                    setTimeout(processNextBatchRecon, requestDelay * 3);
                 }
             });
-
-            Theme.recalculateReconTotal($);
         }
-
-        $('.report__filter a.btn').click(function(){
+        
+        // Process multiple batches in parallel but controlled
+        function startBatchProcessing() {
+            // Start with one batch, the system will adjust dynamically
+            processNextBatchRecon();
+            
+            // Start additional batches with a delay between them
+            setTimeout(processNextBatchRecon, requestDelay * 2);
+        }
+        
+        // Function to finalize the report after all batches are processed
+        function finalizeReport() {
             var from = $('.date-from').val();
             var to = $('.date-to').val();
-
-            if(from.length == 0 || to.length == 0){
+            var tfromdate = (from.length == 0) ? $('#report__result').attr('dfrom') : from;
+            var ttodate = (to.length == 0) ? $('#report__result').attr('dto') : to;
+            
+            $.ajax({
+                url: $('#ajax-url').val(),
+                type: 'POST',
+                dataType: 'JSON',
+                data: {
+                    action: 'render_recon_output',
+                    fromdate: tfromdate,
+                    todate: ttodate,
+                    suppdata: Theme.reconsupplies
+                },
+                success: function(resp) {
+                    console.log(resp);
+                    if (resp.success) {
+                        $('.report__result').html(resp.data);
+                        $('.filter-show__item input').prop('checked', true);
+                    }
+                    
+                    $('.report__result').removeClass('overlay');
+                    // All records processed
+                    updateProgressBar(100);
+                    
+                    Theme.actualCountCalculator($);
+                    Theme.sectionFilter($);
+                    Theme.reconTotal($);
+                    Theme.recalculateReconTotal($);
+                    Theme.sortRecon($);
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                    console.log('Request failed: ' + thrownError.message);
+                    $('.report__result').removeClass('overlay');
+                }
+            });
+        }
+        
+        // Handle report filter button click to properly abort processing
+        $('.report__filter a.btn').click(function() {
+            var from = $('.date-from').val();
+            var to = $('.date-to').val();
+            
+            if (from.length == 0 || to.length == 0) {
                 return false;
             }
-
-            Theme.ajaxsupply.abort();
-            console.log('Request aborted');
+            
+            if (Theme.ajaxsupply) {
+                Theme.ajaxsupply.abort();
+                console.log('Request aborted');
+            }
+            
+            // Reset processing state
+            isProcessing = false;
+            currentRecord = totalRecords; // This prevents further processing
         });
-
-        // Start processing the first batch
-        processNextBatchRecon();
+        
+        // Start processing the batches
+        startBatchProcessing();
     },
 
     sortRecon: function($){
