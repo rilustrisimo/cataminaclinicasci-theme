@@ -763,7 +763,7 @@ var Theme = {
                     fromdate: tfromdate,
                     todate: ttodate,
                     suppdata: Theme.reconsupplies
-                  })
+                }),
                 success: function(resp) {
                     console.log('AJAX request completed successfully', resp);
                     console.timeEnd('Final Report Rendering');
