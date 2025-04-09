@@ -748,16 +748,29 @@ var Theme = {
                 console.log('Large dataset detected, preparing submission...');
             }
             
-            // Create a copy of the data to prevent reference issues
+            // Create a JSON string copy of the data 
             var submissionData;
             try {
-                // Use structured clone if available for better performance with large objects
-                submissionData = (typeof structuredClone === 'function') 
-                    ? structuredClone(Theme.reconsupplies) 
-                    : JSON.parse(JSON.stringify(Theme.reconsupplies));
+                // Convert object to JSON string, being explicit about the conversion step
+                submissionData = JSON.stringify(Theme.reconsupplies);
+                console.log('Data successfully converted to JSON string format');
             } catch (e) {
-                console.error('Error preparing submission data:', e);
-                submissionData = Theme.reconsupplies; // Fall back to direct reference if copying fails
+                console.error('Error converting data to JSON string:', e);
+                // Provide a fallback empty JSON string if conversion fails
+                submissionData = "{}"; 
+                // Show warning in console about the empty data
+                console.warn('Using empty JSON object due to conversion error');
+            }
+
+            if (submissionData) {
+                // Validate the JSON string
+                try {
+                    JSON.parse(submissionData);
+                    console.log('Submission data validated as proper JSON string');
+                } catch (e) {
+                    console.error('Invalid JSON string created:', e);
+                    submissionData = "{}";
+                }
             }
 
             console.log('Submission data prepared for AJAX request:', submissionData);
@@ -771,8 +784,7 @@ var Theme = {
                     action: 'render_recon_output',
                     fromdate: tfromdate,
                     todate: ttodate,
-                    //suppdata: submissionData
-                    suppdata: Theme.reconsupplies
+                    suppdata: submissionData
                 },
                 success: function(resp) {
                     console.log('AJAX request completed successfully', resp);
