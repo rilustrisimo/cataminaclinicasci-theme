@@ -754,7 +754,7 @@ var Theme = {
             // Setup AJAX with better error handling and retry logic
 
             $.ajax({
-                url: $('#ajax-url').val(),
+                url: $('#ajax-url').val() + '?action=render_recon_output',
                 method: 'POST',
                 contentType: 'application/json', // important
                 dataType: 'json',
