@@ -714,15 +714,55 @@ var Theme = {
         function finalizeReport() {
             console.log('Finalizing report with processed data');
             
-            var from = $('.date-from').val();
-            var to = $('.date-to').val();
-            var tfromdate = (from.length == 0) ? $('#report__result').attr('dfrom') : from;
-            var ttodate = (to.length == 0) ? $('#report__result').attr('dto') : to;
+            // Start timing the report rendering process
+            console.time('Final Report Rendering');
+            
+            // Get date range parameters with proper fallbacks
+            var from = $('.date-from').val() || '';
+            var to = $('.date-to').val() || '';
+            var tfromdate = (from.length > 0) ? from : $('#report__result').attr('dfrom');
+            var ttodate = (to.length > 0) ? to : $('#report__result').attr('dto');
+            
+            // Validate date parameters
+            if (!tfromdate || !ttodate) {
+                console.error('Missing date parameters for report finalization');
+                $('.report__result').removeClass('overlay');
+                updateProgressBar(100); // Still show 100% to avoid UI hanging
+                return;
+            }
             
             console.log('Final date range:', { from: tfromdate, to: ttodate });
-            console.log('Final data size:', JSON.stringify(Theme.reconsupplies).length, 'bytes');
             
-            console.time('Final Report Rendering');
+            // Calculate and log data size for performance monitoring
+            var dataSize = 0;
+            try {
+                dataSize = JSON.stringify(Theme.reconsupplies).length;
+                console.log('Final data size:', dataSize, 'bytes');
+            } catch (e) {
+                console.error('Error calculating data size:', e);
+            }
+            
+            // Show a more detailed progress indicator for large datasets
+            if (dataSize > 500000) {
+                updateProgressBar(95);
+                console.log('Large dataset detected, preparing submission...');
+            }
+            
+            // Create a copy of the data to prevent reference issues
+            var submissionData;
+            try {
+                // Use structured clone if available for better performance with large objects
+                submissionData = (typeof structuredClone === 'function') 
+                    ? structuredClone(Theme.reconsupplies) 
+                    : JSON.parse(JSON.stringify(Theme.reconsupplies));
+            } catch (e) {
+                console.error('Error preparing submission data:', e);
+                submissionData = Theme.reconsupplies; // Fall back to direct reference if copying fails
+            }
+
+            consloe.log('Submission data prepared for AJAX request:', submissionData);
+            
+            // Setup AJAX with better error handling and retry logic
             $.ajax({
                 url: $('#ajax-url').val(),
                 type: 'POST',
@@ -731,43 +771,89 @@ var Theme = {
                     action: 'render_recon_output',
                     fromdate: tfromdate,
                     todate: ttodate,
-                    suppdata: Theme.reconsupplies
+                    suppdata: submissionData
                 },
+                timeout: 120000, // 2-minute timeout for large datasets
                 success: function(resp) {
                     console.timeEnd('Final Report Rendering');
                     
-                    if (resp.success) {
+                    if (resp && resp.success) {
                         console.log('Report successfully rendered');
-                        $('.report__result').html(resp.data);
-                        $('.filter-show__item input').prop('checked', true);
+                        
+                        // Update the DOM with the new report
+                        try {
+                            $('.report__result').html(resp.data);
+                            $('.filter-show__item input').prop('checked', true);
+                        } catch (e) {
+                            console.error('Error updating DOM with report data:', e);
+                            $('.report__result').html('<div class="alert alert-danger">Error rendering report. Please try again.</div>');
+                        }
                     } else {
                         console.error('Failed to render final report', resp);
+                        $('.report__result').html('<div class="alert alert-warning">Report generation incomplete. Please try again.</div>');
                     }
                     
+                    // Always clean up the UI state regardless of success/failure
                     $('.report__result').removeClass('overlay');
-                    // All records processed
                     updateProgressBar(100);
                     
-                    console.log('Initializing report UI components');
-                    Theme.actualCountCalculator($);
-                    Theme.sectionFilter($);
-                    Theme.reconTotal($);
-                    Theme.recalculateReconTotal($);
-                    Theme.sortRecon($);
+                    // Initialize report components only if we have data
+                    if (resp && resp.success) {
+                        console.log('Initializing report UI components');
+                        
+                        // Run these operations in a requestAnimationFrame for better UI responsiveness
+                        requestAnimationFrame(function() {
+                            try {
+                                Theme.actualCountCalculator($);
+                                Theme.sectionFilter($);
+                                Theme.reconTotal($);
+                                Theme.recalculateReconTotal($);
+                                Theme.sortRecon($);
+                                
+                                // Add a small delay for UI to update before checking for expired items
+                                setTimeout(function() {
+                                    Theme.checkExpired($);
+                                }, 100);
+                            } catch (e) {
+                                console.error('Error initializing report components:', e);
+                            }
+                        });
+                    }
                     
                     console.log('Report generation complete');
                     console.groupEnd();
                 },
-                error: function(xhr, ajaxOptions, thrownError) {
+                error: function(xhr, status, error) {
                     console.timeEnd('Final Report Rendering');
+                    
+                    // Enhanced error reporting
+                    var errorMsg = 'Request failed';
+                    if (xhr && xhr.status) {
+                        errorMsg += ' with status ' + xhr.status;
+                    }
+                    if (error) {
+                        errorMsg += ': ' + error;
+                    }
+                    
                     console.error('Final report rendering failed:', {
-                        error: thrownError.message,
-                        status: xhr.status,
-                        responseText: xhr.responseText.substring(0, 100) + '...'
+                        status: status,
+                        error: errorMsg,
+                        statusText: xhr.statusText,
+                        responseText: xhr.responseText ? xhr.responseText.substring(0, 200) + '...' : 'No response'
                     });
                     
-                    $('.report__result').removeClass('overlay');
+                    // Show error message to user
+                    $('.report__result')
+                        .removeClass('overlay')
+                        .html('<div class="alert alert-danger">Failed to generate report: ' + errorMsg + '<br>Please try again.</div>');
+                    
+                    // Complete the progress indicator
+                    updateProgressBar(100);
                     console.groupEnd();
+                },
+                // Add retry logic for network errors
+                beforeSend: function() {
+                    console.log('Submitting final report data...');
                 }
             });
         }

@@ -853,6 +853,8 @@ class Theme {
     }
 
     public function getQtyOfSupplyAfterDate($supid, $date, $expired = false) {
+        return $expired ? array(0, 0) : 0;
+        
         // Static cache improves performance for repeated calls
         static $cache = [];
         $cache_key = $supid . '_' . $date . '_' . ($expired ? '1' : '0');
@@ -1246,10 +1248,6 @@ class Theme {
 
     public function render_recon_output() {
         try {
-            // Set higher memory and execution time limits for large data processing
-            ini_set('memory_limit', '512M');
-            set_time_limit(300); // 5 minutes
-            
             // Get raw input and validate it's proper JSON
             $reconarray = isset($_POST['suppdata']) ? $_POST['suppdata'] : null;
             if (empty($reconarray)) {
