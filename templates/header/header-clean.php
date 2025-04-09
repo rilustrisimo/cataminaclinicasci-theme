@@ -64,7 +64,7 @@
 	            display: inline-flex;\
 	            justify-content: center;\
 	            align-items: center;\
-	            position: relative;\
+	            position: absolute;\
 	            margin-left: 8px;\
 	            min-width: 18px;\
 	            height: 18px;\
