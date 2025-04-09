@@ -853,8 +853,6 @@ class Theme {
     }
 
     public function getQtyOfSupplyAfterDate($supid, $date, $expired = false) {
-        return $expired ? array(0, 0) : 0;
-        
         // Static cache improves performance for repeated calls
         static $cache = [];
         $cache_key = $supid . '_' . $date . '_' . ($expired ? '1' : '0');
