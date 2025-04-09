@@ -760,7 +760,7 @@ var Theme = {
                 submissionData = Theme.reconsupplies; // Fall back to direct reference if copying fails
             }
 
-            consloe.log('Submission data prepared for AJAX request:', submissionData);
+            console.log('Submission data prepared for AJAX request:', submissionData);
             
             // Setup AJAX with better error handling and retry logic
             $.ajax({
