@@ -1297,6 +1297,9 @@ class Theme {
             // Get raw input and validate it's proper JSON
             $reconarray = isset($_POST['suppdata']) ? json_decode($_POST['suppdata'], true) : null;
 
+            wp_send_json_success($reconarray);
+            return;
+
             if (empty($reconarray)) {
                 wp_send_json_error('Missing supply data');
                 return;
