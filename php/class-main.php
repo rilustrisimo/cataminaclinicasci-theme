@@ -1296,8 +1296,8 @@ class Theme {
         try {
             // Get raw input and validate it's proper JSON
             $reconarray = array();
-            $reconarray['overallupplies'] = (isset($_POST['overallupplies'])) ? $_POST['overallupplies'] : null;
-            $reconarray['datesupplies'] = (isset($_POST['datesupplies'])) ? $_POST['datesupplies'] : null;
+            //$reconarray['overallupplies'] = (isset($_POST['overallupplies'])) ? $_POST['overallupplies'] : null;
+            //$reconarray['datesupplies'] = (isset($_POST['datesupplies'])) ? $_POST['datesupplies'] : null;
             $reconarray['relsupplies'] = (isset($_POST['relsupplies'])) ? $_POST['relsupplies'] : null;
 
             wp_send_json_success($_POST);
