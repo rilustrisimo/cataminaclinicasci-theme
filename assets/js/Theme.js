@@ -760,9 +760,7 @@ var Theme = {
                     action: 'render_recon_output',
                     fromdate: tfromdate,
                     todate: ttodate,
-                    //overallupplies: Theme.reconsupplies.overallupplies,
-                    //datesupplies: Theme.reconsupplies.datesupplies,
-                    relsupplies: Theme.reconsupplies.relsupplies
+                    suppdata: Theme.reconsupplies
                 },
                 success: function(resp) {
                     console.log('AJAX request completed successfully', resp);
