@@ -752,15 +752,17 @@ var Theme = {
             console.log('Submission data prepared for AJAX request:', Theme.reconsupplies);
             
             // Setup AJAX with better error handling and retry logic
+
             $.ajax({
                 url: $('#ajax-url').val(),
-                type: 'POST',
-                dataType: 'JSON',
+                method: 'POST',
+                contentType: 'application/json', // important
+                dataType: 'json',
                 data: {
                     action: 'render_recon_output',
                     fromdate: tfromdate,
                     todate: ttodate,
-                    suppdata: Theme.reconsupplies
+                    suppdata: JSON.stringify(Theme.reconsupplies)
                 },
                 success: function(resp) {
                     console.log('AJAX request completed successfully', resp);
