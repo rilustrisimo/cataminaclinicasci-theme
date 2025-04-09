@@ -748,31 +748,7 @@ var Theme = {
                 console.log('Large dataset detected, preparing submission...');
             }
             
-            // Create a JSON string copy of the data 
-            var submissionData;
-            try {
-                // Convert object to JSON string, being explicit about the conversion step
-                submissionData = JSON.stringify(Theme.reconsupplies);
-                console.log('Data successfully converted to JSON string format');
-            } catch (e) {
-                console.error('Error converting data to JSON string:', e);
-                // Provide a fallback empty JSON string if conversion fails
-                submissionData = "{}"; 
-                // Show warning in console about the empty data
-                console.warn('Using empty JSON object due to conversion error');
-            }
-
-            if (submissionData) {
-                // Validate the JSON string
-                try {
-                    JSON.parse(submissionData);
-                    console.log('Submission data validated as proper JSON string');
-                } catch (e) {
-                    console.error('Invalid JSON string created:', e);
-                    submissionData = "{}";
-                }
-            }
-
+            
             console.log('Submission data prepared for AJAX request:', Theme.reconsupplies);
             
             // Setup AJAX with better error handling and retry logic
@@ -784,7 +760,9 @@ var Theme = {
                     action: 'render_recon_output',
                     fromdate: tfromdate,
                     todate: ttodate,
-                    suppdata: Theme.reconsupplies
+                    overallupplies: Theme.reconsupplies.overallupplies,
+                    datesupplies: Theme.reconsupplies.datesupplies,
+                    relsupplies: Theme.reconsupplies.relsupplies
                 },
                 success: function(resp) {
                     console.log('AJAX request completed successfully', resp);
