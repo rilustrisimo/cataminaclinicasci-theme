@@ -853,6 +853,9 @@ class Theme {
     }
 
     public function getQtyOfSupplyAfterDate($supid, $date, $expired = false) {
+
+        return $expired ? array(0, 0) : 0;// testing
+        // Static cache improves performance for repeated calls
         static $cache = [];
         $cache_key = $supid . '_' . $date . '_' . ($expired ? '1' : '0');
         
@@ -866,75 +869,122 @@ class Theme {
         
         global $wpdb;
         
-        // Get the sum of quantities directly via SQL for actual supplies
-        $actual_supplies_query = $wpdb->prepare(
-            "SELECT SUM(pm_quantity.meta_value) as total_quantity
-            FROM {$wpdb->posts} p
-            INNER JOIN {$wpdb->postmeta} pm_supply ON p.ID = pm_supply.post_id AND pm_supply.meta_key = 'supply_name'
-            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
-            INNER JOIN {$wpdb->postmeta} pm_quantity ON p.ID = pm_quantity.post_id AND pm_quantity.meta_key = 'quantity'
-            WHERE p.post_type = 'actualsupplies'
-            AND p.post_status = 'publish'
-            AND pm_supply.meta_value = %d
-            AND pm_date.meta_value <= %s",
-            $supid,
-            $formatted_date
-        );
-        
-        $actual_quantity = (float)$wpdb->get_var($actual_supplies_query) ?: 0;
-        
-        // Get the sum of quantities directly via SQL for release supplies
-        $release_supplies_query = $wpdb->prepare(
-            "SELECT SUM(pm_quantity.meta_value) as total_quantity
-            FROM {$wpdb->posts} p
-            INNER JOIN {$wpdb->postmeta} pm_supply ON p.ID = pm_supply.post_id AND pm_supply.meta_key = 'supply_name'
-            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'release_date'
-            INNER JOIN {$wpdb->postmeta} pm_quantity ON p.ID = pm_quantity.post_id AND pm_quantity.meta_key = 'quantity'
-            WHERE p.post_type = 'releasesupplies'
-            AND p.post_status = 'publish'
-            AND pm_supply.meta_value = %d
-            AND pm_date.meta_value <= %s",
-            $supid,
-            $formatted_date
-        );
-        
-        $release_quantity = (float)$wpdb->get_var($release_supplies_query) ?: 0;
-        
-        // Calculate remaining quantity
-        $remaining_quantity = $actual_quantity - $release_quantity;
-        
-        // If expired information is needed, get the expired quantity
-        if ($expired) {
-            $expired_query = $wpdb->prepare(
-                "SELECT SUM(pm_quantity.meta_value) as expired_quantity
+        // Use try/catch to handle potential database errors
+        try {
+            // Get the sum of quantities directly via SQL for actual supplies
+            // Use more specific column selection instead of relying on aliases
+            $actual_supplies_query = $wpdb->prepare(
+                "SELECT COALESCE(SUM(pm_quantity.meta_value), 0) as total_quantity
                 FROM {$wpdb->posts} p
-                INNER JOIN {$wpdb->postmeta} pm_supply ON p.ID = pm_supply.post_id AND pm_supply.meta_key = 'supply_name'
-                INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
-                INNER JOIN {$wpdb->postmeta} pm_quantity ON p.ID = pm_quantity.post_id AND pm_quantity.meta_key = 'quantity'
-                INNER JOIN {$wpdb->postmeta} pm_expiry ON p.ID = pm_expiry.post_id AND pm_expiry.meta_key = 'expiry_date'
-                WHERE p.post_type = 'actualsupplies'
-                AND p.post_status = 'publish'
+                INNER JOIN {$wpdb->postmeta} pm_supply ON p.ID = pm_supply.post_id AND pm_supply.meta_key = %s
+                INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = %s
+                INNER JOIN {$wpdb->postmeta} pm_quantity ON p.ID = pm_quantity.post_id AND pm_quantity.meta_key = %s
+                WHERE p.post_type = %s
+                AND p.post_status = %s
                 AND pm_supply.meta_value = %d
-                AND pm_date.meta_value <= %s
-                AND pm_expiry.meta_value != ''
-                AND pm_expiry.meta_value <= %s",
+                AND pm_date.meta_value <= %s",
+                'supply_name',
+                'date_added',
+                'quantity',
+                'actualsupplies',
+                'publish',
                 $supid,
-                $formatted_date,
                 $formatted_date
             );
             
-            $expired_quantity = (float)$wpdb->get_var($expired_query) ?: 0;
+            // Use proper error checking on query execution
+            $actual_quantity = (float)$wpdb->get_var($actual_supplies_query);
+            if ($wpdb->last_error) {
+                error_log('Database error in getQtyOfSupplyAfterDate (actual supplies): ' . $wpdb->last_error);
+                $actual_quantity = 0;
+            }
             
-            // Calculate expired quantity that hasn't been released
-            $expired_remaining = max(0, $expired_quantity - $release_quantity);
+            // Get the sum of quantities directly via SQL for release supplies with similar optimizations
+            $release_supplies_query = $wpdb->prepare(
+                "SELECT COALESCE(SUM(pm_quantity.meta_value), 0) as total_quantity
+                FROM {$wpdb->posts} p
+                INNER JOIN {$wpdb->postmeta} pm_supply ON p.ID = pm_supply.post_id AND pm_supply.meta_key = %s
+                INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = %s
+                INNER JOIN {$wpdb->postmeta} pm_quantity ON p.ID = pm_quantity.post_id AND pm_quantity.meta_key = %s
+                WHERE p.post_type = %s
+                AND p.post_status = %s
+                AND pm_supply.meta_value = %d
+                AND pm_date.meta_value <= %s",
+                'supply_name',
+                'release_date',
+                'quantity',
+                'releasesupplies',
+                'publish',
+                $supid,
+                $formatted_date
+            );
             
-            $result = array($remaining_quantity, $expired_remaining);
-        } else {
-            $result = $remaining_quantity;
+            $release_quantity = (float)$wpdb->get_var($release_supplies_query);
+            if ($wpdb->last_error) {
+                error_log('Database error in getQtyOfSupplyAfterDate (release supplies): ' . $wpdb->last_error);
+                $release_quantity = 0;
+            }
+            
+            // Calculate remaining quantity
+            $remaining_quantity = $actual_quantity - $release_quantity;
+            
+            // If expired information is needed, get the expired quantity
+            if ($expired) {
+                $expired_query = $wpdb->prepare(
+                    "SELECT COALESCE(SUM(pm_quantity.meta_value), 0) as expired_quantity
+                    FROM {$wpdb->posts} p
+                    INNER JOIN {$wpdb->postmeta} pm_supply ON p.ID = pm_supply.post_id AND pm_supply.meta_key = %s
+                    INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = %s
+                    INNER JOIN {$wpdb->postmeta} pm_quantity ON p.ID = pm_quantity.post_id AND pm_quantity.meta_key = %s
+                    INNER JOIN {$wpdb->postmeta} pm_expiry ON p.ID = pm_expiry.post_id AND pm_expiry.meta_key = %s
+                    WHERE p.post_type = %s
+                    AND p.post_status = %s
+                    AND pm_supply.meta_value = %d
+                    AND pm_date.meta_value <= %s
+                    AND pm_expiry.meta_value != %s
+                    AND pm_expiry.meta_value <= %s",
+                    'supply_name',
+                    'date_added',
+                    'quantity',
+                    'expiry_date',
+                    'actualsupplies',
+                    'publish',
+                    $supid,
+                    $formatted_date,
+                    '',
+                    $formatted_date
+                );
+                
+                $expired_quantity = (float)$wpdb->get_var($expired_query);
+                if ($wpdb->last_error) {
+                    error_log('Database error in getQtyOfSupplyAfterDate (expired): ' . $wpdb->last_error);
+                    $expired_quantity = 0;
+                }
+                
+                // Calculate expired quantity that hasn't been released
+                $expired_remaining = max(0, $expired_quantity - $release_quantity);
+                
+                $result = array($remaining_quantity, $expired_remaining);
+            } else {
+                $result = $remaining_quantity;
+            }
+            
+        } catch (Exception $e) {
+            // Log any unexpected errors
+            error_log('Error in getQtyOfSupplyAfterDate: ' . $e->getMessage());
+            $result = $expired ? array(0, 0) : 0;
+        }
+        
+        // Limit cache size to prevent memory issues (keep last 100 results)
+        if (count($cache) > 100) {
+            array_shift($cache); // Remove oldest entry
         }
         
         // Cache the result
         $cache[$cache_key] = $result;
+        
+        // Help garbage collector by nullifying large variables that are no longer needed
+        unset($actual_supplies_query, $release_supplies_query, $expired_query);
         
         return $result;
     }
@@ -1197,167 +1247,229 @@ class Theme {
     }
 
     public function render_recon_output() {
-        $reconarray = $_POST['suppdata'];
-        $overallupplies = $reconarray['overallupplies'];
-        $datesupplies = $reconarray['datesupplies'];
-        $relsupplies = $reconarray['relsupplies'];
-
-        $from = $_POST['fromdate'];
-        $to = $_POST['todate'];
-
-        $sectionlist = array();
-        $subsectionlist = array();
-
-        $res = "";
-        $res .= "<h2>AS OF ".date('M d, Y', strtotime($from))." - ".date('M d, Y', strtotime($to))."</h2>";
-        $res .= "<h3>Reconciliation Report</h3>";
-
-        foreach($overallupplies as $department => $types):
-            ksort($types);
-            $res .= "<h1>".str_replace("_", " ", strtoupper($department))."</h1>";
+        try {
+            // Set higher memory and execution time limits for large data processing
+            ini_set('memory_limit', '512M');
+            set_time_limit(300); // 5 minutes
             
-            foreach($types as $type => $suppdetails):
-                $typetext = strtoupper($type);
-                $res .= '<div class="report__result-header">'.$typetext.'</div>';
-                $res .= "<table>";
-
-                if(strtoupper($type) == "EQUIPMENT"):
-                    $res .= "<thead>";
-                    $res .= "<tr>";
-                    $res .= "<th>EQUIPMENT</th>";
-                    $res .= "<th class='filter-serial'>SERIAL</th>";
-                    $res .= "<th class='filter-states'>STATES</th>";
-                    $res .= "<th class='filter-beg'>BEG INV</th>";
-                    $res .= "<th class='filter-purchase'>PURCHASES</th>";
-                    $res .= "<th class='filter-total'>TOTAL</th>";
-                    $res .= "<th class='filter-cons'>CONSUMPTION</th>";
-                    $res .= "<th>END INV</th>";
-                    $res .= "<th>PRICE</th>";
-                    $res .= "<th>ACTUAL COUNT</th>";
-                    $res .= "<th>VARIANCE</th>";
-                    $res .= "<th>TOTAL</th>";
-                    $res .= "</tr>";
-                    $res .= "</thead>";
-                else:
-                    $res .= "<thead>";
-                    $res .= "<tr>";
-                    $res .= "<th>SUPPLY NAME</th>";
-                    $res .= "<th class='filter-lot'>LOT #</th>";
-                    $res .= "<th class='filter-exp'>EXP. DATE</th>";
-                    $res .= "<th class='filter-beg'>BEG INV</th>";
-                    $res .= "<th class='filter-purchase'>PURCHASES</th>";
-                    $res .= "<th class='filter-total'>TOTAL</th>";
-                    $res .= "<th class='filter-cons'>CONSUMPTION</th>";
-                    $res .= "<th>END INV</th>";
-                    $res .= "<th>PRICE</th>";
-                    $res .= "<th>ACTUAL COUNT</th>";
-                    $res .= "<th>VARIANCE</th>";
-                    $res .= "<th>TOTAL</th>";
-                    $res .= "</tr>";
-                    $res .= "</thead>";
-                endif;
-
-                $expSuppExpTotal = 0;
-
-                foreach($suppdetails as $suppid => $suppdeets):
-                    $section = get_field('section', $suppid);
-                    $subsection = ($section == "Ambulatory Surgery Center (ASC)")?get_field('sub_section', $suppid):'';
-
-                    if(strtoupper($type) == "EQUIPMENT"):
-                        $purchase = (isset($datesupplies[$suppid]['quantity']))?(float)$datesupplies[$suppid]['quantity']:0;
-                        $release = (isset($relsupplies[$suppid]['quantity']))?(float)$relsupplies[$suppid]['quantity']:0;
-                        $price = (float)get_field('price_per_unit', $suppid);
-
-                        $totcount = (float)$suppdeets['quantity'] + $purchase + ((float)$suppdeets['quantity'] + $purchase) + $release;
-
-                        $serial = (!empty($datesupplies[$suppid]['serial']))?$datesupplies[$suppid]['serial']:get_field('serial', $suppid);
-                        $states = (!empty($datesupplies[$suppid]['states__status']))?$datesupplies[$suppid]['states__status']:get_field('states__status', $suppid);
-
-                        $res .= "<tbody class='sup-container' data-name='".$suppdeets['supply_name']."'>";
-                        $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
-                        $res .= "<td>".$suppdeets['supply_name']."</td>";
-                        $res .= "<td class='filter-serial'>".$serial."</td>";
-                        $res .= "<td class='filter-states'>".$states."</td>";
-                        $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
-                        $res .= "<td class='filter-purchase'>".$purchase."</td>";
-                        $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
-                        $res .= "<td class='filter-cons'>".$release."</td>";
-                        $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)."</td>";
-                        $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
-                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
-                        $res .= "<td class='row-variance'>0</td>";
-                        $res .= "<td class='row-total'>&#8369 ".$this->convertNumber(((((float)$suppdeets['quantity'] + $purchase) - $release) * $price))."</td>";
-                        $res .= "</tr>";
-                        $res .= "</tbody>";
-                    else:
-                        $purchase = (isset($datesupplies[$suppid]['quantity']))?(float)$datesupplies[$suppid]['quantity']:0;
-                        $release = (isset($relsupplies[$suppid]['quantity']))?(float)$relsupplies[$suppid]['quantity']:0;
-                        $price = (float)get_field('price_per_unit', $suppid);
-
-                        $totcount = (float)$suppdeets['quantity'] + $purchase + ((float)$suppdeets['quantity'] + $purchase) + $release;
-
-                        if($totcount == 0):
-                            //continue;
-                        endif;
-
-                        $lot = (!empty($datesupplies[$suppid]['lot_number']))?$datesupplies[$suppid]['lot_number']:'';
-                        $expiry = (!empty($datesupplies[$suppid]['expiry_date']))?$datesupplies[$suppid]['expiry_date']:$this->getLastExpDate($suppid,$suppdeets['quantity'], $to);
-                        $suptots = ((((float)$suppdeets['quantity'] + $purchase) - $release) * $price);
-
-                        $expQtyAmount = $suppdeets['expired_qty'];
-                        $expQtyAmountHTML = ($expQtyAmount && ($expQtyAmount > 0))?"<span class='red-warning'>(".$expQtyAmount.")</span>":"";
-                        $expNameHTMLClass = ($expQtyAmount && ($expQtyAmount > 0))?"red-warning":"";
-                        
-                        $expSuppExpTotal += ((float)$expQtyAmount * $price);
-
-                        
-                        $res .= "<tbody class='sup-container count-supplies' data-name='".$suppdeets['supply_name']."'>";
-                        $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
-                        $res .= "<td class='".$expNameHTMLClass."'>".$suppdeets['supply_name']."</td>";
-                        $res .= "<td class='filter-lot'>".$lot."</td>";
-                        $res .= "<td class='filter-exp'>".$expiry."</td>";
-                        $res .= "<td class='filter-beg'>".(float)$suppdeets['quantity']."</td>";
-                        $res .= "<td class='filter-purchase'>".$purchase."</td>";
-                        $res .= "<td class='filter-total'>".((float)$suppdeets['quantity'] + $purchase)."</td>";
-                        $res .= "<td class='filter-cons'>".$release."</td>";
-                        $res .= "<td class='orig-count' data-val='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'>".(((float)$suppdeets['quantity'] + $purchase) - $release)." ".$expQtyAmountHTML."</td>";
-                        $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
-                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".(((float)$suppdeets['quantity'] + $purchase) - $release)."'></td>";
-                        $res .= "<td class='row-variance'>0</td>";
-                        $res .= "<td class='row-total'>&#8369 ".$this->convertNumber($suptots)."</td>";
-                        $res .= "</tr>";
-                        $res .= "</tbody>";
-
-                    endif;
-
-                    if($section):
-                        $sectionlist[str_replace(" ", "-", strtolower($section))] = $section;
-                    endif;
-
-                    if($subsection && ($subsection != '')):
-                        $subsectionlist[str_replace(" ", "-", strtolower($subsection))] = $subsection;
-                    endif;
+            // Get raw input and validate it's proper JSON
+            $reconarray = isset($_POST['suppdata']) ? $_POST['suppdata'] : null;
+            if (empty($reconarray)) {
+                wp_send_json_error('Missing supply data');
+                return;
+            }
+            
+            // Ensure we have the expected data structure
+            if (!isset($reconarray['overallupplies']) || !isset($reconarray['datesupplies']) || !isset($reconarray['relsupplies'])) {
+                wp_send_json_error('Invalid data structure');
+                return;
+            }
+            
+            $overallupplies = $reconarray['overallupplies'];
+            $datesupplies = $reconarray['datesupplies'];
+            $relsupplies = $reconarray['relsupplies'];
+            
+            // Validate date inputs
+            $from = isset($_POST['fromdate']) ? sanitize_text_field($_POST['fromdate']) : '';
+            $to = isset($_POST['todate']) ? sanitize_text_field($_POST['todate']) : '';
+            
+            if (empty($from) || empty($to)) {
+                wp_send_json_error('Missing date range');
+                return;
+            }
+            
+            $sectionlist = array();
+            $subsectionlist = array();
+            
+            $res = "";
+            $res .= "<h2>AS OF ".date('M d, Y', strtotime($from))." - ".date('M d, Y', strtotime($to))."</h2>";
+            $res .= "<h3>Reconciliation Report</h3>";
+            
+            // Process departments in batches to avoid memory issues
+            foreach($overallupplies as $department => $types) {
+                // Sort types for consistent display
+                ksort($types);
+                $res .= "<h1>".str_replace("_", " ", strtoupper($department))."</h1>";
+                
+                foreach($types as $type => $suppdetails) {
+                    $typetext = strtoupper($type);
+                    $res .= '<div class="report__result-header">'.$typetext.'</div>';
+                    $res .= "<table>";
                     
-                endforeach;
-
-                $res .= "</table>";
-
-            endforeach;
-        endforeach;
-
-        $res .= "<select id='section-list'><option data-val='all'>Select Room Section</option><option>";
-        $res .= implode("</option><option>", $sectionlist);
-        $res .= "</option></select>";
-
-        $res .= "<select id='subsection-list'><option data-val='all'>Select Sub Section</option><option>";
-        $res .= implode("</option><option>", $subsectionlist);
-        $res .= "</option></select>";
-
-        $res .= "<div class='sup-total'><b>SUPPLIES TOTAL:</b> <span></span></div>";
-        $res .= "<div class='sup-loss'><b>SUPPLIES (LOSS):</b> <span data-val='".$expSuppExpTotal."'>₱ ".$this->convertNumber($expSuppExpTotal)."</span></div>";
-        $res .= "<div class='recon-total'><b>OVERALL TOTAL:</b> <span></span></div>";
-
-        wp_send_json_success($res);
+                    if(strtoupper($type) == "EQUIPMENT") {
+                        $res .= "<thead><tr>
+                            <th>EQUIPMENT</th>
+                            <th class='filter-serial'>SERIAL</th>
+                            <th class='filter-states'>STATES</th>
+                            <th class='filter-beg'>BEG INV</th>
+                            <th class='filter-purchase'>PURCHASES</th>
+                            <th class='filter-total'>TOTAL</th>
+                            <th class='filter-cons'>CONSUMPTION</th>
+                            <th>END INV</th>
+                            <th>PRICE</th>
+                            <th>ACTUAL COUNT</th>
+                            <th>VARIANCE</th>
+                            <th>TOTAL</th>
+                        </tr></thead>";
+                    } else {
+                        $res .= "<thead><tr>
+                            <th>SUPPLY NAME</th>
+                            <th class='filter-lot'>LOT #</th>
+                            <th class='filter-exp'>EXP. DATE</th>
+                            <th class='filter-beg'>BEG INV</th>
+                            <th class='filter-purchase'>PURCHASES</th>
+                            <th class='filter-total'>TOTAL</th>
+                            <th class='filter-cons'>CONSUMPTION</th>
+                            <th>END INV</th>
+                            <th>PRICE</th>
+                            <th>ACTUAL COUNT</th>
+                            <th>VARIANCE</th>
+                            <th>TOTAL</th>
+                        </tr></thead>";
+                    }
+                    
+                    $expSuppExpTotal = 0;
+                    
+                    // Process items in smaller batches
+                    $itemCount = 0;
+                    $batchSize = 100;
+                    $suppliesBatch = array_chunk($suppdetails, $batchSize, true);
+                    
+                    foreach($suppliesBatch as $batchDetails) {
+                        foreach($batchDetails as $suppid => $suppdeets) {
+                            // Skip entries with invalid data
+                            if (!isset($suppdeets['supply_name'])) {
+                                continue;
+                            }
+                            
+                            // Check if section exists
+                            $section = get_field('section', $suppid);
+                            if (!$section) $section = '';
+                            
+                            $subsection = ($section == "Ambulatory Surgery Center (ASC)") ? get_field('sub_section', $suppid) : '';
+                            if (!$subsection) $subsection = '';
+                            
+                            if(strtoupper($type) == "EQUIPMENT") {
+                                // Calculate equipment values
+                                $purchase = (isset($datesupplies[$suppid]['quantity'])) ? (float)$datesupplies[$suppid]['quantity'] : 0;
+                                $release = (isset($relsupplies[$suppid]['quantity'])) ? (float)$relsupplies[$suppid]['quantity'] : 0;
+                                $price = (float)get_field('price_per_unit', $suppid);
+                                
+                                // Fetch serial and states data
+                                $serial = (!empty($datesupplies[$suppid]['serial'])) ? $datesupplies[$suppid]['serial'] : get_field('serial', $suppid);
+                                $states = (!empty($datesupplies[$suppid]['states__status'])) ? $datesupplies[$suppid]['states__status'] : get_field('states__status', $suppid);
+                                
+                                // Calculate values for display
+                                $beginQuantity = isset($suppdeets['quantity']) ? (float)$suppdeets['quantity'] : 0;
+                                $endInventory = (($beginQuantity + $purchase) - $release);
+                                $totalValue = $endInventory * $price;
+                                
+                                $res .= "<tbody class='sup-container' data-name='".$suppdeets['supply_name']."'>";
+                                $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
+                                $res .= "<td>".esc_html($suppdeets['supply_name'])."</td>";
+                                $res .= "<td class='filter-serial'>".esc_html($serial)."</td>";
+                                $res .= "<td class='filter-states'>".esc_html($states)."</td>";
+                                $res .= "<td class='filter-beg'>".$beginQuantity."</td>";
+                                $res .= "<td class='filter-purchase'>".$purchase."</td>";
+                                $res .= "<td class='filter-total'>".($beginQuantity + $purchase)."</td>";
+                                $res .= "<td class='filter-cons'>".$release."</td>";
+                                $res .= "<td class='orig-count' data-val='".$endInventory."'>".$endInventory."</td>";
+                                $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
+                                $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".$endInventory."'></td>";
+                                $res .= "<td class='row-variance'>0</td>";
+                                $res .= "<td class='row-total'>&#8369 ".$this->convertNumber($totalValue)."</td>";
+                                $res .= "</tr>";
+                                $res .= "</tbody>";
+                            } else {
+                                // Calculate supply values
+                                $purchase = (isset($datesupplies[$suppid]['quantity'])) ? (float)$datesupplies[$suppid]['quantity'] : 0;
+                                $release = (isset($relsupplies[$suppid]['quantity'])) ? (float)$relsupplies[$suppid]['quantity'] : 0;
+                                $price = (float)get_field('price_per_unit', $suppid);
+                                
+                                $beginQuantity = isset($suppdeets['quantity']) ? (float)$suppdeets['quantity'] : 0;
+                                $endInventory = (($beginQuantity + $purchase) - $release);
+                                $suptots = $endInventory * $price;
+                                
+                                $lot = (!empty($datesupplies[$suppid]['lot_number'])) ? $datesupplies[$suppid]['lot_number'] : '';
+                                $expiry = (!empty($datesupplies[$suppid]['expiry_date'])) ? $datesupplies[$suppid]['expiry_date'] : $this->getLastExpDate($suppid, $beginQuantity, $to);
+                                
+                                // Handle expired quantities
+                                $expQtyAmount = isset($suppdeets['expired_qty']) ? (float)$suppdeets['expired_qty'] : 0;
+                                $expQtyAmountHTML = ($expQtyAmount && ($expQtyAmount > 0)) ? "<span class='red-warning'>(" . $expQtyAmount . ")</span>" : "";
+                                $expNameHTMLClass = ($expQtyAmount && ($expQtyAmount > 0)) ? "red-warning" : "";
+                                
+                                $expSuppExpTotal += ($expQtyAmount * $price);
+                                
+                                $res .= "<tbody class='sup-container count-supplies' data-name='".esc_attr($suppdeets['supply_name'])."'>";
+                                $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
+                                $res .= "<td class='".$expNameHTMLClass."'>".esc_html($suppdeets['supply_name'])."</td>";
+                                $res .= "<td class='filter-lot'>".esc_html($lot)."</td>";
+                                $res .= "<td class='filter-exp'>".esc_html($expiry)."</td>";
+                                $res .= "<td class='filter-beg'>".$beginQuantity."</td>";
+                                $res .= "<td class='filter-purchase'>".$purchase."</td>";
+                                $res .= "<td class='filter-total'>".($beginQuantity + $purchase)."</td>";
+                                $res .= "<td class='filter-cons'>".$release."</td>";
+                                $res .= "<td class='orig-count' data-val='".$endInventory."'>".$endInventory." ".$expQtyAmountHTML."</td>";
+                                $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
+                                $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".$endInventory."'></td>";
+                                $res .= "<td class='row-variance'>0</td>";
+                                $res .= "<td class='row-total'>&#8369 ".$this->convertNumber($suptots)."</td>";
+                                $res .= "</tr>";
+                                $res .= "</tbody>";
+                            }
+                            
+                            // Build section and subsection lists for filters
+                            if($section) {
+                                $sectionlist[str_replace(" ", "-", strtolower($section))] = $section;
+                            }
+                            
+                            if($subsection && ($subsection != '')) {
+                                $subsectionlist[str_replace(" ", "-", strtolower($subsection))] = $subsection;
+                            }
+                            
+                            // Release memory periodically
+                            if ($itemCount % 100 === 0) {
+                                gc_collect_cycles();
+                            }
+                            $itemCount++;
+                        }
+                    }
+                    
+                    $res .= "</table>";
+                }
+                
+                // Release memory after processing each department
+                gc_collect_cycles();
+            }
+            
+            // Build filter dropdowns
+            $res .= "<select id='section-list'><option data-val='all'>Select Room Section</option>";
+            if (!empty($sectionlist)) {
+                $res .= "<option>" . implode("</option><option>", $sectionlist) . "</option>";
+            }
+            $res .= "</select>";
+            
+            $res .= "<select id='subsection-list'><option data-val='all'>Select Sub Section</option>";
+            if (!empty($subsectionlist)) {
+                $res .= "<option>" . implode("</option><option>", $subsectionlist) . "</option>";
+            }
+            $res .= "</select>";
+            
+            // Add summary information
+            $res .= "<div class='sup-total'><b>SUPPLIES TOTAL:</b> <span></span></div>";
+            $res .= "<div class='sup-loss'><b>SUPPLIES (LOSS):</b> <span data-val='".$expSuppExpTotal."'>₱ ".$this->convertNumber($expSuppExpTotal)."</span></div>";
+            $res .= "<div class='recon-total'><b>OVERALL TOTAL:</b> <span></span></div>";
+            
+            // Clear all local variables to help with memory management
+            unset($overallupplies, $datesupplies, $relsupplies, $sectionlist, $subsectionlist);
+            gc_collect_cycles();
+            
+            wp_send_json_success($res);
+        } catch (Exception $e) {
+            // Log the error and return a helpful message
+            error_log('Error in render_recon_output: ' . $e->getMessage());
+            wp_send_json_error('An error occurred while generating the report: ' . $e->getMessage());
+        }
     }
 
     public function getLastExpDate($suppid, $quantity, $date) {
