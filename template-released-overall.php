@@ -402,7 +402,7 @@ if ( have_posts() ) : ?>
                         });
 
                         // Add total row to the data array - make sure it aligns with total price column
-                        data.push(['', '', '', 'Total Amount:', grandTotal]);
+                        data.push(['', '', 'Total Amount:', grandTotal, '', '']);
 
                         // Create PDF - maintain portrait orientation
                         const { jsPDF } = window.jspdf;
