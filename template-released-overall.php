@@ -494,9 +494,10 @@ if ( have_posts() ) : ?>
                                         data.cell.styles.fillColor = [240, 240, 240];
                                         data.cell.styles.textColor = [0, 0, 0];
                                         
-                                        // Make sure Total Amount text aligns with Total Price column
-                                        if (data.column.index === 3) { 
-                                            data.cell.text = 'Total Amount:';
+                                        // Position "Total Amount:" text and value properly
+                                        if (data.column.index === 2) {
+                                            data.cell.styles.halign = 'right';
+                                        } else if (data.column.index === 3) {
                                             data.cell.styles.halign = 'right';
                                         }
                                     }
