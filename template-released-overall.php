@@ -123,8 +123,9 @@ if ( have_posts() ) : ?>
                                     </tbody>
                                     <tfoot>
                                         <tr class="bg-light">
-                                            <td colspan="5" class="fw-bold text-end">Total Amount:</td>
+                                            <td colspan="3" class="fw-bold text-end">Total Amount:</td>
                                             <td id="grand-total" class="fw-bold text-end">₱0.00</td>
+                                            <td colspan="2"></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -400,12 +401,12 @@ if ( have_posts() ) : ?>
                             }
                         });
 
-                        // Add total row to the data array
+                        // Add total row to the data array - make sure it aligns with total price column
                         data.push(['', '', '', 'Total Amount:', grandTotal]);
 
-                        // Create PDF - use landscape orientation for better column spacing
+                        // Create PDF - maintain portrait orientation
                         const { jsPDF } = window.jspdf;
-                        const doc = new jsPDF('l', 'mm', 'a4'); // Change to landscape for better fit
+                        const doc = new jsPDF('p', 'mm', 'a4');
                         
                         // Set document properties
                         doc.setProperties({
@@ -415,27 +416,24 @@ if ( have_posts() ) : ?>
                             author: 'Catamina Clinic'
                         });
 
-                        // Add logo or header if needed
-                        // doc.addImage(logoData, 'PNG', 20, 10, 40, 20);
-
                         // Add report title with better spacing
-                        doc.setFontSize(18);
-                        doc.setFont(undefined, 'bold');
-                        doc.text('CATAMINA CLINIC', 150, 20, { align: 'center' });
                         doc.setFontSize(16);
-                        doc.text('Release Supplies Report', 150, 28, { align: 'center' });
+                        doc.setFont(undefined, 'bold');
+                        doc.text('CATAMINA CLINIC', 105, 15, { align: 'center' });
+                        doc.setFontSize(14);
+                        doc.text('Release Supplies Report', 105, 22, { align: 'center' });
                         
                         // Add subtitle with date range
-                        doc.setFontSize(12);
+                        doc.setFontSize(10);
                         doc.setFont(undefined, 'normal');
-                        doc.text('Period: ' + fromDate + ' to ' + toDate, 150, 36, { align: 'center' });
+                        doc.text('Period: ' + fromDate + ' to ' + toDate, 105, 29, { align: 'center' });
                         
                         // Add department info if selected
-                        let startY = 40;
+                        let startY = 32;
                         if (departmentId !== 'ALL' && departmentId !== '0') {
-                            doc.setFontSize(11);
-                            doc.text('Department: ' + departmentName, 150, 44, { align: 'center' });
-                            startY = 50;
+                            doc.setFontSize(10);
+                            doc.text('Department: ' + departmentName, 105, 35, { align: 'center' });
+                            startY = 40;
                         }
                         
                         // Calculate current date for the footer
@@ -449,32 +447,32 @@ if ( have_posts() ) : ?>
                             body: data,
                             theme: 'grid',
                             pageBreak: 'auto',
-                            margin: { top: startY, right: 15, bottom: 25, left: 15 },
+                            margin: { top: startY, right: 10, bottom: 20, left: 10 },
                             styles: {
-                                fontSize: 9,
-                                cellPadding: 3,
+                                fontSize: 8,
+                                cellPadding: 2,
                                 lineColor: [80, 80, 80],
                                 lineWidth: 0.1,
                                 font: 'helvetica'
                             },
                             columnStyles: {
-                                0: { cellWidth: 65, overflow: 'linebreak' }, // Equipment/Supply Name
-                                1: { cellWidth: 20, halign: 'right' },       // Quantity
-                                2: { cellWidth: 25, halign: 'right' },       // Price per Unit
-                                3: { cellWidth: 25, halign: 'right' },       // Total Price
-                                4: { cellWidth: 45, overflow: 'linebreak' }, // Released By
-                                5: { cellWidth: 45, overflow: 'linebreak' }  // Released To
+                                0: { cellWidth: 40, overflow: 'linebreak' }, // Equipment/Supply Name
+                                1: { cellWidth: 15, halign: 'right' },       // Quantity
+                                2: { cellWidth: 20, halign: 'right' },       // Price per Unit
+                                3: { cellWidth: 20, halign: 'right' },       // Total Price
+                                4: { cellWidth: 30, overflow: 'linebreak' }, // Released By
+                                5: { cellWidth: 30, overflow: 'linebreak' }  // Released To
                             },
                             headStyles: {
                                 fillColor: [0, 123, 255],
                                 textColor: 255,
-                                fontSize: 10,
+                                fontSize: 9,
                                 fontStyle: 'bold',
-                                cellPadding: 4,
+                                cellPadding: 3,
                                 halign: 'center'
                             },
                             didParseCell: function(data) {
-                                // Add currency symbol and format numbers
+                                // Format numbers without peso sign
                                 if (data.section === 'body') {
                                     if (data.column.index === 1) { // Quantity column
                                         const cellValue = parseFloat(data.cell.text) || 0;
@@ -484,7 +482,7 @@ if ( have_posts() ) : ?>
                                         });
                                     } else if (data.column.index === 2 || data.column.index === 3) { // Price columns
                                         const cellValue = parseFloat(data.cell.text) || 0;
-                                        data.cell.text = '₱ ' + cellValue.toLocaleString('en-US', { 
+                                        data.cell.text = cellValue.toLocaleString('en-US', { 
                                             minimumFractionDigits: 2, 
                                             maximumFractionDigits: 2 
                                         });
@@ -496,7 +494,8 @@ if ( have_posts() ) : ?>
                                         data.cell.styles.fillColor = [240, 240, 240];
                                         data.cell.styles.textColor = [0, 0, 0];
                                         
-                                        if (data.column.index === 4) { // Position the Total Amount text correctly
+                                        // Make sure Total Amount text aligns with Total Price column
+                                        if (data.column.index === 3) { 
                                             data.cell.text = 'Total Amount:';
                                             data.cell.styles.halign = 'right';
                                         }
@@ -510,7 +509,7 @@ if ( have_posts() ) : ?>
                                 }
                             },
                             didDrawPage: function(data) {
-                                // Add footer with page numbers, date and time
+                                // Add footer with page numbers and date
                                 const pageCount = doc.internal.getNumberOfPages();
                                 doc.setFontSize(8);
                                 doc.setTextColor(100);
@@ -520,8 +519,8 @@ if ( have_posts() ) : ?>
                                 const pageText = 'Page ' + data.pageNumber + ' of ' + pageCount;
                                 
                                 // Position footer elements
-                                doc.text(footerText, 15, doc.internal.pageSize.height - 10);
-                                doc.text(pageText, doc.internal.pageSize.width - 15, doc.internal.pageSize.height - 10, { align: 'right' });
+                                doc.text(footerText, 10, doc.internal.pageSize.height - 10);
+                                doc.text(pageText, doc.internal.pageSize.width - 10, doc.internal.pageSize.height - 10, { align: 'right' });
                             }
                         });
 
