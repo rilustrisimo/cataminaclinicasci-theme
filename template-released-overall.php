@@ -401,29 +401,46 @@ if ( have_posts() ) : ?>
                         });
 
                         // Add total row to the data array
-                        data.push(['', '', '', 'Total Amount:', '', grandTotal]);
+                        data.push(['', '', '', 'Total Amount:', grandTotal]);
 
-                        // Create PDF
+                        // Create PDF - use landscape orientation for better column spacing
                         const { jsPDF } = window.jspdf;
-                        const doc = new jsPDF('p', 'mm', 'a4');
+                        const doc = new jsPDF('l', 'mm', 'a4'); // Change to landscape for better fit
+                        
+                        // Set document properties
+                        doc.setProperties({
+                            title: 'Release Supplies Report',
+                            subject: 'Report for period: ' + fromDate + ' to ' + toDate,
+                            creator: 'Catamina Clinic',
+                            author: 'Catamina Clinic'
+                        });
 
-                        // Add title with better spacing
+                        // Add logo or header if needed
+                        // doc.addImage(logoData, 'PNG', 20, 10, 40, 20);
+
+                        // Add report title with better spacing
                         doc.setFontSize(18);
                         doc.setFont(undefined, 'bold');
-                        doc.text('Release Supplies Report', 105, 20, { align: 'center' });
+                        doc.text('CATAMINA CLINIC', 150, 20, { align: 'center' });
+                        doc.setFontSize(16);
+                        doc.text('Release Supplies Report', 150, 28, { align: 'center' });
                         
                         // Add subtitle with date range
                         doc.setFontSize(12);
                         doc.setFont(undefined, 'normal');
-                        doc.text('Period: ' + fromDate + ' to ' + toDate, 105, 30, { align: 'center' });
+                        doc.text('Period: ' + fromDate + ' to ' + toDate, 150, 36, { align: 'center' });
                         
                         // Add department info if selected
-                        let startY = 35;
-                        if (departmentId != '0') {
+                        let startY = 40;
+                        if (departmentId !== 'ALL' && departmentId !== '0') {
                             doc.setFontSize(11);
-                            doc.text('Department: ' + departmentName, 105, 38, { align: 'center' });
-                            startY = 45;
+                            doc.text('Department: ' + departmentName, 150, 44, { align: 'center' });
+                            startY = 50;
                         }
+                        
+                        // Calculate current date for the footer
+                        const now = new Date();
+                        const formattedDate = now.toISOString().split('T')[0];
 
                         // Add table with improved styling
                         doc.autoTable({
@@ -431,53 +448,87 @@ if ( have_posts() ) : ?>
                             head: [['Equipment / Supply Name', 'Quantity', 'Price per Unit', 'Total Price', 'Released By', 'Released To']],
                             body: data,
                             theme: 'grid',
+                            pageBreak: 'auto',
+                            margin: { top: startY, right: 15, bottom: 25, left: 15 },
                             styles: {
                                 fontSize: 9,
                                 cellPadding: 3,
-                                cellWidth: 'auto',
-                                halign: 'left',
-                                overflow: 'linebreak',
-                                minCellHeight: 5
+                                lineColor: [80, 80, 80],
+                                lineWidth: 0.1,
+                                font: 'helvetica'
                             },
                             columnStyles: {
-                                0: { cellWidth: 'auto', minCellWidth: 60 }, // Equipment/Supply Name
-                                1: { cellWidth: 25, halign: 'right' }, // Quantity
-                                2: { cellWidth: 35, halign: 'right' }, // Price per Unit
-                                3: { cellWidth: 35, halign: 'right' }, // Total Price
-                                4: { cellWidth: 'auto', minCellWidth: 40 }, // Released By
-                                5: { cellWidth: 'auto', minCellWidth: 40 }  // Released To
+                                0: { cellWidth: 65, overflow: 'linebreak' }, // Equipment/Supply Name
+                                1: { cellWidth: 20, halign: 'right' },       // Quantity
+                                2: { cellWidth: 25, halign: 'right' },       // Price per Unit
+                                3: { cellWidth: 25, halign: 'right' },       // Total Price
+                                4: { cellWidth: 45, overflow: 'linebreak' }, // Released By
+                                5: { cellWidth: 45, overflow: 'linebreak' }  // Released To
                             },
                             headStyles: {
                                 fillColor: [0, 123, 255],
                                 textColor: 255,
                                 fontSize: 10,
                                 fontStyle: 'bold',
-                                cellPadding: 4
+                                cellPadding: 4,
+                                halign: 'center'
                             },
                             didParseCell: function(data) {
                                 // Add currency symbol and format numbers
                                 if (data.section === 'body') {
-                                    if (data.column.index > 0 && data.column.index < 4) {
+                                    if (data.column.index === 1) { // Quantity column
                                         const cellValue = parseFloat(data.cell.text) || 0;
-                                        if (data.column.index === 1) {
-                                            // Quantity column
-                                            data.cell.text = cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                        } else {
-                                            // Price columns
-                                            data.cell.text = 'PHP ' + cellValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                        }
+                                        data.cell.text = cellValue.toLocaleString('en-US', { 
+                                            minimumFractionDigits: 0, 
+                                            maximumFractionDigits: 2 
+                                        });
+                                    } else if (data.column.index === 2 || data.column.index === 3) { // Price columns
+                                        const cellValue = parseFloat(data.cell.text) || 0;
+                                        data.cell.text = '₱ ' + cellValue.toLocaleString('en-US', { 
+                                            minimumFractionDigits: 2, 
+                                            maximumFractionDigits: 2 
+                                        });
                                     }
+                                    
                                     // Style the total row differently
                                     if (data.row.index === data.table.body.length - 1) {
                                         data.cell.styles.fontStyle = 'bold';
-                                        data.cell.styles.fillColor = [248, 249, 250];
+                                        data.cell.styles.fillColor = [240, 240, 240];
+                                        data.cell.styles.textColor = [0, 0, 0];
+                                        
+                                        if (data.column.index === 4) { // Position the Total Amount text correctly
+                                            data.cell.text = 'Total Amount:';
+                                            data.cell.styles.halign = 'right';
+                                        }
                                     }
                                 }
+                            },
+                            willDrawCell: function(data) {
+                                // Add zebra striping for better readability
+                                if (data.section === 'body' && data.row.index % 2 === 0 && data.row.index !== data.table.body.length - 1) {
+                                    data.cell.styles.fillColor = [248, 250, 252];
+                                }
+                            },
+                            didDrawPage: function(data) {
+                                // Add footer with page numbers, date and time
+                                const pageCount = doc.internal.getNumberOfPages();
+                                doc.setFontSize(8);
+                                doc.setTextColor(100);
+                                
+                                // Footer text
+                                const footerText = 'Report generated on: ' + formattedDate;
+                                const pageText = 'Page ' + data.pageNumber + ' of ' + pageCount;
+                                
+                                // Position footer elements
+                                doc.text(footerText, 15, doc.internal.pageSize.height - 10);
+                                doc.text(pageText, doc.internal.pageSize.width - 15, doc.internal.pageSize.height - 10, { align: 'right' });
                             }
                         });
 
-                        // Save the PDF
-                        doc.save('release-supplies-' + fromDate + '-to-' + toDate + '.pdf');
+                        // Save the PDF with a well-formatted filename
+                        const filename = 'Release-Supplies-Report-' + fromDate + '-to-' + toDate + 
+                            (departmentId !== 'ALL' && departmentId !== '0' ? '-' + departmentName.replace(/\s+/g, '-') : '') + '.pdf';
+                        doc.save(filename);
                     }
 
                     // Event handlers
