@@ -1250,12 +1250,21 @@ var Theme = {
 
         Theme.currentRequest = null;
 
+        // Delay search to prevent unnecessary requests while typing
+        var searchTimer;
+        
         ajaxfield.on('input', function(){
             var searchValue = $(this).val().trim();
             var dept = ($('#select-department').length > 0) ? $('#select-department').val() : false;
             
-            // If search field is empty or cleared, explicitly pass false to show all records
-            Theme.reloadPatientDashContents($, searchValue.length > 0 ? searchValue : false, dept);
+            // Clear previous timer
+            clearTimeout(searchTimer);
+            
+            // Set new timer
+            searchTimer = setTimeout(function() {
+                // If search field is empty or cleared, explicitly pass false to show all records
+                Theme.reloadPatientDashContents($, searchValue.length > 0 ? searchValue : false, dept);
+            }, 300); // 300ms delay to avoid excessive requests
         });
     },
 
@@ -1265,11 +1274,33 @@ var Theme = {
             Theme.currentRequest.abort();
         }
         
-        // Use LoadingOverlay instead of custom overlay class
+        // Use LoadingOverlay if available, otherwise use custom overlay
         if (typeof window.LoadingOverlay !== 'undefined') {
             window.LoadingOverlay.showAjaxOverlay();
         } else {
             Theme.initShowOverlay($);
+        }
+        
+        // Check if container exists
+        if ($('.custom-post__list').length === 0) {
+            console.error('Target container .custom-post__list not found');
+            if (typeof window.LoadingOverlay !== 'undefined') {
+                window.LoadingOverlay.hideAjaxOverlay();
+            } else {
+                Theme.removeOverlay($);
+            }
+            return;
+        }
+        
+        var postType = $('.custom-post__list').attr('data-pt');
+        if (!postType) {
+            console.error('Missing post type attribute data-pt');
+            if (typeof window.LoadingOverlay !== 'undefined') {
+                window.LoadingOverlay.hideAjaxOverlay();
+            } else {
+                Theme.removeOverlay($);
+            }
+            return;
         }
         
         Theme.currentRequest = $.ajax({
@@ -1279,11 +1310,12 @@ var Theme = {
             data: {
                 action: 'load_items_per_search',
                 search: search,
-                pt: $('.custom-post__list').attr('data-pt'),
+                pt: postType,
                 dept: d
             },
-            beforeSend: function() {
-                // Already showing overlay
+            beforeSend: function(xhr) {
+                // Set a reasonable timeout to prevent hanging requests
+                xhr.timeout = 30000; // 30 seconds
             },
             success: function(resp) {
                 if (resp && resp.success && resp.data) {
@@ -1292,7 +1324,8 @@ var Theme = {
                     Theme.modalButton($);
                     Theme.initResponsiveTables();
                 } else {
-                    $('.custom-post__list').html('<div class="error-message">Error loading data. Please try again.</div>');
+                    var errorMsg = (resp && resp.data && resp.data.message) ? resp.data.message : 'Unknown error';
+                    $('.custom-post__list').html('<div class="error-message">Error: ' + errorMsg + '</div>');
                     console.error('Invalid response format:', resp);
                 }
                 
@@ -1310,11 +1343,24 @@ var Theme = {
                     
                     // Check if response was HTML instead of JSON
                     var responseText = xhr.responseText || '';
+                    var errorMsg = 'Error loading data. Please try again.';
+                    
                     if (responseText.indexOf('<!DOCTYPE') !== -1 || responseText.indexOf('<html') !== -1) {
                         console.error('Received HTML instead of JSON. Server likely returned an error page.');
+                        
+                        // Try to extract error message from HTML response
+                        var errorMatch = responseText.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+                        if (errorMatch && errorMatch[1]) {
+                            // Clean up HTML and extract just text
+                            var div = document.createElement('div');
+                            div.innerHTML = errorMatch[1];
+                            errorMsg = 'Server error: ' + div.textContent.trim().substring(0, 100) + '...';
+                        } else {
+                            errorMsg = 'Server returned HTML instead of JSON. Check server logs.';
+                        }
                     }
                     
-                    $('.custom-post__list').html('<div class="error-message">Error loading data. Please check the console for details.</div>');
+                    $('.custom-post__list').html('<div class="error-message">' + errorMsg + '</div>');
                 }
                 
                 // Hide loading overlays

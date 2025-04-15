@@ -2792,43 +2792,64 @@ class Theme {
         // Start output buffering to capture any unexpected output
         ob_start();
         
-        // Properly handle search parameter
-        $search = isset($_POST['search']) && $_POST['search'] !== "false" && !empty($_POST['search']) ? $_POST['search'] : false;
-        $dept = isset($_POST['dept']) && $_POST['dept'] !== "false" ? $_POST['dept'] : false;
-        
         try {
-            // Find the matching post type
+            // Properly handle search parameter - properly sanitize and validate inputs
+            $search = isset($_POST['search']) && $_POST['search'] !== "false" && !empty($_POST['search']) ? 
+                sanitize_text_field($_POST['search']) : false;
+            $dept = isset($_POST['dept']) && $_POST['dept'] !== "false" ? 
+                sanitize_text_field($_POST['dept']) : false;
+            $post_type = isset($_POST['pt']) ? sanitize_text_field($_POST['pt']) : '';
+            
+            // Validate post type
             $post_type_found = false;
+            $header = null;
+            
             foreach($this->post_types as $ptypes) {
-                if($_POST['pt'] == $ptypes['post_type']) {
+                if($post_type == $ptypes['post_type']) {
                     $post_type_found = true;
                     $header = $ptypes['header'];
-                    
-                    // Start a new output buffer for the actual content
-                    ob_clean(); // Clear previous buffer
-                    ob_start();
-                    $this->createCustomPostListHtmlWithSearch($ptypes['post_type'], -1, $header, $search, $dept);
-                    $content = ob_get_clean();
-                    
-                    wp_send_json_success($content);
                     break;
                 }
             }
             
-            // If no matching post type was found
             if (!$post_type_found) {
-                wp_send_json_error('Invalid post type specified');
+                // Clean output buffer
+                ob_clean();
+                wp_send_json_error(['message' => 'Invalid post type specified']);
+                exit;
             }
+            
+            // Start a new clean buffer for the content
+            ob_clean();
+            ob_start();
+            
+            // Generate the search results
+            $this->createCustomPostListHtmlWithSearch($post_type, -1, $header, $search, $dept);
+            
+            // Get the content and clean the buffer
+            $content = ob_get_clean();
+            
+            // Send the response
+            wp_send_json_success($content);
+            
         } catch (Exception $e) {
-            // Capture any errors
-            $error = ob_get_clean();
+            // Catch any errors and log them
+            $buffer_contents = ob_get_clean();
             error_log('Error in load_items_per_search: ' . $e->getMessage());
-            error_log('Output buffer contained: ' . $error);
-            wp_send_json_error('Server error: ' . $e->getMessage());
+            error_log('Buffer contained: ' . $buffer_contents);
+            
+            // Return a proper JSON error
+            wp_send_json_error([
+                'message' => 'Server error: ' . $e->getMessage(), 
+                'trace' => defined('WP_DEBUG') && WP_DEBUG ? $e->getTraceAsString() : ''
+            ]);
         }
         
         // Clean up any remaining output buffer
-        if (ob_get_length()) ob_end_clean();
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+        
         exit; // Ensure we exit after sending JSON response
     }
 
