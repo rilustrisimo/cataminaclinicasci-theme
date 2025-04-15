@@ -3038,14 +3038,35 @@ class Theme {
             );
         }
         
+        // Default orderby and order
         $args = array(
             'post_type' => $postType,
             'post_status' => array('publish'),
             'posts_per_page' => $postPerPage,
             'paged' => $paged,
-            'orderby' => 'date',
             'order' => 'DESC'
         );
+        
+        // Set custom orderby parameters based on post type
+        switch ($postType) {
+            case 'supplies':
+                $args['orderby'] = 'meta_value';
+                $args['meta_key'] = 'purchased_date';
+                break;
+                
+            case 'actualsupplies':
+                $args['orderby'] = 'meta_value';
+                $args['meta_key'] = 'date_added';
+                break;
+                
+            case 'releasesupplies':
+                $args['orderby'] = 'meta_value';
+                $args['meta_key'] = 'release_date';
+                break;
+                
+            default:
+                $args['orderby'] = 'date';
+        }
         
         // Only add meta_query if we have conditions
         if (!empty($meta_query)) {
