@@ -1022,6 +1022,33 @@ class Theme {
         
         $result = $wpdb->get_var($query);
         
+        // Format date to mm/dd/yyyy if not empty
+        if ($result) {
+            // Check if date is already in mm/dd/yyyy format
+            if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $result)) {
+                // Already in mm/dd/yyyy format
+            } 
+            // Check if date is in YYYYMMDD format (like 20250730)
+            else if (preg_match('/^\d{8}$/', $result)) {
+                $year = substr($result, 0, 4);
+                $month = substr($result, 4, 2);
+                $day = substr($result, 6, 2);
+                $result = "{$month}/{$day}/{$year}";
+            }
+            // Check if date is in Y-m-d format (like 2025-07-30)
+            else if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $result)) {
+                $date_parts = explode('-', $result);
+                $result = "{$date_parts[1]}/{$date_parts[2]}/{$date_parts[0]}";
+            }
+            // Try to convert any other format using strtotime
+            else {
+                $timestamp = strtotime($result);
+                if ($timestamp !== false) {
+                    $result = date('m/d/Y', $timestamp);
+                }
+            }
+        }
+        
         // Maintain a reasonably sized cache to prevent memory issues
         if (count($cache) > 100) {
             array_shift($cache); // Remove oldest entry
