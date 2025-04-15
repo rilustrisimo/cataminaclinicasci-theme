@@ -2910,6 +2910,7 @@ class Theme {
 
         // Start with an opening DIV to ensure proper containment
         echo '<div class="custom-post__list-inner">';
+        echo '<input type="hidden" id="ajax-url" value="'.admin_url('admin-ajax.php').'">';
         
         echo '<table>';
         echo '<thead>';
