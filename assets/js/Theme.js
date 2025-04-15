@@ -1162,58 +1162,126 @@ var Theme = {
     },
 
     modalButton: function($){
-        $('.edit-item').click(function(e){
+        // Delegate the click event to handle dynamically added edit buttons
+        $(document).on('click', '.edit-item', function(e){
             e.preventDefault();
 
-            var b = $(this).attr('item-id');
-            var params = {
-                'id': $(this).attr('item-id'), 
-                'form': $('.custom-post__add-form').attr('form-id')
-            };
+            // Clear any previous modal content to prevent issues
+            $('.modal__content').empty();
+            
+            var itemId = $(this).attr('item-id'),
+                formId = $('.custom-post__add-form').attr('form-id'),
+                params = {
+                    'id': itemId, 
+                    'form': formId
+                };
 
-            $.ajax ({
+            $.ajax({
                 url: $('#ajax-url').val(),
                 type: 'POST',
                 dataType: 'JSON',
                 data: {
-                    // the value of data.action is the part AFTER 'wp_ajax_' in
-                    // the add_action ('wp_ajax_xxx', 'yyy') in the PHP above
                     action: 'edit_item',
                     p: params
-                    // ANY other properties of data are passed to your_function()
-                    // in the PHP global $_REQUEST (or $_POST in this case)
-                    },
-                beforeSend : function()    {           
-    
                 },
-                success: function (resp) {
-                    console.log(resp);
-                        if(resp.success){
-                            $('.modal__content').html(resp.data);
-                            $('.modal-container').css('display','flex');   
-                            $('.modal__close').unbind();
-                            $('.modal__close').click(function(){
-                                location.reload();
-                                //$('.modal-container').hide();
+                beforeSend: function() {
+                    // Show loading indicator if available
+                    if (typeof window.LoadingOverlay !== 'undefined') {
+                        window.LoadingOverlay.showAjaxOverlay();
+                    }
+                },
+                success: function(resp) {
+                    if (resp.success) {
+                        // Update modal content
+                        $('.modal__content').html(resp.data);
+                        
+                        // Show the modal
+                        $('.modal-container').css('display', 'flex');
+                        
+                        // Initialize ACF fields properly
+                        if (typeof acf !== 'undefined') {
+                            acf.do_action('append', $('.modal__content'));
+                            
+                            // Find and handle the form submission success
+                            $('.modal__content .acf-form').on('submit', function() {
+                                // Set a flag on form submit
+                                $(this).data('submitted', true);
                             });
-
-                            $('.modal-container').click(function(e){
-                                if (e.target == this) {
-                                    location.reload();
-                                    //$('.modal-container').hide();
-                                }
-                            });
-
-                            acf.do_action('append', $('.modal__content .acf-form'));
-                            Theme.miscScripts($);
                         }
-                    },
-                error: function (xhr, ajaxOptions, thrownError) {
-                    // this error case means that the ajax call, itself, failed, e.g., a syntax error
-                    // in your_function()
-                    console.log('Request failed: ' + thrownError.message) ;
-                    },
+                        
+                        // Setup modal close handlers
+                        Theme.setupModalCloseHandlers($);
+                        
+                        // Initialize form fields
+                        Theme.initModalFormFields($);
+                    }
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                    console.log('Request failed: ' + thrownError.message);
+                },
+                complete: function() {
+                    // Hide loading indicator if available
+                    if (typeof window.LoadingOverlay !== 'undefined') {
+                        window.LoadingOverlay.hideAjaxOverlay();
+                    }
+                }
             });
+        });
+    },
+    
+    // New helper function to set up modal close handlers
+    setupModalCloseHandlers: function($) {
+        // Close button click handler
+        $('.modal__close').off('click').on('click', function() {
+            Theme.closeAndRefreshModal($);
+        });
+        
+        // Click outside modal to close
+        $('.modal-container').off('click').on('click', function(e) {
+            if (e.target === this) {
+                Theme.closeAndRefreshModal($);
+            }
+        });
+        
+        // Handle ESC key press
+        $(document).off('keydown.modal').on('keydown.modal', function(e) {
+            if (e.keyCode === 27 && $('.modal-container').is(':visible')) {
+                Theme.closeAndRefreshModal($);
+            }
+        });
+    },
+    
+    // Helper function to close modal and refresh content if needed
+    closeAndRefreshModal: function($) {
+        var formWasSubmitted = $('.modal__content .acf-form').data('submitted');
+        
+        // Hide the modal
+        $('.modal-container').hide();
+        
+        // If form was submitted successfully, refresh the page content
+        if (formWasSubmitted) {
+            // Either refresh the list via AJAX
+            var search = $('.search-ajax').val() || false,
+                dept = $('#select-department').length > 0 ? $('#select-department').val() : false;
+            
+            Theme.reloadPatientDashContents($, search, dept);
+            
+            // Or alternatively reload the page for more complex updates
+            // location.reload();
+        }
+    },
+    
+    // Initialize form fields in modal
+    initModalFormFields: function($) {
+        $('.modal__content .acf-field-date-picker').each(function(){
+            var label = $(this).find('.acf-label label').text();
+            $(this).find('.acf-input .input').attr('placeholder', label);
+        });
+        
+        // Initialize ACF button
+        $('.modal__content .acf-form .acf-form-submit a.acf-button').off('click').on('click', function(e){
+            e.preventDefault();
+            $(this).parents('.acf-form').submit();
         });
     },
 
@@ -1446,37 +1514,48 @@ var Theme = {
     },
 
     miscScripts: function($){
+        // Process date picker fields - add placeholders
         $('.acf-field-date-picker').each(function(){
             var t = $(this).find('.acf-label label').text();
             $(this).find('.acf-input .input').attr('placeholder', t);
         });
         
-        $('.acf-form .acf-form-submit a.acf-button').click(function(e){
+        // Handle form submission via button click
+        $(document).off('click', '.acf-form .acf-form-submit a.acf-button').on('click', '.acf-form .acf-form-submit a.acf-button', function(e){
             e.preventDefault();
-
             $(this).parents('.acf-form').submit();
         });
         
+        // Clear any existing custom labels to avoid duplication
         $('.label-custom').remove();
 
+        // Process text and number inputs - add floating labels
         $('.acf-field input[type="text"], .acf-field input[type="number"]').each(function(){
-            var pl = $(this).attr('placeholder');
-            $('<div class="label-custom" style="display:none;">'+pl+'</div>').prependTo($(this).parent());
-
-            if($(this).val() != ""){
-                $(this).parent().find('.label-custom').show();
-            }else{
-                $(this).parent().find('.label-custom').hide();
+            var placeholder = $(this).attr('placeholder');
+            if (placeholder) {
+                // Only add if it doesn't already exist
+                if ($(this).parent().find('.label-custom').length === 0) {
+                    $('<div class="label-custom" style="display:none;">' + placeholder + '</div>').prependTo($(this).parent());
+                }
+                
+                // Show/hide based on input value
+                if ($(this).val() !== "") {
+                    $(this).parent().find('.label-custom').show();
+                } else {
+                    $(this).parent().find('.label-custom').hide();
+                }
             }
         });
 
-        $('.acf-field input[type="text"], .acf-field input[type="number"]').change(function(){
-            if($(this).val() != ""){
-                $(this).parent().find('.label-custom').show();
-            }else{
-                $(this).parent().find('.label-custom').hide();
-            }
-        });
+        // Add change handler for input fields
+        $(document).off('change.miscScripts', '.acf-field input[type="text"], .acf-field input[type="number"]')
+            .on('change.miscScripts', '.acf-field input[type="text"], .acf-field input[type="number"]', function(){
+                if ($(this).val() !== "") {
+                    $(this).parent().find('.label-custom').show();
+                } else {
+                    $(this).parent().find('.label-custom').hide();
+                }
+            });
     },
 
     mainNav: function($){
