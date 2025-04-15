@@ -2789,30 +2789,224 @@ class Theme {
     }
 
     public function load_items_per_search(){
-        $search = ($_POST['search'] == "false")?false:$_POST['search'];
-        $dept = ($_POST['dept'] == "false")?false:$_POST['dept'];
-
+        // Properly handle search parameter
+        $search = isset($_POST['search']) && $_POST['search'] !== "false" && !empty($_POST['search']) ? $_POST['search'] : false;
+        $dept = isset($_POST['dept']) && $_POST['dept'] !== "false" ? $_POST['dept'] : false;
         
         $this->getItemsSearch($search, $_POST['pt'], 1, $dept);
     }
 
-    public function getItemsSearch($search = false, $pt, $paged = 1, $dept){
-        $search = (strlen(trim($search)) == 0)?false:$search;
+    public function getItemsSearch($search = false, $pt, $paged = 1, $dept = false){
+        // Ensure empty search strings are properly handled as false
+        $search = ($search && strlen(trim($search)) > 0) ? $search : false;
 
         ob_start();
 
         foreach($this->post_types as $ptypes):
-
             if($pt == $ptypes['post_type']):
                 $header = $ptypes['header'];
-
-                $this->createCustomPostListHtml($ptypes['post_type'], -1, $header, $search, $dept);
+                // Use our new createSearchQuery function instead
+                $this->createCustomPostListHtmlWithSearch($ptypes['post_type'], -1, $header, $search, $dept);
             endif;
-
         endforeach;
 
-
         wp_send_json_success(ob_get_clean());
+    }
+    
+    /**
+     * Create a custom post list with proper search handling
+     * 
+     * @param string $postType Post type to query
+     * @param int $postPerPage Number of posts per page (-1 for all)
+     * @param array $header Headers for the table
+     * @param string|bool $search Search term or false for no search
+     * @param string|bool $dept Department filter or false for all departments
+     */
+    public function createCustomPostListHtmlWithSearch($postType, $postPerPage, $header, $search = false, $dept = false) {
+        // Use createSearchQuery for better search handling
+        $post_query = $this->createSearchQuery($postType, $postPerPage, true, $search, $dept);
+        $posts = $post_query[0];
+        $pagination = $post_query[1];
+
+        echo '<table>';
+        echo '<thead>';
+        echo '<tr>';
+        foreach($header as $key => $value){
+            echo '<th>'.$value.'</th>';
+        }
+        echo '<th>Actions</th>';
+        echo '</tr>';
+        echo '</thead>';
+
+        echo '<tbody>';
+        
+        foreach($posts as $postid => $p){
+            unset($p['_validate_email']);
+            
+            // Check if user is admin or has admin capabilities
+            $can_delete = current_user_can('manage_options') || current_user_can('delete_posts');
+            
+            // Build actions with edit button for all users
+            $p['actions'] = '<a href="#" class="edit-item action-btn" item-id="'.$postid.'"><i class="fa-solid fa-pen-to-square"></i></a>';
+            
+            // Add delete button only for admin users
+            if ($can_delete) {
+                $p['actions'] .= '<a href="'.get_delete_post_link($postid).'" class="delete-item action-btn" item-id="'.$postid.'" title="Are you sure you want to delete '.get_the_title($postid).'?"><i class="fa-solid fa-delete-left"></i></a>';
+            }
+
+            echo '<tr>';
+
+            foreach($header as $key => $value){
+                $value = (isset($p[$key]))?$p[$key]:'';
+                $fobj = get_field_object($key, $postid);
+
+                if(isset($fobj['type']) && ($fobj['type'] == "number")):
+                    echo '<td>'.$this->convertNumber((float)$value).'</td>';
+                    continue;
+                endif;
+
+                if(is_object($value)):
+                    echo '<td>'.$value->post_title.'</td>';
+                    continue;
+                endif;
+
+                if($key == "purchase_total"):
+                    $pid = get_field('product_name', $postid);
+                    $price = (float)get_field('price_per_unit', $pid) * (float)get_field('quantity', $postid);
+                    echo '<td>&#8369 '.$this->convertNumber($price).'</td>';
+                    continue;
+                endif;
+
+                if($key == "confirmed"):
+                    $conf = get_field('confirmed', $postid);
+                    $result = ($conf)?"CONFIRMED":"PENDING";
+                    echo '<td>'.$result.'</td>';
+                    continue;
+                endif;
+
+                if($key == "account_number"):
+                    $bid = get_field('name_of_bank', $postid);
+
+                    if(is_object($bid)):
+                        $acctnum = get_field('account_number', $bid->ID);
+                        echo '<td>'.$acctnum.'</td>';
+                    else:
+                        echo '<td>'.$value.'</td>';
+                    endif;
+                    continue;
+                endif;
+
+                if($key == "type_of_account"):
+                    $bid = get_field('name_of_bank', $postid);
+                    
+                    if(is_object($bid)):
+                        $typeacc = get_field('type_of_account', $bid->ID);
+                        echo '<td>'.$typeacc.'</td>';
+                    else:
+                        echo '<td>'.$value.'</td>';
+                    endif;
+                    continue;
+                endif;
+                
+                echo '<td>'.$value.'</td>';
+            }
+
+            echo '<td>'.$p['actions'].'</td>';
+            
+            echo '</tr>';
+        }
+        echo '</tbody>';
+
+        echo '<table>';
+
+        echo $pagination;
+    }
+    
+    /**
+     * Create a query optimized for search functionality
+     * 
+     * @param string $postType Post type to query
+     * @param int $postPerPage Number of posts per page
+     * @param bool $pagination Whether to include pagination
+     * @param string|bool $s Search term or false for no search
+     * @param string|bool $d Department filter or false for all departments
+     * @return array Array containing [posts, pagination]
+     */
+    public function createSearchQuery($postType, $postPerPage, $pagination = false, $s = false, $d = false) {
+        $rows = array();
+        $paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
+        
+        $meta_query = array();
+        
+        // Add department filter if specified
+        if ($d) {
+            $meta_query[] = array(
+                'key'     => 'department',
+                'value'   => $d,
+                'compare' => '='
+            );
+        }
+        
+        $args = array(
+            'post_type' => $postType,
+            'post_status' => array('publish'),
+            'posts_per_page' => $postPerPage,
+            'paged' => $paged,
+            'orderby' => 'date',
+            'order' => 'DESC'
+        );
+        
+        // Only add meta_query if we have conditions
+        if (!empty($meta_query)) {
+            $args['meta_query'] = $meta_query;
+        }
+        
+        // Only add search parameter if search term exists
+        if ($s !== false) {
+            $args['s'] = $s;
+        }
+        
+        // Apply author restriction based on user role
+        $u = wp_get_current_user();
+        $roles = (array) $u->roles;
+        
+        if (!current_user_can('manage_options') && !($roles[0] == "um_accounting")) {
+            $args['author'] = $u->ID;
+        }
+        
+        $pagi = '';
+        
+        $the_query = new WP_Query($args);
+        if ($the_query->have_posts()) {
+            while ($the_query->have_posts()) {
+                $the_query->the_post();
+                $fields = get_fields(get_the_ID());
+                
+                $rows[get_the_ID()] = $fields;
+            }
+        }
+        
+        if ($pagination) {
+            $pagi = '<div class="pagination">' . paginate_links(array(
+                'base'         => str_replace(999999999, '%#%', esc_url(get_pagenum_link(999999999))),
+                'total'        => $the_query->max_num_pages,
+                'current'      => max(1, get_query_var('paged')),
+                'format'       => '?paged=%#%',
+                'show_all'     => false,
+                'type'         => 'plain',
+                'end_size'     => 2,
+                'mid_size'     => 1,
+                'prev_next'    => true,
+                'prev_text'    => sprintf('<i></i> %1$s', __('<i class="fas fa-angle-double-left"></i>', 'text-domain')),
+                'next_text'    => sprintf('%1$s <i></i>', __('<i class="fas fa-angle-double-right"></i>', 'text-domain')),
+                'add_args'     => false,
+                'add_fragment' => '',
+            )) . '</div>';
+        }
+        
+        wp_reset_postdata();
+        
+        return array($rows, $pagi);
     }
 
     public function getUserData() {
@@ -2948,11 +3142,22 @@ class Theme {
         
         foreach($posts as $postid => $p){
             unset($p['_validate_email']);
-            $p['actions'] = '<a href="#" class="edit-item action-btn" item-id="'.$postid.'"><i class="fa-solid fa-pen-to-square"></i></a><a href="'.get_delete_post_link($postid).'" class="delete-item action-btn" item-id="'.$postid.'" title="Are you sure you want to delete '.get_the_title($postid).'?"><i class="fa-solid fa-delete-left"></i></a>';
+            
+            // Check if user is admin or has admin capabilities
+            $can_delete = current_user_can('manage_options') || current_user_can('delete_posts');
+            
+            // Build actions with edit button for all users
+            $p['actions'] = '<a href="#" class="edit-item action-btn" item-id="'.$postid.'"><i class="fa-solid fa-pen-to-square"></i></a>';
+            
+            // Add delete button only for admin users
+            if ($can_delete) {
+                $p['actions'] .= '<a href="'.get_delete_post_link($postid).'" class="delete-item action-btn" item-id="'.$postid.'" title="Are you sure you want to delete '.get_the_title($postid).'?"><i class="fa-solid fa-delete-left"></i></a>';
+            }
 
             echo '<tr>';
 
             foreach($header as $key => $value){
+                // ...existing code...
                 $value = (isset($p[$key]))?$p[$key]:'';
                 $fobj = get_field_object($key, $postid);
 

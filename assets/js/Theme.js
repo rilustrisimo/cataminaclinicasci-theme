@@ -1240,56 +1240,55 @@ var Theme = {
 
         Theme.currentRequest = null;
 
-        ajaxfield.keyup(function(){
-            var dept = ($('#select-department').length > 0)?$('#select-department').val():false;
-
-            if($(this).val().length > 0){
-                Theme.reloadPatientDashContents($, $(this).val(), dept);
-            }else{
-                Theme.reloadPatientDashContents($, false, dept);
-            }
+        ajaxfield.on('input', function(){
+            var searchValue = $(this).val().trim();
+            var dept = ($('#select-department').length > 0) ? $('#select-department').val() : false;
+            
+            // If search field is empty or cleared, explicitly pass false to show all records
+            Theme.reloadPatientDashContents($, searchValue.length > 0 ? searchValue : false, dept);
         });
     },
 
     reloadPatientDashContents: function($, search=false, d=false){
-        Theme.currentRequest = $.ajax ({
+        // Abort any pending request to prevent multiple overlapping requests
+        if (Theme.currentRequest) {
+            Theme.currentRequest.abort();
+        }
+        
+        Theme.initShowOverlay($);
+        
+        Theme.currentRequest = $.ajax({
             url: $('#ajax-url').val(),
             type: 'POST',
             dataType: 'JSON',
             data: {
-                // the value of data.action is the part AFTER 'wp_ajax_' in
-                // the add_action ('wp_ajax_xxx', 'yyy') in the PHP above
                 action: 'load_items_per_search',
-                // ANY other properties of data are passed to your_function()
-                // in the PHP global $_REQUEST (or $_POST in this case)
-                search : search,
+                search: search,
                 pt: $('.custom-post__list').attr('data-pt'),
                 dept: d
-                },
-            beforeSend : function()    {           
-                if(Theme.currentRequest != null) {
-                    Theme.currentRequest.abort();
-                }
-
-               Theme.initShowOverlay($);
             },
-            success: function (resp) {
-                    console.log(resp);
-                   if(resp.success){
-                        $('.custom-post__list').html(resp.data);
-                        Theme.deleteButtons($);
-                        Theme.modalButton($);
-                        Theme.initResponsiveTables();
-                   }
-
-                   Theme.removeOverlay($);
-                },
-            error: function (xhr, ajaxOptions, thrownError) {
-                // this error case means that the ajax call, itself, failed, e.g., a syntax error
-                // in your_function()
-                console.log('Request failed: ' + thrownError.message) ;
+            beforeSend: function() {
+                // Show overlay while loading
+            },
+            success: function(resp) {
+                if (resp.success) {
+                    $('.custom-post__list').html(resp.data);
+                    Theme.deleteButtons($);
+                    Theme.modalButton($);
+                    Theme.initResponsiveTables();
+                }
                 Theme.removeOverlay($);
-                },
+            },
+            error: function(xhr, ajaxOptions, thrownError) {
+                // Don't show error message for aborted requests
+                if (thrownError !== 'abort') {
+                    console.error('Error loading search results:', thrownError);
+                }
+                Theme.removeOverlay($);
+            },
+            complete: function() {
+                Theme.currentRequest = null;
+            }
         });
     },
 
