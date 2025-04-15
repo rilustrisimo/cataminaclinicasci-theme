@@ -1,0 +1,40 @@
+/**
+ * DOM structure fixes
+ * Ensures proper containment of AJAX-loaded content
+ */
+
+/* Ensure the custom-post__list is a proper container */
+.custom-post__list {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 50px; /* Ensures visibility when empty */
+}
+
+/* Style for the inner content */
+.custom-post__list-inner {
+  width: 100%;
+}
+
+/* Fix for any potential footer issues */
+.footer-wrap {
+  clear: both;
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure responsive tables are contained */
+.custom-post__list-inner table {
+  width: 100%;
+  table-layout: auto;
+}
+
+/* Basic styling for error messages */
+.error-message {
+  padding: 15px;
+  margin: 10px 0;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  color: #721c24;
+  background-color: #f8d7da;
+}

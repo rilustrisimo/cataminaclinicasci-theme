@@ -78,3 +78,16 @@ function enqueue_ajax_debug_script() {
     }
 }
 add_action('wp_enqueue_scripts', 'enqueue_ajax_debug_script', 999); // Load after all other scripts
+
+/**
+ * Enqueue DOM structure fix stylesheet
+ */
+function enqueue_dom_fix_styles() {
+    wp_enqueue_style(
+        'dom-fixes',
+        get_template_directory_uri() . '/assets/css/dom-fixes.css',
+        array(),
+        '1.0.0'
+    );
+}
+add_action('wp_enqueue_scripts', 'enqueue_dom_fix_styles', 100); // Add after other styles

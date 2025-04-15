@@ -1316,7 +1316,7 @@ var Theme = {
         Theme.currentRequest = $.ajax({
             url: ajaxUrl,
             type: 'POST',
-            dataType: 'text', // Use text instead of JSON to handle parsing errors manually
+            dataType: 'text',
             data: {
                 action: 'load_items_per_search',
                 search: search,
@@ -1329,14 +1329,36 @@ var Theme = {
             },
             success: function(textResponse) {
                 // Try to parse the response as JSON
-                var jsonResponse;
                 try {
                     // Check if the response starts with HTML doctype or opening tag
                     if (textResponse.trim().indexOf('<!DOCTYPE') === 0 || 
                         textResponse.trim().indexOf('<html') === 0) {
                         throw new Error('Server returned HTML instead of JSON');
                     }
-                    jsonResponse = JSON.parse(textResponse);
+                    var jsonResponse = JSON.parse(textResponse);
+                    
+                    // Process the JSON response
+                    if (jsonResponse && jsonResponse.success && jsonResponse.data) {
+                        // Ensure we're working with a clean container
+                        $('.custom-post__list').html(jsonResponse.data);
+                        
+                        // Check that the container is properly closed
+                        var htmlContent = $('.custom-post__list').html();
+                        if (htmlContent.indexOf('<div class="custom-post__list-inner">') !== -1 &&
+                            htmlContent.indexOf('</div>') === -1) {
+                            // Fix unclosed div if needed
+                            $('.custom-post__list').append('</div>');
+                        }
+                        
+                        Theme.deleteButtons($);
+                        Theme.modalButton($);
+                        Theme.initResponsiveTables();
+                    } else {
+                        var errorMsg = (jsonResponse && jsonResponse.data && jsonResponse.data.message) ? 
+                            jsonResponse.data.message : 'Unknown error';
+                        $('.custom-post__list').html('<div class="custom-post__list-inner"><div class="error-message">Error: ' + errorMsg + '</div></div>');
+                        console.error('Invalid response format:', jsonResponse);
+                    }
                 } catch (e) {
                     console.error('Error parsing server response:', e.message);
                     console.log('Raw response:', textResponse.substring(0, 500) + '...');
@@ -1357,28 +1379,7 @@ var Theme = {
                         }
                     }
                     
-                    $('.custom-post__list').html('<div class="error-message">' + errorMsg + '</div>');
-                    
-                    // Hide loading overlays
-                    if (typeof window.LoadingOverlay !== 'undefined') {
-                        window.LoadingOverlay.hideAjaxOverlay();
-                    } else {
-                        Theme.removeOverlay($);
-                    }
-                    return;
-                }
-                
-                // Process the JSON response
-                if (jsonResponse && jsonResponse.success && jsonResponse.data) {
-                    $('.custom-post__list').html(jsonResponse.data);
-                    Theme.deleteButtons($);
-                    Theme.modalButton($);
-                    Theme.initResponsiveTables();
-                } else {
-                    var errorMsg = (jsonResponse && jsonResponse.data && jsonResponse.data.message) ? 
-                        jsonResponse.data.message : 'Unknown error';
-                    $('.custom-post__list').html('<div class="error-message">Error: ' + errorMsg + '</div>');
-                    console.error('Invalid response format:', jsonResponse);
+                    $('.custom-post__list').html('<div class="custom-post__list-inner"><div class="error-message">' + errorMsg + '</div></div>');
                 }
                 
                 // Hide loading overlays
@@ -1407,7 +1408,7 @@ var Theme = {
                     }
                     
                     console.error('AJAX error:', errorMsg);
-                    $('.custom-post__list').html('<div class="error-message">' + errorMsg + '</div>');
+                    $('.custom-post__list').html('<div class="custom-post__list-inner"><div class="error-message">' + errorMsg + '</div></div>');
                 }
                 
                 // Hide loading overlays

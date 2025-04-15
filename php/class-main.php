@@ -2908,6 +2908,9 @@ class Theme {
         $posts = $post_query[0];
         $pagination = $post_query[1];
 
+        // Start with an opening DIV to ensure proper containment
+        echo '<div class="custom-post__list-inner">';
+        
         echo '<table>';
         echo '<thead>';
         echo '<tr>';
@@ -2997,9 +3000,13 @@ class Theme {
         }
         echo '</tbody>';
 
-        echo '<table>';
+        echo '</table>';
 
+        // Output pagination outside the table but within the inner container
         echo $pagination;
+        
+        // Close the inner container DIV
+        echo '</div>';
     }
     
     /**
