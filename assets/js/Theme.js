@@ -12,6 +12,11 @@ var Theme = {
     ajaxsupply: false,
 
     init:function( $ ) {
+        // Show loading indicator until everything is initialized
+        if (typeof window.LoadingOverlay !== 'undefined') {
+            window.LoadingOverlay.showAjaxOverlay();
+        }
+        
         this._initHamburgerMenu();
         //this._initMobileMenu();
         this._initScrollTop( $ );
@@ -43,6 +48,11 @@ var Theme = {
             delay: 10,
             time: 1000
         });
+        
+        // Hide loading indicator when initialization is complete
+        if (typeof window.LoadingOverlay !== 'undefined') {
+            window.LoadingOverlay.hideAjaxOverlay();
+        }
     },
 
     checkDeptSelect: function($){
@@ -1255,7 +1265,12 @@ var Theme = {
             Theme.currentRequest.abort();
         }
         
-        Theme.initShowOverlay($);
+        // Use LoadingOverlay instead of custom overlay class
+        if (typeof window.LoadingOverlay !== 'undefined') {
+            window.LoadingOverlay.showAjaxOverlay();
+        } else {
+            Theme.initShowOverlay($);
+        }
         
         Theme.currentRequest = $.ajax({
             url: $('#ajax-url').val(),
@@ -1268,7 +1283,7 @@ var Theme = {
                 dept: d
             },
             beforeSend: function() {
-                // Show overlay while loading
+                // Already showing overlay
             },
             success: function(resp) {
                 if (resp && resp.success && resp.data) {
@@ -1280,7 +1295,13 @@ var Theme = {
                     $('.custom-post__list').html('<div class="error-message">Error loading data. Please try again.</div>');
                     console.error('Invalid response format:', resp);
                 }
-                Theme.removeOverlay($);
+                
+                // Hide loading overlays
+                if (typeof window.LoadingOverlay !== 'undefined') {
+                    window.LoadingOverlay.hideAjaxOverlay();
+                } else {
+                    Theme.removeOverlay($);
+                }
             },
             error: function(xhr, ajaxOptions, thrownError) {
                 // Don't show error message for aborted requests
@@ -1295,7 +1316,13 @@ var Theme = {
                     
                     $('.custom-post__list').html('<div class="error-message">Error loading data. Please check the console for details.</div>');
                 }
-                Theme.removeOverlay($);
+                
+                // Hide loading overlays
+                if (typeof window.LoadingOverlay !== 'undefined') {
+                    window.LoadingOverlay.hideAjaxOverlay();
+                } else {
+                    Theme.removeOverlay($);
+                }
             },
             complete: function() {
                 Theme.currentRequest = null;
@@ -2045,7 +2072,8 @@ var Theme = {
 
     /**
      * Initilize sharrre buttions.
-     * @param  object config
+     * @use jquery.swipebox.js, swipebox.css, jPages.js
+     *
      * @return void
      */
     initSharrres: function( config ) {
