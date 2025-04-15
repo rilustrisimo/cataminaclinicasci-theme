@@ -2789,11 +2789,47 @@ class Theme {
     }
 
     public function load_items_per_search(){
+        // Start output buffering to capture any unexpected output
+        ob_start();
+        
         // Properly handle search parameter
         $search = isset($_POST['search']) && $_POST['search'] !== "false" && !empty($_POST['search']) ? $_POST['search'] : false;
         $dept = isset($_POST['dept']) && $_POST['dept'] !== "false" ? $_POST['dept'] : false;
         
-        $this->getItemsSearch($search, $_POST['pt'], 1, $dept);
+        try {
+            // Find the matching post type
+            $post_type_found = false;
+            foreach($this->post_types as $ptypes) {
+                if($_POST['pt'] == $ptypes['post_type']) {
+                    $post_type_found = true;
+                    $header = $ptypes['header'];
+                    
+                    // Start a new output buffer for the actual content
+                    ob_clean(); // Clear previous buffer
+                    ob_start();
+                    $this->createCustomPostListHtmlWithSearch($ptypes['post_type'], -1, $header, $search, $dept);
+                    $content = ob_get_clean();
+                    
+                    wp_send_json_success($content);
+                    break;
+                }
+            }
+            
+            // If no matching post type was found
+            if (!$post_type_found) {
+                wp_send_json_error('Invalid post type specified');
+            }
+        } catch (Exception $e) {
+            // Capture any errors
+            $error = ob_get_clean();
+            error_log('Error in load_items_per_search: ' . $e->getMessage());
+            error_log('Output buffer contained: ' . $error);
+            wp_send_json_error('Server error: ' . $e->getMessage());
+        }
+        
+        // Clean up any remaining output buffer
+        if (ob_get_length()) ob_end_clean();
+        exit; // Ensure we exit after sending JSON response
     }
 
     public function getItemsSearch($search = false, $pt, $paged = 1, $dept = false){

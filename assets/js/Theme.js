@@ -1271,11 +1271,14 @@ var Theme = {
                 // Show overlay while loading
             },
             success: function(resp) {
-                if (resp.success) {
+                if (resp && resp.success && resp.data) {
                     $('.custom-post__list').html(resp.data);
                     Theme.deleteButtons($);
                     Theme.modalButton($);
                     Theme.initResponsiveTables();
+                } else {
+                    $('.custom-post__list').html('<div class="error-message">Error loading data. Please try again.</div>');
+                    console.error('Invalid response format:', resp);
                 }
                 Theme.removeOverlay($);
             },
@@ -1283,6 +1286,14 @@ var Theme = {
                 // Don't show error message for aborted requests
                 if (thrownError !== 'abort') {
                     console.error('Error loading search results:', thrownError);
+                    
+                    // Check if response was HTML instead of JSON
+                    var responseText = xhr.responseText || '';
+                    if (responseText.indexOf('<!DOCTYPE') !== -1 || responseText.indexOf('<html') !== -1) {
+                        console.error('Received HTML instead of JSON. Server likely returned an error page.');
+                    }
+                    
+                    $('.custom-post__list').html('<div class="error-message">Error loading data. Please check the console for details.</div>');
                 }
                 Theme.removeOverlay($);
             },
