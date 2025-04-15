@@ -1426,10 +1426,23 @@ var Theme = {
 
     initShowOverlay: function($){
         $('.custom-post__list').addClass('overlay');
+        
+        // Create and add loading spinner if it doesn't exist
+        if ($('.custom-post__list .loading-spinner').length === 0) {
+            $('.custom-post__list').append(
+                '<div class="loading-spinner">' +
+                '<div class="loading-spinner__circle"></div>' +
+                '<div class="loading-spinner__text">Loading data...</div>' +
+                '</div>'
+            );
+        } else {
+            $('.custom-post__list .loading-spinner').show();
+        }
     },
 
     removeOverlay: function($){
         $('.custom-post__list').removeClass('overlay');
+        $('.custom-post__list .loading-spinner').hide();
     },
 
     miscScripts: function($){
