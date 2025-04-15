@@ -2931,7 +2931,7 @@ class Theme {
             unset($p['_validate_email']);
             
             // Check if user is admin or has admin capabilities
-            $can_delete = current_user_can('manage_options') || current_user_can('delete_posts');
+            $can_delete = current_user_can('manage_options');
             
             // Build actions with edit button for all users
             $p['actions'] = '<a href="#" class="edit-item action-btn" item-id="'.$postid.'"><i class="fa-solid fa-pen-to-square"></i></a>';
@@ -3235,7 +3235,7 @@ class Theme {
             unset($p['_validate_email']);
             
             // Check if user is admin or has admin capabilities
-            $can_delete = current_user_can('manage_options') || current_user_can('delete_posts');
+            $can_delete = current_user_can('manage_options');
             
             // Build actions with edit button for all users
             $p['actions'] = '<a href="#" class="edit-item action-btn" item-id="'.$postid.'"><i class="fa-solid fa-pen-to-square"></i></a>';
