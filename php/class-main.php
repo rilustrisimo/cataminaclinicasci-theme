@@ -2886,7 +2886,7 @@ class Theme {
             if($pt == $ptypes['post_type']):
                 $header = $ptypes['header'];
                 // Use our new createSearchQuery function instead
-                $this->createCustomPostListHtmlWithSearch($ptypes['post_type'], -1, $header, $search, $dept);
+                $this->createCustomPostListHtmlWithSearch($ptypes['post_type'], 20, $header, $search, $dept);
             endif;
         endforeach;
 
