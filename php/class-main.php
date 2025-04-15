@@ -2903,8 +2903,11 @@ class Theme {
      * @param string|bool $dept Department filter or false for all departments
      */
     public function createCustomPostListHtmlWithSearch($postType, $postPerPage, $header, $search = false, $dept = false) {
+        // Always use 20 records per page for consistent pagination, regardless of $postPerPage parameter
+        $posts_per_page = 20;
+        
         // Use createSearchQuery for better search handling
-        $post_query = $this->createSearchQuery($postType, $postPerPage, true, $search, $dept);
+        $post_query = $this->createSearchQuery($postType, $posts_per_page, true, $search, $dept);
         $posts = $post_query[0];
         $pagination = $post_query[1];
 
@@ -3003,7 +3006,7 @@ class Theme {
 
         echo '</table>';
 
-        // Output pagination outside the table but within the inner container
+        // Always output pagination outside the table but within the inner container
         echo $pagination;
         
         // Close the inner container DIV
