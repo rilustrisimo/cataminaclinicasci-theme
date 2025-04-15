@@ -3311,12 +3311,113 @@ class Theme {
             wp_send_json_error('Release supply not found');
         }
         
-        $result = update_field('confirmed', ($status === 'confirmed' ? true : false), $release_id);
+        // Get release supply details
+        $supply_obj = get_field('supply_name', $release_id);
+        if (!$supply_obj) {
+            wp_send_json_error('Supply information not found');
+        }
         
-        if ($result) {
-            wp_send_json_success('Status updated successfully');
-        } else {
+        $supply_id = $supply_obj->ID;
+        $quantity = (float)get_field('quantity', $release_id);
+        $release_date = get_field('release_date', $release_id);
+        $department = get_field('department', $release_id);
+        
+        // Get author ID from departmentArr based on the department field
+        $author_id = isset($this->departmentArr[$department]) ? $this->departmentArr[$department] : $post->post_author;
+        
+        // Update status
+        $new_status = ($status === 'confirmed' ? true : false);
+        $result = update_field('confirmed', $new_status, $release_id);
+        
+        if (!$result) {
             wp_send_json_error('Failed to update status');
+            return;
+        }
+        
+        // If status is confirmed, add record to actualsupplies
+        if ($new_status) {
+            // Create new actualsupplies post
+            $new_actual_supply = array(
+                'post_type' => 'actualsupplies',
+                'post_status' => 'publish',
+                'post_title' => 'Actual Supply from Release #' . $release_id,
+                'post_author' => $author_id // Using department's author ID
+            );
+            
+            // Insert the post
+            $actual_supply_id = wp_insert_post($new_actual_supply);
+            
+            if (is_wp_error($actual_supply_id)) {
+                wp_send_json_error('Failed to create actual supply record: ' . $actual_supply_id->get_error_message());
+                return;
+            }
+            
+            // Add custom fields to the post
+            update_field('supply_name', $supply_id, $actual_supply_id);
+            update_field('date_added', $release_date, $actual_supply_id);
+            update_field('quantity', $quantity, $actual_supply_id); // Negative quantity to offset the release
+            update_field('related_release_id', $release_id, $actual_supply_id); // Store reference to original release
+            
+            wp_send_json_success('Status updated and actual supply record created');
+        } 
+        // If status is being changed to unconfirmed, find and delete the actualsupplies record
+        else {
+            // Query to find matching actualsupplies records
+            $args = array(
+                'post_type' => 'actualsupplies',
+                'posts_per_page' => -1,
+                'meta_query' => array(
+                    'relation' => 'AND',
+                    array(
+                        'key' => 'related_release_id',
+                        'value' => $release_id,
+                        'compare' => '='
+                    )
+                ),
+                'author' => $author_id // Using department's author ID
+            );
+            
+            $query = new WP_Query($args);
+            
+            if ($query->have_posts()) {
+                while ($query->have_posts()) {
+                    $query->the_post();
+                    $actual_supply_id = get_the_ID();
+                    
+                    // Delete the post
+                    $delete_result = wp_delete_post($actual_supply_id, true); // Force delete
+                    
+                    if (!$delete_result) {
+                        wp_send_json_error('Failed to delete actual supply record #' . $actual_supply_id);
+                        return;
+                    }
+                }
+                wp_reset_postdata();
+                wp_send_json_success('Status updated and actual supply record deleted');
+            } else {
+                // If no matching record is found with the author ID, try without the author constraint
+                $args['author'] = ''; // Remove author filter
+                $query = new WP_Query($args);
+                
+                if ($query->have_posts()) {
+                    while ($query->have_posts()) {
+                        $query->the_post();
+                        $actual_supply_id = get_the_ID();
+                        
+                        // Delete the post
+                        $delete_result = wp_delete_post($actual_supply_id, true); // Force delete
+                        
+                        if (!$delete_result) {
+                            wp_send_json_error('Failed to delete actual supply record #' . $actual_supply_id);
+                            return;
+                        }
+                    }
+                    wp_reset_postdata();
+                    wp_send_json_success('Status updated and actual supply record deleted');
+                } else {
+                    wp_send_json_success('Status updated but no matching actual supply record found to delete');
+                }
+            }
         }
     }
 

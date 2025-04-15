@@ -132,7 +132,7 @@
             "aria-label": "",
             "type": "date_picker",
             "instructions": "",
-            "required": 0,
+            "required": 1,
             "conditional_logic": 0,
             "wrapper": {
                 "width": "",
@@ -142,6 +142,26 @@
             "display_format": "m\/d\/Y",
             "return_format": "m\/d\/Y",
             "first_day": 0
+        },
+        {
+            "key": "field_67fe0fe3fe742",
+            "label": "Related Release ID",
+            "name": "related_release_id",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "hide",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
         }
     ],
     "location": [
@@ -161,6 +181,5 @@
     "hide_on_screen": "",
     "active": true,
     "description": "",
-    "show_in_rest": 0,
-    "modified": 1686536954
+    "show_in_rest": 0
 }
