@@ -2789,11 +2789,20 @@ class Theme {
     }
 
     public function load_items_per_search(){
-        // Start output buffering to capture any unexpected output
+        // Disable all PHP error output during this request
+        $previous_error_reporting = error_reporting();
+        $previous_display_errors = ini_get('display_errors');
+        error_reporting(0);
+        ini_set('display_errors', 0);
+        
+        // Using output buffering to capture any unexpected output
         ob_start();
         
         try {
-            // Properly handle search parameter - properly sanitize and validate inputs
+            // Set content type header early to ensure it's set
+            header('Content-Type: application/json');
+            
+            // Properly sanitize and validate inputs
             $search = isset($_POST['search']) && $_POST['search'] !== "false" && !empty($_POST['search']) ? 
                 sanitize_text_field($_POST['search']) : false;
             $dept = isset($_POST['dept']) && $_POST['dept'] !== "false" ? 
@@ -2812,16 +2821,22 @@ class Theme {
                 }
             }
             
-            if (!$post_type_found) {
-                // Clean output buffer
-                ob_clean();
-                wp_send_json_error(['message' => 'Invalid post type specified']);
-                exit;
+            // Clear any existing output and PHP errors that might have occurred
+            while (ob_get_level()) {
+                ob_end_clean();
             }
             
-            // Start a new clean buffer for the content
-            ob_clean();
+            // Start a fresh output buffer
             ob_start();
+            
+            if (!$post_type_found) {
+                echo json_encode([
+                    'success' => false,
+                    'data' => ['message' => 'Invalid post type specified']
+                ]);
+                ob_end_flush();
+                exit;
+            }
             
             // Generate the search results
             $this->createCustomPostListHtmlWithSearch($post_type, -1, $header, $search, $dept);
@@ -2829,28 +2844,36 @@ class Theme {
             // Get the content and clean the buffer
             $content = ob_get_clean();
             
-            // Send the response
-            wp_send_json_success($content);
+            // Send the JSON response manually to ensure it's properly formatted
+            echo json_encode([
+                'success' => true,
+                'data' => $content
+            ]);
             
         } catch (Exception $e) {
-            // Catch any errors and log them
+            // Get any output that might have been generated
             $buffer_contents = ob_get_clean();
+            
+            // Log the error
             error_log('Error in load_items_per_search: ' . $e->getMessage());
             error_log('Buffer contained: ' . $buffer_contents);
             
-            // Return a proper JSON error
-            wp_send_json_error([
-                'message' => 'Server error: ' . $e->getMessage(), 
-                'trace' => defined('WP_DEBUG') && WP_DEBUG ? $e->getTraceAsString() : ''
+            // Send a clean JSON error response
+            echo json_encode([
+                'success' => false,
+                'data' => [
+                    'message' => 'Server error: ' . $e->getMessage(), 
+                    'trace' => defined('WP_DEBUG') && WP_DEBUG ? $e->getTraceAsString() : ''
+                ]
             ]);
         }
         
-        // Clean up any remaining output buffer
-        if (ob_get_length()) {
-            ob_end_clean();
-        }
+        // Restore error reporting settings
+        error_reporting($previous_error_reporting);
+        ini_set('display_errors', $previous_display_errors);
         
-        exit; // Ensure we exit after sending JSON response
+        // Ensure we exit after sending the response
+        exit;
     }
 
     public function getItemsSearch($search = false, $pt, $paged = 1, $dept = false){

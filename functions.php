@@ -18,6 +18,12 @@ define( 'PARENT_URL', get_template_directory_uri() );
 require PARENT_DIR . '/includes/core.php';
 require PARENT_DIR . '/php/class-main.php';
 
+/**
+ * Load custom error logger
+ */
+if (file_exists(get_template_directory() . '/php/error-logger.php')) {
+    require_once(get_template_directory() . '/php/error-logger.php');
+}
 
 /**
  * 
@@ -55,3 +61,20 @@ function catamina_loading_overlay_assets() {
     );
 }
 add_action('wp_enqueue_scripts', 'catamina_loading_overlay_assets', 5);  // Priority 5 to load before other scripts
+
+/**
+ * Enqueue AJAX debug script in development environments
+ */
+function enqueue_ajax_debug_script() {
+    // Only load in development environments
+    if (WP_DEBUG) {
+        wp_enqueue_script(
+            'ajax-debug',
+            get_template_directory_uri() . '/assets/js/ajax-debug.js',
+            array('jquery'),
+            '1.0.0',
+            true
+        );
+    }
+}
+add_action('wp_enqueue_scripts', 'enqueue_ajax_debug_script', 999); // Load after all other scripts

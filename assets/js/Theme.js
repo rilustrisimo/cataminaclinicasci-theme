@@ -46,7 +46,7 @@ var Theme = {
 
         $('.counter').counterUp({
             delay: 10,
-            time: 1000
+            time: 0
         });
         
         // Hide loading indicator when initialization is complete
@@ -1247,7 +1247,6 @@ var Theme = {
 
     initAjaxSearchDash: function($){
         var ajaxfield = $('.search-ajax');
-
         Theme.currentRequest = null;
 
         // Delay search to prevent unnecessary requests while typing
@@ -1303,10 +1302,21 @@ var Theme = {
             return;
         }
         
+        var ajaxUrl = $('#ajax-url').val();
+        if (!ajaxUrl) {
+            console.error('Ajax URL not found');
+            if (typeof window.LoadingOverlay !== 'undefined') {
+                window.LoadingOverlay.hideAjaxOverlay();
+            } else {
+                Theme.removeOverlay($);
+            }
+            return;
+        }
+        
         Theme.currentRequest = $.ajax({
-            url: $('#ajax-url').val(),
+            url: ajaxUrl,
             type: 'POST',
-            dataType: 'JSON',
+            dataType: 'text', // Use text instead of JSON to handle parsing errors manually
             data: {
                 action: 'load_items_per_search',
                 search: search,
@@ -1317,16 +1327,58 @@ var Theme = {
                 // Set a reasonable timeout to prevent hanging requests
                 xhr.timeout = 30000; // 30 seconds
             },
-            success: function(resp) {
-                if (resp && resp.success && resp.data) {
-                    $('.custom-post__list').html(resp.data);
+            success: function(textResponse) {
+                // Try to parse the response as JSON
+                var jsonResponse;
+                try {
+                    // Check if the response starts with HTML doctype or opening tag
+                    if (textResponse.trim().indexOf('<!DOCTYPE') === 0 || 
+                        textResponse.trim().indexOf('<html') === 0) {
+                        throw new Error('Server returned HTML instead of JSON');
+                    }
+                    jsonResponse = JSON.parse(textResponse);
+                } catch (e) {
+                    console.error('Error parsing server response:', e.message);
+                    console.log('Raw response:', textResponse.substring(0, 500) + '...');
+                    
+                    // Extract an error message from the HTML if possible
+                    var errorMsg = 'Failed to parse server response';
+                    if (textResponse.indexOf('<body') !== -1) {
+                        var bodyStart = textResponse.indexOf('<body');
+                        var bodyEnd = textResponse.indexOf('</body>');
+                        if (bodyStart !== -1 && bodyEnd !== -1) {
+                            var bodyContent = textResponse.substring(bodyStart, bodyEnd);
+                            
+                            // Try to find error messages in common PHP error patterns
+                            var errorMatch = bodyContent.match(/(?:Fatal error|Parse error|Warning|Notice|Error):\s*(.+?)<br/i);
+                            if (errorMatch && errorMatch[1]) {
+                                errorMsg = 'Server error: ' + errorMatch[1];
+                            }
+                        }
+                    }
+                    
+                    $('.custom-post__list').html('<div class="error-message">' + errorMsg + '</div>');
+                    
+                    // Hide loading overlays
+                    if (typeof window.LoadingOverlay !== 'undefined') {
+                        window.LoadingOverlay.hideAjaxOverlay();
+                    } else {
+                        Theme.removeOverlay($);
+                    }
+                    return;
+                }
+                
+                // Process the JSON response
+                if (jsonResponse && jsonResponse.success && jsonResponse.data) {
+                    $('.custom-post__list').html(jsonResponse.data);
                     Theme.deleteButtons($);
                     Theme.modalButton($);
                     Theme.initResponsiveTables();
                 } else {
-                    var errorMsg = (resp && resp.data && resp.data.message) ? resp.data.message : 'Unknown error';
+                    var errorMsg = (jsonResponse && jsonResponse.data && jsonResponse.data.message) ? 
+                        jsonResponse.data.message : 'Unknown error';
                     $('.custom-post__list').html('<div class="error-message">Error: ' + errorMsg + '</div>');
-                    console.error('Invalid response format:', resp);
+                    console.error('Invalid response format:', jsonResponse);
                 }
                 
                 // Hide loading overlays
@@ -1339,27 +1391,22 @@ var Theme = {
             error: function(xhr, ajaxOptions, thrownError) {
                 // Don't show error message for aborted requests
                 if (thrownError !== 'abort') {
-                    console.error('Error loading search results:', thrownError);
+                    var errorMsg = 'Error loading data';
                     
-                    // Check if response was HTML instead of JSON
-                    var responseText = xhr.responseText || '';
-                    var errorMsg = 'Error loading data. Please try again.';
-                    
-                    if (responseText.indexOf('<!DOCTYPE') !== -1 || responseText.indexOf('<html') !== -1) {
-                        console.error('Received HTML instead of JSON. Server likely returned an error page.');
-                        
-                        // Try to extract error message from HTML response
-                        var errorMatch = responseText.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-                        if (errorMatch && errorMatch[1]) {
-                            // Clean up HTML and extract just text
-                            var div = document.createElement('div');
-                            div.innerHTML = errorMatch[1];
-                            errorMsg = 'Server error: ' + div.textContent.trim().substring(0, 100) + '...';
-                        } else {
-                            errorMsg = 'Server returned HTML instead of JSON. Check server logs.';
-                        }
+                    // Check for specific error types
+                    if (thrownError === 'timeout') {
+                        errorMsg = 'Request timed out. The server took too long to respond.';
+                    } else if (xhr.status === 500) {
+                        errorMsg = 'Internal Server Error (500). Please check server logs.';
+                    } else if (xhr.status === 404) {
+                        errorMsg = 'Server endpoint not found (404). Check AJAX URL configuration.';
+                    } else if (xhr.status === 403) {
+                        errorMsg = 'Access forbidden (403). You may need to log in again.';
+                    } else {
+                        errorMsg = 'Error: ' + thrownError;
                     }
                     
+                    console.error('AJAX error:', errorMsg);
                     $('.custom-post__list').html('<div class="error-message">' + errorMsg + '</div>');
                 }
                 
