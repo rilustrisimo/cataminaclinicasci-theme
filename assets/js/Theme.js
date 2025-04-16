@@ -669,6 +669,7 @@ var Theme = {
                         } else {
                             // All batches processed, finalize the report
                             console.log('All batches processed. Finalizing report...');
+                            console.log(Theme.reconsupplies);
                             finalizeReport();
                         }
                     } else {

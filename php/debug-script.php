@@ -10,9 +10,9 @@ $from = 'April 1, 2025';
 $to = 'April 30, 2025';
 
 
-$return = $theme->getQtyOfSupplyBetweenDates($supid, $from, $to, true);
+$return = $theme->batch_process_supplies_recon();
 
 echo '<pre>';
-print_r($qty);
+print_r($return);
 echo '</pre>';
 ?>

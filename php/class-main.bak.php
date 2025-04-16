@@ -865,367 +865,112 @@ class Theme {
         // Format date once
         $formatted_date = date('Y-m-d', strtotime($date));
         
-        // Use WordPress functions for database queries
+        global $wpdb;
         
-        // Get actual supplies quantity
-        $actual_args = array(
-            'post_type' => 'actualsupplies',
-            'post_status' => 'publish',
-            'posts_per_page' => -1,
-            'fields' => 'ids',
-            'meta_query' => array(
-                'relation' => 'AND',
-                array(
-                    'key' => 'supply_name',
-                    'value' => $supid,
-                    'compare' => '='
-                ),
-                array(
-                    'key' => 'date_added',
-                    'value' => $formatted_date,
-                    'compare' => '<=',
-                    'type' => 'DATE'
-                )
-            )
-        );
-        
-        $actual_posts = get_posts($actual_args);
-        $actual_quantity = 0;
-        
-        foreach ($actual_posts as $post_id) {
-            $actual_quantity += (float)get_field('quantity', $post_id);
-        }
-        
-        // Get release supplies quantity
-        $release_args = array(
-            'post_type' => 'releasesupplies',
-            'post_status' => 'publish',
-            'posts_per_page' => -1,
-            'fields' => 'ids',
-            'meta_query' => array(
-                'relation' => 'AND',
-                array(
-                    'key' => 'supply_name',
-                    'value' => $supid,
-                    'compare' => '='
-                ),
-                array(
-                    'key' => 'confirmed',
-                    'value' => '1',
-                    'compare' => '='
-                ),
-                array(
-                    'key' => 'release_date',
-                    'value' => $formatted_date,
-                    'compare' => '<=',
-                    'type' => 'DATE'
-                )
-            )
-        );
-        
-        $release_posts = get_posts($release_args);
-        $release_quantity = 0;
-        
-        foreach ($release_posts as $post_id) {
-            $release_quantity += (float)get_field('quantity', $post_id);
-        }
-        
-        // Calculate remaining quantity
-        $remaining_quantity = $actual_quantity - $release_quantity;
-        
-        // If expired information is needed, handle expired quantities
-        if ($expired) {
-            $expired_quantity = 0;
+        // Use try/catch to handle potential database errors
+        try {
+            // Get the sum of quantities directly via SQL for actual supplies
+            // Use more specific column selection instead of relying on aliases
+            $actual_supplies_query = $wpdb->prepare(
+                "SELECT COALESCE(SUM(pm_quantity.meta_value), 0) as total_quantity
+                FROM {$wpdb->posts} p
+                INNER JOIN {$wpdb->postmeta} pm_supply ON p.ID = pm_supply.post_id AND pm_supply.meta_key = %s
+                INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = %s
+                INNER JOIN {$wpdb->postmeta} pm_quantity ON p.ID = pm_quantity.post_id AND pm_quantity.meta_key = %s
+                WHERE p.post_type = %s
+                AND p.post_status = %s
+                AND pm_supply.meta_value = %d
+                AND pm_date.meta_value <= %s",
+                'supply_name',
+                'date_added',
+                'quantity',
+                'actualsupplies',
+                'publish',
+                $supid,
+                $formatted_date
+            );
             
-            // Calculate expired quantity
-            foreach ($actual_posts as $post_id) {
-                $expiry_date = get_field('expiry_date', $post_id);
-                
-                // Skip if no expiry date
-                if (empty($expiry_date)) {
-                    continue;
-                }
-                
-                // Normalize expiry date format
-                if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $expiry_date)) {
-                    // mm/dd/yyyy format
-                    $expiry_timestamp = strtotime($expiry_date);
-                } else if (preg_match('/^\d{8}$/', $expiry_date)) {
-                    // YYYYMMDD format
-                    $expiry_timestamp = strtotime(
-                        substr($expiry_date, 0, 4) . '-' . 
-                        substr($expiry_date, 4, 2) . '-' . 
-                        substr($expiry_date, 6, 2)
-                    );
-                } else if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $expiry_date)) {
-                    // Y-m-d format 
-                    $expiry_timestamp = strtotime($expiry_date);
-                } else {
-                    // Try general parsing
-                    $expiry_timestamp = strtotime($expiry_date);
-                }
-                
-                // If expiry date is before or equal to the given date
-                if ($expiry_timestamp && $expiry_timestamp <= strtotime($formatted_date)) {
-                    $expired_quantity += (float)get_field('quantity', $post_id);
-                }
+            // Use proper error checking on query execution
+            $actual_quantity = (float)$wpdb->get_var($actual_supplies_query);
+            if ($wpdb->last_error) {
+                error_log('Database error in getQtyOfSupplyAfterDate (actual supplies): ' . $wpdb->last_error);
+                $actual_quantity = 0;
             }
             
-            // Calculate remaining non-expired quantity
-            $expired_remaining = $expired_quantity - $release_quantity;
-            if ($expired_remaining < 0) {
-                $expired_remaining = 0;
+            // Get the sum of quantities directly via SQL for release supplies with similar optimizations
+            $release_supplies_query = $wpdb->prepare(
+                "SELECT COALESCE(SUM(pm_quantity.meta_value), 0) as total_quantity
+                FROM {$wpdb->posts} p
+                INNER JOIN {$wpdb->postmeta} pm_supply ON p.ID = pm_supply.post_id AND pm_supply.meta_key = %s
+                INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = %s
+                INNER JOIN {$wpdb->postmeta} pm_quantity ON p.ID = pm_quantity.post_id AND pm_quantity.meta_key = %s
+                WHERE p.post_type = %s
+                AND p.post_status = %s
+                AND pm_supply.meta_value = %d
+                AND pm_date.meta_value <= %s",
+                'supply_name',
+                'release_date',
+                'quantity',
+                'releasesupplies',
+                'publish',
+                $supid,
+                $formatted_date
+            );
+            
+            $release_quantity = (float)$wpdb->get_var($release_supplies_query);
+            if ($wpdb->last_error) {
+                error_log('Database error in getQtyOfSupplyAfterDate (release supplies): ' . $wpdb->last_error);
+                $release_quantity = 0;
             }
             
-            $result = array($remaining_quantity, $expired_remaining);
-        } else {
-            $result = $remaining_quantity;
-        }
-        
-        // Limit cache size to prevent memory issues (keep last 100 results)
-        if (count($cache) > 100) {
-            array_shift($cache); // Remove oldest entry
-        }
-        
-        // Cache the result
-        $cache[$cache_key] = $result;
-        
-        // Help garbage collector by nullifying large variables that are no longer needed
-        unset($actual_posts, $release_posts);
-        
-        return $result;
-    }
-
-    /**
-     * Get quantity of a supply between two date ranges
-     * Returns quantities for from date and to date, with expired items based on to_date
-     * 
-     * @param int $supid The supply ID
-     * @param string $fromDate The starting date
-     * @param string $toDate The ending date
-     * @param bool $expired Whether to check for expired supplies
-     * @return array Results containing from, to and expired quantities
-     */
-    public function getQtyOfSupplyBetweenDates($supid, $fromDate, $toDate, $expired = false) {
-        // Static cache improves performance for repeated calls
-        static $cache = [];
-        $cache_key = $supid . '_' . $fromDate . '_' . $toDate . '_' . ($expired ? '1' : '0');
-        $supname = get_field('supply_name', $supid);
-        
-        // Check if result already exists in cache
-        if (isset($cache[$cache_key])) {
-            return $cache[$cache_key];
-        }
-        
-        // Format dates once for consistency
-        $formatted_from_date = date('Y-m-d', strtotime($fromDate));
-        $formatted_to_date = date('Y-m-d', strtotime($toDate));
-        
-        // ---- QUERY FOR ACTUAL SUPPLIES ----
-        // Get all actual supplies for this item up to the to_date
-        $actual_args = array(
-            'post_type' => 'actualsupplies',
-            'post_status' => 'publish',
-            'posts_per_page' => -1,
-            'fields' => 'ids',
-            'meta_query' => array(
-                'relation' => 'AND',
-                array(
-                    'key' => 'supply_name',
-                    'value' => $supid,
-                    'compare' => '='
-                ),
-                array(
-                    'key' => 'date_added',
-                    'value' => $formatted_to_date,
-                    'compare' => '<=',
-                    'type' => 'DATE'
-                )
-            )
-        );
-        
-        $actual_posts = get_posts($actual_args);
-        
-        // Calculate quantities for both time periods in one pass
-        $actual_quantity_to = 0;
-        $actual_quantity_from = 0;
-        $expired_quantity = 0;
-        $date_supplies = [];
-        $release_supplies = [];  // Add release supplies array
-        
-        // Process all actual supplies
-        foreach ($actual_posts as $post_id) {
-            $quantity = (float)get_field('quantity', $post_id);
-            $date_added = get_field('date_added', $post_id);
+            // Calculate remaining quantity
+            $remaining_quantity = $actual_quantity - $release_quantity;
             
-            // Add to "to date" total
-            $actual_quantity_to += $quantity;
-            
-            // If added before or on from_date, include in from_date calculation
-            if (strtotime($date_added) <= strtotime($formatted_from_date)) {
-                $actual_quantity_from += $quantity;
-            }
-
-            // If date_added is between from_date and to_date, include in date_supplies
-            if (strtotime($date_added) >= strtotime($formatted_from_date) && 
-                strtotime($date_added) <= strtotime($formatted_to_date)) {
-                
-                // Initialize or update date supplies data
-                if (!isset($date_supplies[$supid])) {
-                    $date_supplies[$supid] = array(
-                        'supply_name' => $supname,
-                        'quantity' => 0,
-                        'serial' => false,
-                        'states__status' => '',
-                        'lot_number' => '',
-                        'expiry_date' => ''
-                    );
-                }
-                
-                // Add to quantity
-                $date_supplies[$supid]['quantity'] += (float)get_field('quantity', $post_id);
-                
-                // Update other fields only if they have values
-                $states = get_field('states__status', $post_id);
-                if (!empty($states)) {
-                    $date_supplies[$supid]['states__status'] = $states;
-                }
-                
-                $lot = get_field('lot_number', $post_id);
-                if (!empty($lot)) {
-                    $date_supplies[$supid]['lot_number'] = $lot;
-                }
-                
-                $expiry = get_field('expiry_date', $post_id);
-                if (!empty($expiry)) {
-                    $date_supplies[$supid]['expiry_date'] = $expiry;
-                }
-                
-                $serial = get_field('serial', $post_id);
-                if (!empty($serial)) {
-                    $date_supplies[$supid]['serial'] = $serial;
-                }
-            }
-            
-            // If we need expired info, process expiry dates
+            // If expired information is needed, get the expired quantity
             if ($expired) {
-                $expiry_date = get_field('expiry_date', $post_id);
-                if (!empty($expiry_date)) {
-                    // Normalize expiry date format
-                    $expiry_timestamp = false;
-                    
-                    if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $expiry_date)) {
-                        // mm/dd/yyyy format
-                        $expiry_timestamp = strtotime($expiry_date);
-                    } else if (preg_match('/^\d{8}$/', $expiry_date)) {
-                        // YYYYMMDD format
-                        $expiry_timestamp = strtotime(
-                            substr($expiry_date, 0, 4) . '-' . 
-                            substr($expiry_date, 4, 2) . '-' . 
-                            substr($expiry_date, 6, 2)
-                        );
-                    } else if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $expiry_date)) {
-                        // Y-m-d format 
-                        $expiry_timestamp = strtotime($expiry_date);
-                    } else {
-                        // Try general parsing
-                        $expiry_timestamp = strtotime($expiry_date);
-                    }
-                    
-                    // Only check expiry against to_date
-                    if ($expiry_timestamp && $expiry_timestamp <= strtotime($formatted_to_date)) {
-                        $expired_quantity += $quantity;
-                    }
-                }
-            }
-        }
-        
-        // ---- QUERY FOR RELEASE SUPPLIES ----
-        // Get all release supplies for this item up to the to_date
-        $release_args = array(
-            'post_type' => 'releasesupplies',
-            'post_status' => 'publish',
-            'posts_per_page' => -1,
-            'fields' => 'ids',
-            'meta_query' => array(
-                'relation' => 'AND',
-                array(
-                    'key' => 'supply_name',
-                    'value' => $supid,
-                    'compare' => '='
-                ),
-                array(
-                    'key' => 'confirmed',
-                    'value' => '1',
-                    'compare' => '='
-                ),
-                array(
-                    'key' => 'release_date',
-                    'value' => $formatted_to_date,
-                    'compare' => '<=',
-                    'type' => 'DATE'
-                )
-            )
-        );
-        
-        $release_posts = get_posts($release_args);
-        
-        // Calculate release quantities for both time periods
-        $release_quantity_to = 0;
-        $release_quantity_from = 0;
-        
-        foreach ($release_posts as $post_id) {
-            $quantity = (float)get_field('quantity', $post_id);
-            $release_date = get_field('release_date', $post_id);
-            
-            // Add to "to date" total
-            $release_quantity_to += $quantity;
-            
-            // If released before or on from_date, include in from_date calculation
-            if (strtotime($release_date) <= strtotime($formatted_from_date)) {
-                $release_quantity_from += $quantity;
-            }
-
-            // If release_date is between from_date and to_date, include in release_supplies
-            if (strtotime($release_date) >= strtotime($formatted_from_date) && 
-                strtotime($release_date) <= strtotime($formatted_to_date)) {
+                $expired_query = $wpdb->prepare(
+                    "SELECT COALESCE(SUM(pm_quantity.meta_value), 0) as expired_quantity
+                    FROM {$wpdb->posts} p
+                    INNER JOIN {$wpdb->postmeta} pm_supply ON p.ID = pm_supply.post_id AND pm_supply.meta_key = %s
+                    INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = %s
+                    INNER JOIN {$wpdb->postmeta} pm_quantity ON p.ID = pm_quantity.post_id AND pm_quantity.meta_key = %s
+                    INNER JOIN {$wpdb->postmeta} pm_expiry ON p.ID = pm_expiry.post_id AND pm_expiry.meta_key = %s
+                    WHERE p.post_type = %s
+                    AND p.post_status = %s
+                    AND pm_supply.meta_value = %d
+                    AND pm_date.meta_value <= %s
+                    AND pm_expiry.meta_value != %s
+                    AND pm_expiry.meta_value <= %s",
+                    'supply_name',
+                    'date_added',
+                    'quantity',
+                    'expiry_date',
+                    'actualsupplies',
+                    'publish',
+                    $supid,
+                    $formatted_date,
+                    '',
+                    $formatted_date
+                );
                 
-                // Initialize or update release supplies data
-                if (!isset($release_supplies[$supid])) {
-                    $release_supplies[$supid] = array(
-                        'supply_name' => $supname,
-                        'quantity' => 0
-                    );
+                $expired_quantity = (float)$wpdb->get_var($expired_query);
+                if ($wpdb->last_error) {
+                    error_log('Database error in getQtyOfSupplyAfterDate (expired): ' . $wpdb->last_error);
+                    $expired_quantity = 0;
                 }
                 
-                // Add to quantity
-                $release_supplies[$supid]['quantity'] += (float)get_field('quantity', $post_id);
+                // Calculate expired quantity that hasn't been released
+                $expired_remaining = max(0, $expired_quantity - $release_quantity);
+                
+                $result = array($remaining_quantity, $expired_remaining);
+            } else {
+                $result = $remaining_quantity;
             }
-        }
-        
-        // Calculate final quantities
-        $remaining_quantity_to = $actual_quantity_to - $release_quantity_to;
-        $remaining_quantity_from = $actual_quantity_from - $release_quantity_from;
-        
-        // Format the result with a clearer structure
-        $result = [
-            'from' => $remaining_quantity_from,
-            'to' => $remaining_quantity_to,
-            'expired' => 0, // Default value
-            'date_supplies' => $date_supplies, // Add date supplies data
-            'release_supplies' => $release_supplies // Add release supplies data
-        ];
-        
-        // If expired information is needed, process expiry data
-        if ($expired) {
-            // For expired items, calculate how many can be considered "released"
-            // We can't have more expired items than actual items
-            // Adjust the expired quantity based on the release quantity
-            $expired_remaining = $expired_quantity - $release_quantity_to;
-            $expired_remaining = max(0, $expired_remaining);
             
-            // Add the expired quantity to the result
-            $result['expired'] = $expired_remaining;
+        } catch (Exception $e) {
+            // Log any unexpected errors
+            error_log('Error in getQtyOfSupplyAfterDate: ' . $e->getMessage());
+            $result = $expired ? array(0, 0) : 0;
         }
         
         // Limit cache size to prevent memory issues (keep last 100 results)
@@ -1237,7 +982,7 @@ class Theme {
         $cache[$cache_key] = $result;
         
         // Help garbage collector by nullifying large variables that are no longer needed
-        unset($actual_posts, $release_posts);
+        unset($actual_supplies_query, $release_supplies_query, $expired_query);
         
         return $result;
     }
@@ -1574,7 +1319,6 @@ class Theme {
         $batchData = (array)$_POST['batchData'];
         $to = $_POST['to'];
         $from = $_POST['from'];
-
         $reconarray = array();
         
         // Prepare data structures
@@ -1616,11 +1360,8 @@ class Theme {
             $typeslug = strtolower($type);
             
             // Get current quantities - this is the bottleneck function that we optimized
-            $getQtyAndExp = $this->getQtyOfSupplyBetweenDates($suppid, $formatted_from, $formatted_to, true);
-            $curqty = $getQtyAndExp['from'];
-            $expQtySup = $getQtyAndExp['expired'];
-            $datesupplies[$suppid] = $getQtyAndExp['date_supplies'][$suppid];
-            $relsupplies[$suppid] = $getQtyAndExp['release_supplies'][$suppid];
+            $curqty = $this->getQtyOfSupplyAfterDate($suppid, $from);
+            $expQtySup = $this->getQtyOfSupplyAfterDate($suppid, $to, true);
             
             // Store in overall supplies
             if (!isset($overallupplies[$deptslug])) {
@@ -1632,14 +1373,118 @@ class Theme {
             }
             
             $overallupplies[$deptslug][$typeslug][$suppid] = array(
-                'supply_name' => $name[$suppid],
+                'supply_name' => get_field('supply_name', $suppid),
                 'department' => $dept,
                 'section' => $section,
                 'sub_section' => $sub_section,
                 'type' => $type,
                 'quantity' => $curqty,
-                'expired_qty' => $expQtySup,
+                'expired_qty' => $expQtySup[1],
                 'price_per_unit' => $price_per_unit
+            );
+        }
+        
+        // Create optimized meta query for actual supplies
+        $meta_query = array(
+            'key'     => 'date_added',
+            'value'   => array($formatted_from, $formatted_to),
+            'type'    => 'date',
+            'compare' => 'between'
+        );
+        
+        // Batch fetch all actual supplies in the date range
+        $all_actual_supplies = $this->createQuery('actualsupplies', [
+            'meta_query' => array(
+                'relation' => 'AND',
+                $meta_query,
+                array(
+                    'key'     => 'supply_name',
+                    'value'   => $supply_ids,
+                    'compare' => 'IN'
+                )
+            )
+        ], -1, 'date', 'ASC');
+        
+        // Process all actual supplies
+        $qty = [];
+        $lotn = [];
+        
+        foreach ($all_actual_supplies->posts as $p) {
+            $supply_obj = get_field('supply_name', $p->ID);
+            if (!$supply_obj) continue;
+            
+            $supplyid = $supply_obj->ID;
+            
+            // Skip if not in our batch data
+            if (!in_array($supplyid, $supply_ids)) continue;
+            
+            // Sum quantities
+            $qty[$supplyid] = isset($qty[$supplyid]) ? 
+                (float)$qty[$supplyid] + (float)get_field('quantity', $p->ID) : 
+                (float)get_field('quantity', $p->ID);
+            
+            // Collect lot numbers
+            $lot_number = get_field('lot_number', $p->ID);
+            if ($lot_number) {
+                if (!isset($lotn[$supplyid])) {
+                    $lotn[$supplyid] = [];
+                }
+                $lotn[$supplyid][] = $lot_number;
+            }
+            
+            // Prepare date supplies data
+            $datesupplies[$supplyid] = array(
+                'supply_name' => get_field('supply_name', $supplyid),
+                'quantity' => $qty[$supplyid],
+                'serial' => (!empty(get_field('serial', $p->ID))) ? get_field('serial', $p->ID) : false,
+                'states__status' => (!empty(get_field('states__status', $p->ID))) ? get_field('states__status', $p->ID) : false,
+                'lot_number' => (isset($lotn[$supplyid])) ? implode(',', array_unique($lotn[$supplyid])) : '',
+                'expiry_date' => (!empty(get_field('expiry_date', $p->ID))) ? get_field('expiry_date', $p->ID) : ''
+            );
+        }
+        
+        // Create optimized meta query for release supplies
+        $meta_query = array(
+            'key'     => 'release_date',
+            'value'   => array($formatted_from, $formatted_to),
+            'type'    => 'date',
+            'compare' => 'between'
+        );
+        
+        // Batch fetch all release supplies in the date range
+        $all_release_supplies = $this->createQuery('releasesupplies', [
+            'meta_query' => array(
+                'relation' => 'AND',
+                $meta_query,
+                array(
+                    'key'     => 'supply_name',
+                    'value'   => $supply_ids,
+                    'compare' => 'IN'
+                )
+            )
+        ], -1, 'date', 'ASC');
+        
+        // Process all release supplies
+        $qty = [];
+        
+        foreach ($all_release_supplies->posts as $p) {
+            $supply_obj = get_field('supply_name', $p->ID);
+            if (!$supply_obj) continue;
+            
+            $supplyid = $supply_obj->ID;
+            
+            // Skip if not in our batch data
+            if (!in_array($supplyid, $supply_ids)) continue;
+            
+            // Sum quantities
+            $qty[$supplyid] = isset($qty[$supplyid]) ? 
+                (float)$qty[$supplyid] + (float)get_field('quantity', $p->ID) : 
+                (float)get_field('quantity', $p->ID);
+            
+            // Prepare release supplies data
+            $relsupplies[$supplyid] = array(
+                'supply_name' => get_field('supply_name', $supplyid),
+                'quantity' => $qty[$supplyid]
             );
         }
         

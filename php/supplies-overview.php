@@ -369,6 +369,14 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 <span>Total Release Supplies:</span>
                 <span id="release-count">0</span>
             </div>
+            <div class="summary-item">
+                <span>Total Pending Releases:</span>
+                <span id="pending-count">0</span>
+            </div>
+            <div class="summary-item">
+                <span>Total Expired Items:</span>
+                <span id="expired-count">0</span>
+            </div>
         </div>
         
         <div class="filters">
@@ -464,6 +472,8 @@ $supplies_count = wp_count_posts('supplies')->publish;
         var actualSuppliesCount = 0;
         var releaseSuppliesCount = 0;
         var loadedCount = 0;
+        var pendingReleasesCount = 0;
+        var expiredCount = 0;
         
         // Department to Sections mapping
         var departmentSections = {
@@ -586,6 +596,8 @@ $supplies_count = wp_count_posts('supplies')->publish;
             jQuery('#loaded-count').text(loadedCount);
             jQuery('#actual-count').text(actualSuppliesCount);
             jQuery('#release-count').text(releaseSuppliesCount);
+            jQuery('#pending-count').text(pendingReleasesCount);
+            jQuery('#expired-count').text(expiredCount);
         }
         
         function filterSupplies() {
@@ -681,6 +693,14 @@ $supplies_count = wp_count_posts('supplies')->publish;
                         loadedCount += response.data.items.length;
                         actualSuppliesCount += response.data.actual_count;
                         releaseSuppliesCount += response.data.release_count;
+                        pendingReleasesCount += response.data.pending_count;
+                        
+                        // Add expired items to the count
+                        response.data.items.forEach(function(item) {
+                            if (item.expired_quantity) {
+                                expiredCount += parseFloat(item.expired_quantity);
+                            }
+                        });
                         
                         updateSummary();
                         
@@ -710,6 +730,8 @@ $supplies_count = wp_count_posts('supplies')->publish;
                                                 <th>Added</th>
                                                 <th>Actual Qty</th>
                                                 <th>Release Qty</th>
+                                                <th>Pending Qty</th>
+                                                <th>Expired Qty</th>
                                                 <th>Balance</th>
                                                 <th>Details</th>
                                             </tr>
@@ -719,11 +741,15 @@ $supplies_count = wp_count_posts('supplies')->publish;
                                 </div>
                             `;
                             $('#supplies-container').html(tableHtml);
+                            
+                            // Initialize global duplicate tracking for multiple batches
+                            window.allDuplicateItems = [];
+                            window.globalDepartmentNameMap = {};
                         }
                         
                         // Duplicate detection
                         var duplicateItems = [];
-                        var departmentNameMap = {};
+                        var departmentNameMap = window.globalDepartmentNameMap || {};
                         
                         $.each(response.data.items, function(index, item) {
                             var nameLower = item.name.toLowerCase();
@@ -737,18 +763,41 @@ $supplies_count = wp_count_posts('supplies')->publish;
                                 if (!departmentNameMap[key].isDuplicate) {
                                     departmentNameMap[key].isDuplicate = true;
                                     duplicateItems.push(departmentNameMap[key]);
+                                    
+                                    // Also add to global tracking if it's not already there
+                                    if (!window.allDuplicateItems.some(d => d.id === departmentNameMap[key].id)) {
+                                        window.allDuplicateItems.push(departmentNameMap[key]);
+                                    }
                                 }
                                 
                                 duplicateItems.push(item);
+                                
+                                // Add to global tracking
+                                if (!window.allDuplicateItems.some(d => d.id === item.id)) {
+                                    window.allDuplicateItems.push(item);
+                                }
                             } else {
                                 departmentNameMap[key] = item;
                             }
                         });
                         
+                        // Save updated department name map to global
+                        window.globalDepartmentNameMap = departmentNameMap;
+                        
                         // Add each item as a row in the table
                         $.each(response.data.items, function(index, item) {
                             var balanceClass = item.balance > 0 ? 'positive' : (item.balance < 0 ? 'negative' : 'zero');
                             var rowClass = item.isDuplicate ? 'duplicate-row' : '';
+                            
+                            // Calculate pending release quantity
+                            var pendingReleaseQuantity = 0;
+                            if (item.release_supplies) {
+                                item.release_supplies.forEach(function(release) {
+                                    if (!release.confirmed) {
+                                        pendingReleaseQuantity += parseFloat(release.quantity);
+                                    }
+                                });
+                            }
                             
                             // Add each item as a row in the table
                             var rowHtml = `
@@ -762,6 +811,8 @@ $supplies_count = wp_count_posts('supplies')->publish;
                                     <td>${item.purchased_date}</td>
                                     <td class="text-right">${item.total_actual_quantity}</td>
                                     <td class="text-right">${item.total_release_quantity}</td>
+                                    <td class="text-right" style="color: orange;">${pendingReleaseQuantity > 0 ? pendingReleaseQuantity : '-'}</td>
+                                    <td class="text-right" style="color: red;">${item.expired_quantity > 0 ? item.expired_quantity : '-'}</td>
                                     <td class="text-right ${balanceClass}">${item.balance}</td>
                                     <td><button class="view-details-btn" data-id="${item.id}">View</button></td>
                                 </tr>
@@ -771,11 +822,15 @@ $supplies_count = wp_count_posts('supplies')->publish;
                         });
                         
                         // Update duplicates summary if found
-                        if (duplicateItems.length > 0 && currentOffset === 0) {
+                        if (window.allDuplicateItems && window.allDuplicateItems.length > 0) {
+                            // Show the duplicates summary section
                             $('.duplicates-summary').show();
+                            
+                            // Generate HTML table for all duplicate items found so far
                             var duplicateHtml = '<table class="duplicates-table"><thead><tr><th>ID</th><th>Name</th><th>Department</th><th>Type</th><th>Section</th></tr></thead><tbody>';
                             
-                            $.each(duplicateItems, function(index, item) {
+                            // Use all duplicate items accumulated so far
+                            $.each(window.allDuplicateItems, function(index, item) {
                                 duplicateHtml += `
                                     <tr>
                                         <td>${item.id}</td>
@@ -983,8 +1038,16 @@ $supplies_count = wp_count_posts('supplies')->publish;
                                                         <td class="text-right">${item.total_actual_quantity}</td>
                                                     </tr>
                                                     <tr>
-                                                        <td>Total Released Supplies:</td>
+                                                        <td>Total Released Supplies (Confirmed):</td>
                                                         <td class="text-right">${item.total_release_quantity}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Pending Releases:</td>
+                                                        <td class="text-right" style="color: orange;">${calculatePendingReleases(item.release_supplies)}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Expired Items:</td>
+                                                        <td class="text-right" style="color: red;">${item.expired_quantity || 0}</td>
                                                     </tr>
                                                     <tr>
                                                         <td>Current Balance:</td>
@@ -1030,6 +1093,17 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 });
             });
         });
+        
+        // Function to calculate pending releases
+        function calculatePendingReleases(releaseSupplies) {
+            var pendingCount = 0;
+            releaseSupplies.forEach(function(release) {
+                if (!release.confirmed) {
+                    pendingCount += release.quantity;
+                }
+            });
+            return pendingCount;
+        }
     </script>
 </body>
 </html>
