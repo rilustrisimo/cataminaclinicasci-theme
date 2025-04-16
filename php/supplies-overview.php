@@ -321,6 +321,22 @@ $supplies_count = wp_count_posts('supplies')->publish;
             display: none; /* Hidden by default, shown only when a relevant department is selected */
         }
         
+        /* Checkbox styling */
+        .checkbox-label {
+            display: flex !important;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .checkbox-label input {
+            margin-right: 8px;
+            width: auto !important;
+        }
+        
+        .duplicates-filter {
+            margin-top: 10px;
+        }
+        
         /* Department-specific section highlight */
         .department-section-match {
             background-color: #e8f5e9;
@@ -406,6 +422,24 @@ $supplies_count = wp_count_posts('supplies')->publish;
                     ?>
                 </select>
             </div>
+            <div class="filter">
+                <label for="date-filter">Data Until:</label>
+                <input type="date" id="date-filter" value="<?php echo date('Y-m-d'); ?>">
+                <small style="display: block; margin-top: 2px; font-style: italic; color: #666;">Filter actual/release supplies by date</small>
+            </div>
+            <div class="filter duplicates-filter">
+                <label for="duplicates-only" class="checkbox-label">
+                    <input type="checkbox" id="duplicates-only">
+                    <span>Show Duplicates Only</span>
+                </label>
+                <small style="display: block; margin-top: 2px; font-style: italic; color: #666;">Show only items with duplicate names in same department</small>
+            </div>
+        </div>
+        
+        <!-- Apply Filters Button -->
+        <div style="margin: 15px 0;">
+            <button id="apply-filters" class="button">Apply Filters</button>
+            <button id="reset-filters" class="button">Reset Filters</button>
         </div>
         
         <div class="progress-container">
@@ -447,15 +481,12 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 updateSectionFilter(department);
             });
             
-            // Handle both department and section filtering
-            $('#section-filter').on('change', function() {
-                filterSupplies();
-            });
-            
-            $('#load-button').on('click', function() {
+            // Apply filters when the button is clicked
+            $('#apply-filters').on('click', function() {
                 if (isLoading) return;
                 
                 $(this).prop('disabled', true);
+                $('#reset-filters').prop('disabled', true);
                 isLoading = true;
                 currentOffset = 0;
                 
@@ -469,19 +500,53 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 loadNextBatch();
             });
             
-            // Filter and search functionality
-            $('#search, #department-filter, #type-filter, #section-filter').on('input change', function() {
+            // Reset all filters
+            $('#reset-filters').on('click', function() {
+                $('#department-filter').val('');
+                $('#section-filter').val('');
+                $('#type-filter').val('');
+                $('#search').val('');
+                $('#date-filter').val('<?php echo date('Y-m-d'); ?>');
+                $('#duplicates-only').prop('checked', false);
+                
+                // Hide the section filter
+                updateSectionFilter('');
+                
+                // If data already loaded, trigger a re-filter
+                if (loadedCount > 0) {
+                    filterSupplies();
+                }
+            });
+            
+            // Load button functionality
+            $('#load-button').on('click', function() {
+                if (isLoading) return;
+                
+                $(this).prop('disabled', true);
+                $('#apply-filters').prop('disabled', true);
+                $('#reset-filters').prop('disabled', true);
+                isLoading = true;
+                currentOffset = 0;
+                
+                // Clear previous data
+                $('#supplies-container').empty();
+                actualSuppliesCount = 0;
+                releaseSuppliesCount = 0;
+                loadedCount = 0;
+                updateSummary();
+                
+                loadNextBatch();
+            });
+            
+            // Filter and search functionality - now just filters the visible items, doesn't reload
+            $('#search, #section-filter').on('input change', function() {
                 filterSupplies();
             });
             
-            // Expand/Collapse buttons
-            $('#expand-all').on('click', function() {
-                $('.supply-details').show();
-            });
-            
-            $('#collapse-all').on('click', function() {
-                $('.supply-details').hide();
-            });
+            // Set default date to today
+            if (!$('#date-filter').val()) {
+                $('#date-filter').val('<?php echo date('Y-m-d'); ?>');
+            }
             
             // Initialize as accordion
             $(document).on('click', '.supply-header', function() {
@@ -560,17 +625,37 @@ $supplies_count = wp_count_posts('supplies')->publish;
         function loadNextBatch() {
             var $ = jQuery;
             
+            // Before making the AJAX call, update the status to reflect the filters being applied
+            var filterMsg = '';
+            if ($('#department-filter').val()) {
+                filterMsg += ' | Department: ' + $('#department-filter').val();
+            }
+            if ($('#section-filter').val()) {
+                filterMsg += ' | Section: ' + $('#section-filter').val();
+            }
+            if ($('#type-filter').val()) {
+                filterMsg += ' | Type: ' + $('#type-filter').val();
+            }
+            if ($('#date-filter').val()) {
+                filterMsg += ' | Until: ' + $('#date-filter').val();
+            }
+            if ($('#duplicates-only').is(':checked')) {
+                filterMsg += ' | Duplicates Only';
+            }
+            
             if (currentOffset >= suppliesCount) {
                 isLoading = false;
                 $('#load-button').prop('disabled', false);
+                $('#apply-filters').prop('disabled', false);
+                $('#reset-filters').prop('disabled', false);
                 $('#expand-all, #collapse-all').prop('disabled', false);
-                $('#status').text('All supplies loaded successfully.');
+                $('#status').text('All supplies loaded successfully.' + filterMsg);
                 return;
             }
             
             var progress = Math.round((currentOffset / suppliesCount) * 100);
             $('#progress-bar').css('width', progress + '%').text(progress + '%');
-            $('#status').html('Loading supplies... (' + currentOffset + ' of ' + suppliesCount + ') <span class="loading"></span>');
+            $('#status').html('Loading supplies... (' + currentOffset + ' of ' + suppliesCount + ')' + filterMsg + ' <span class="loading"></span>');
             var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
             
             $.ajax({
@@ -581,7 +666,13 @@ $supplies_count = wp_count_posts('supplies')->publish;
                     action: 'load_supplies_batch',
                     offset: currentOffset,
                     batch_size: batchSize,
-                    nonce: '<?php echo wp_create_nonce('supplies_overview_nonce'); ?>'
+                    nonce: '<?php echo wp_create_nonce('supplies_overview_nonce'); ?>',
+                    // Add filters to the AJAX request
+                    department: $('#department-filter').val(),
+                    section: $('#section-filter').val(),
+                    type: $('#type-filter').val(),
+                    until_date: $('#date-filter').val(),
+                    duplicates_only: $('#duplicates-only').is(':checked') ? '1' : '0'
                 },
                 success: function(response) {
                     if (response.success) {
@@ -590,6 +681,11 @@ $supplies_count = wp_count_posts('supplies')->publish;
                         releaseSuppliesCount += response.data.release_count;
                         
                         updateSummary();
+                        
+                        // If this is the first batch, update the total count for progress calculation
+                        if (currentOffset === 0 && response.data.total_count !== undefined) {
+                            suppliesCount = response.data.total_count;
+                        }
                         
                         // Check for first batch to create table structure
                         if (currentOffset === 0) {
@@ -693,28 +789,243 @@ $supplies_count = wp_count_posts('supplies')->publish;
                             $('.duplicates-list').html(duplicateHtml);
                         }
                         
-                        // After adding all rows, check if we need to apply the current filter
-                        if ($('#department-filter').val() || $('#section-filter').val() || $('#type-filter').val() || $('#search').val()) {
+                        // After adding all rows, check if we need to apply the current search filter
+                        if ($('#search').val()) {
                             filterSupplies();
                         }
                         
-                        // Move to next batch
-                        currentOffset += batchSize;
-                        setTimeout(loadNextBatch, 500);
+                        // Move to next batch if there are more items to load
+                        if (response.data.items.length > 0 && loadedCount < suppliesCount) {
+                            currentOffset += batchSize;
+                            setTimeout(loadNextBatch, 500);
+                        } else {
+                            // All done or no results
+                            isLoading = false;
+                            $('#load-button').prop('disabled', false);
+                            $('#apply-filters').prop('disabled', false);
+                            $('#reset-filters').prop('disabled', false);
+                            $('#expand-all, #collapse-all').prop('disabled', false);
+                            
+                            if (loadedCount === 0) {
+                                $('#status').text('No supplies found matching your filters.' + filterMsg);
+                            } else {
+                                $('#status').text('All matching supplies loaded successfully.' + filterMsg);
+                            }
+                        }
                     } else {
                         isLoading = false;
                         $('#load-button').prop('disabled', false);
+                        $('#apply-filters').prop('disabled', false);
+                        $('#reset-filters').prop('disabled', false);
                         $('#status').text('Error: ' + response.data);
                     }
                 },
                 error: function(xhr, status, error) {
                     isLoading = false;
                     $('#load-button').prop('disabled', false);
+                    $('#apply-filters').prop('disabled', false);
+                    $('#reset-filters').prop('disabled', false);
                     $('#status').text('AJAX Error: ' + error);
                     console.log(xhr.responseText);
                 }
             });
         }
+        
+        // Fix view details functionality with proper event delegation
+        jQuery(document).ready(function($) {
+            // Delegate click event to document so it works with dynamically created buttons
+            $(document).on('click', '.view-details-btn', function() {
+                var supplyId = $(this).data('id');
+                var currentRow = $(this).closest('tr');
+                
+                // Show loading state on button
+                var $button = $(this);
+                var originalButtonText = $button.text();
+                $button.text('Loading...').prop('disabled', true);
+                
+                // Fetch details via AJAX to get fresh data
+                $.ajax({
+                    url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        action: 'get_supply_details',
+                        supply_id: supplyId,
+                        nonce: '<?php echo wp_create_nonce('supply_details_nonce'); ?>',
+                        until_date: $('#date-filter').val()
+                    },
+                    success: function(response) {
+                        $button.text(originalButtonText).prop('disabled', false);
+                        
+                        if (response.success) {
+                            var item = response.data;
+                            
+                            // Create a modal with the details
+                            var modalHtml = `
+                                <div class="modal-overlay">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h3>${item.name} (ID: ${item.id})</h3>
+                                            <button class="close-modal">&times;</button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="details-section">
+                                                <h4>Supply Details</h4>
+                                                <table class="details-table">
+                                                    <tr><td>Department:</td><td>${item.department}</td></tr>
+                                                    <tr><td>Type:</td><td>${item.type}</td></tr>
+                                                    <tr><td>Section:</td><td>${item.section}</td></tr>
+                                                    <tr><td>Date Added:</td><td>${item.purchased_date}</td></tr>
+                                                    <tr><td>Price Per Unit:</td><td>₱${item.price_per_unit}</td></tr>
+                                                </table>
+                                            </div>
+                                            
+                                            <div class="details-section">
+                                                <h4>Actual Supplies (${item.actual_supplies.length})</h4>
+                                                <table class="details-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>ID</th>
+                                                            <th>Date Added</th>
+                                                            <th>Quantity</th>
+                                                            <th>Lot #</th>
+                                                            <th>Expiry</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>`;
+                            
+                            if (item.actual_supplies.length > 0) {
+                                $.each(item.actual_supplies, function(i, actual) {
+                                    var expiryClass = '';
+                                    
+                                    // Check for expiration dates
+                                    if (actual.expiry_date) {
+                                        var expDateStr = actual.expiry_date;
+                                        // Convert date to consistent format (yyyy-mm-dd)
+                                        var expDate = new Date(expDateStr.replace(/(\d+)\/(\d+)\/(\d+)/, '$3-$1-$2'));
+                                        var today = new Date();
+                                        today.setHours(0,0,0,0);
+                                        
+                                        // Add 6 months to today
+                                        var sixMonthsLater = new Date(today);
+                                        sixMonthsLater.setMonth(today.getMonth() + 6);
+                                        
+                                        if (!isNaN(expDate.getTime())) {
+                                            if (expDate < today) {
+                                                expiryClass = 'expired-date';
+                                            } else if (expDate < sixMonthsLater) {
+                                                expiryClass = 'warning-date';
+                                            }
+                                        }
+                                    }
+                                    
+                                    modalHtml += `
+                                        <tr>
+                                            <td>${actual.id}</td>
+                                            <td>${actual.date_added}</td>
+                                            <td class="text-right positive">${actual.quantity}</td>
+                                            <td>${actual.lot_number || '-'}</td>
+                                            <td class="${expiryClass}">${actual.expiry_date || '-'}</td>
+                                        </tr>
+                                    `;
+                                });
+                            } else {
+                                modalHtml += '<tr><td colspan="5" class="text-center">No actual supplies found</td></tr>';
+                            }
+                            
+                            modalHtml += `</tbody>
+                                                </table>
+                                            </div>
+                                            
+                                            <div class="details-section">
+                                                <h4>Released Supplies (${item.release_supplies.length})</h4>
+                                                <table class="details-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>ID</th>
+                                                            <th>Release Date</th>
+                                                            <th>Department</th>
+                                                            <th>Quantity</th>
+                                                            <th>Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>`;
+                            
+                            if (item.release_supplies.length > 0) {
+                                $.each(item.release_supplies, function(i, release) {
+                                    modalHtml += `
+                                        <tr>
+                                            <td>${release.id}</td>
+                                            <td>${release.release_date}</td>
+                                            <td>${release.department}</td>
+                                            <td class="text-right negative">${release.quantity}</td>
+                                            <td>${release.confirmed ? '<span class="status-confirmed">Confirmed</span>' : '<span class="status-pending">Pending</span>'}</td>
+                                        </tr>
+                                    `;
+                                });
+                            } else {
+                                modalHtml += '<tr><td colspan="5" class="text-center">No release supplies found</td></tr>';
+                            }
+                            
+                            modalHtml += `</tbody>
+                                                </table>
+                                            </div>
+                                            
+                                            <div class="details-section">
+                                                <h4>Summary</h4>
+                                                <table class="details-table">
+                                                    <tr>
+                                                        <td>Total Actual Supplies:</td>
+                                                        <td class="text-right">${item.total_actual_quantity}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Total Released Supplies:</td>
+                                                        <td class="text-right">${item.total_release_quantity}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Current Balance:</td>
+                                                        <td class="text-right ${item.balance > 0 ? 'positive' : (item.balance < 0 ? 'negative' : 'zero')}">
+                                                            ${item.balance}
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            // Remove any existing modals
+                            $('.modal-overlay').remove();
+                            
+                            // Append and show modal
+                            $('body').append(modalHtml);
+                            
+                            // Add event handlers for the modal
+                            $('.close-modal, .modal-overlay').on('click', function(e) {
+                                if (e.target === this) {
+                                    $('.modal-overlay').remove();
+                                }
+                            });
+                            
+                            // Close modal with ESC key
+                            $(document).on('keydown.modal', function(e) {
+                                if (e.keyCode === 27) { // ESC key
+                                    $('.modal-overlay').remove();
+                                    $(document).off('keydown.modal');
+                                }
+                            });
+                        } else {
+                            alert('Error loading supply details. Please try again.');
+                        }
+                    },
+                    error: function() {
+                        $button.text(originalButtonText).prop('disabled', false);
+                        alert('Error connecting to the server. Please try again.');
+                    }
+                });
+            });
+        });
     </script>
 </body>
 </html>
@@ -731,6 +1042,7 @@ $ajax_handler_path = dirname(__FILE__) . '/supplies-ajax-handler.php';
 file_put_contents($ajax_handler_path, '<?php
 // AJAX handler for supplies overview
 add_action("wp_ajax_load_supplies_batch", "load_supplies_batch");
+add_action("wp_ajax_get_supply_details", "get_supply_details");
 
 function load_supplies_batch() {
     // Verify nonce
@@ -740,26 +1052,97 @@ function load_supplies_batch() {
     
     $offset = isset($_POST["offset"]) ? intval($_POST["offset"]) : 0;
     $batch_size = isset($_POST["batch_size"]) ? intval($_POST["batch_size"]) : 100;
+    $department = isset($_POST["department"]) ? sanitize_text_field($_POST["department"]) : '';
+    $section = isset($_POST["section"]) ? sanitize_text_field($_POST["section"]) : '';
+    $type = isset($_POST["type"]) ? sanitize_text_field($_POST["type"]) : '';
+    $until_date = isset($_POST["until_date"]) ? sanitize_text_field($_POST["until_date"]) : '';
+    $duplicates_only = isset($_POST["duplicates_only"]) && $_POST["duplicates_only"] === "1";
     
     // Get supplies batch
     $args = array(
         "post_type" => "supplies",
-        "posts_per_page" => $batch_size,
-        "offset" => $offset,
+        "posts_per_page" => $duplicates_only ? -1 : $batch_size,
+        "offset" => $duplicates_only ? 0 : $offset,
         "orderby" => "title",
         "order" => "ASC",
-        "post_status" => "publish"
+        "post_status" => "publish",
+        "meta_query" => array(
+            "relation" => "AND"
+        )
     );
     
+    if ($department) {
+        $args["meta_query"][] = array(
+            "key" => "department",
+            "value" => $department,
+            "compare" => "="
+        );
+    }
+    
+    if ($section) {
+        $args["meta_query"][] = array(
+            "key" => "section",
+            "value" => $section,
+            "compare" => "="
+        );
+    }
+    
+    if ($type) {
+        $args["meta_query"][] = array(
+            "key" => "type",
+            "value" => $type,
+            "compare" => "="
+        );
+    }
+    
+    // First, get total count for pagination calculation
+    $count_args = $args;
+    $count_args["posts_per_page"] = -1;
+    $count_args["fields"] = "ids";
+    $count_query = new WP_Query($count_args);
+    $total_count = $count_query->found_posts;
+    wp_reset_postdata();
+    
+    // Now perform the actual query
     $supplies_query = new WP_Query($args);
     $items = array();
     $actual_count = 0;
     $release_count = 0;
     
     if ($supplies_query->have_posts()) {
+        // First pass: gather all supplies and detect duplicates
+        $name_department_map = array();
+        $duplicate_ids = array();
+        
         while ($supplies_query->have_posts()) {
             $supplies_query->the_post();
             $supply_id = get_the_ID();
+            $name = strtolower(get_the_title());
+            $department = get_field("department", $supply_id) ?: "Unknown";
+            
+            $key = $department . "|" . $name;
+            
+            if (isset($name_department_map[$key])) {
+                // Mark as duplicate
+                $duplicate_ids[$supply_id] = true;
+                $duplicate_ids[$name_department_map[$key]] = true;
+            } else {
+                $name_department_map[$key] = $supply_id;
+            }
+        }
+        wp_reset_postdata();
+        
+        // Second pass: get details for all supplies or duplicates only
+        $supplies_query->rewind_posts();
+        
+        while ($supplies_query->have_posts()) {
+            $supplies_query->the_post();
+            $supply_id = get_the_ID();
+            
+            // Skip non-duplicates if we're filtering for duplicates only
+            if ($duplicates_only && !isset($duplicate_ids[$supply_id])) {
+                continue;
+            }
             
             // Get basic supply information
             $supply = array(
@@ -773,10 +1156,11 @@ function load_supplies_batch() {
                 "actual_supplies" => array(),
                 "release_supplies" => array(),
                 "total_actual_quantity" => 0,
-                "total_release_quantity" => 0
+                "total_release_quantity" => 0,
+                "isDuplicate" => isset($duplicate_ids[$supply_id])
             );
             
-            // Get related actual supplies
+            // Get related actual supplies with date filter
             $actual_args = array(
                 "post_type" => "actualsupplies",
                 "posts_per_page" => -1,
@@ -791,6 +1175,15 @@ function load_supplies_batch() {
                 "meta_key" => "date_added",
                 "order" => "DESC"
             );
+            
+            if ($until_date) {
+                $actual_args["meta_query"][] = array(
+                    "key" => "date_added",
+                    "value" => $until_date,
+                    "compare" => "<=",
+                    "type" => "DATE"
+                );
+            }
             
             $actual_query = new WP_Query($actual_args);
             
@@ -814,7 +1207,7 @@ function load_supplies_batch() {
                 wp_reset_postdata();
             }
             
-            // Get related release supplies
+            // Get related release supplies with date filter
             $release_args = array(
                 "post_type" => "releasesupplies",
                 "posts_per_page" => -1,
@@ -829,6 +1222,15 @@ function load_supplies_batch() {
                 "meta_key" => "release_date",
                 "order" => "DESC"
             );
+            
+            if ($until_date) {
+                $release_args["meta_query"][] = array(
+                    "key" => "release_date",
+                    "value" => $until_date,
+                    "compare" => "<=",
+                    "type" => "DATE"
+                );
+            }
             
             $release_query = new WP_Query($release_args);
             
@@ -858,14 +1260,165 @@ function load_supplies_batch() {
             $items[] = $supply;
         }
         wp_reset_postdata();
+        
+        // For duplicate only mode, we need to handle pagination manually
+        if ($duplicates_only) {
+            $total_count = count($items);
+            
+            if ($offset > 0) {
+                $items = array_slice($items, $offset, $batch_size);
+            } elseif (count($items) > $batch_size) {
+                $items = array_slice($items, 0, $batch_size);
+            }
+        }
     }
     
     wp_send_json_success(array(
         "items" => $items,
         "actual_count" => $actual_count,
-        "release_count" => $release_count
+        "release_count" => $release_count,
+        "total_count" => $total_count
     ));
-}');
+}
+
+/**
+ * Get detailed information for a specific supply
+ */
+function get_supply_details() {
+    // Verify nonce
+    if (!isset($_POST["nonce"]) || !wp_verify_nonce($_POST["nonce"], "supply_details_nonce")) {
+        wp_send_json_error("Security check failed");
+    }
+    
+    $supply_id = isset($_POST["supply_id"]) ? intval($_POST["supply_id"]) : 0;
+    $until_date = isset($_POST["until_date"]) ? sanitize_text_field($_POST["until_date"]) : "";
+    
+    if (!$supply_id) {
+        wp_send_json_error("Invalid supply ID");
+    }
+    
+    // Get supply post
+    $supply_post = get_post($supply_id);
+    
+    if (!$supply_post || $supply_post->post_type !== 'supplies') {
+        wp_send_json_error("Supply not found");
+    }
+    
+    // Get basic supply information
+    $supply = array(
+        "id" => $supply_id,
+        "name" => $supply_post->post_title,
+        "department" => get_field("department", $supply_id) ?: "Unknown",
+        "type" => get_field("type", $supply_id) ?: "Unknown",
+        "section" => get_field("section", $supply_id) ?: "None",
+        "purchased_date" => get_field("purchased_date", $supply_id) ?: "Unknown",
+        "price_per_unit" => number_format(get_field("price_per_unit", $supply_id) ?: 0, 2),
+        "actual_supplies" => array(),
+        "release_supplies" => array(),
+        "total_actual_quantity" => 0,
+        "total_release_quantity" => 0
+    );
+    
+    // Get related actual supplies with date filter
+    $actual_args = array(
+        "post_type" => "actualsupplies",
+        "posts_per_page" => -1,
+        "meta_query" => array(
+            array(
+                "key" => "supply_name",
+                "value" => $supply_id,
+                "compare" => "="
+            )
+        ),
+        "orderby" => "meta_value",
+        "meta_key" => "date_added",
+        "order" => "DESC"
+    );
+    
+    // Apply date filter if specified
+    if ($until_date) {
+        $actual_args["meta_query"][] = array(
+            "key" => "date_added",
+            "value" => $until_date,
+            "compare" => "<=",
+            "type" => "DATE"
+        );
+    }
+    
+    $actual_query = new WP_Query($actual_args);
+    
+    if ($actual_query->have_posts()) {
+        while ($actual_query->have_posts()) {
+            $actual_query->the_post();
+            $actual_id = get_the_ID();
+            $quantity = floatval(get_field("quantity", $actual_id));
+            
+            $supply["actual_supplies"][] = array(
+                "id" => $actual_id,
+                "quantity" => $quantity,
+                "date_added" => get_field("date_added", $actual_id) ?: "Unknown",
+                "lot_number" => get_field("lot_number", $actual_id) ?: "",
+                "expiry_date" => get_field("expiry_date", $actual_id) ?: ""
+            );
+            
+            $supply["total_actual_quantity"] += $quantity;
+        }
+        wp_reset_postdata();
+    }
+    
+    // Get related release supplies with date filter
+    $release_args = array(
+        "post_type" => "releasesupplies",
+        "posts_per_page" => -1,
+        "meta_query" => array(
+            array(
+                "key" => "supply_name",
+                "value" => $supply_id,
+                "compare" => "="
+            )
+        ),
+        "orderby" => "meta_value",
+        "meta_key" => "release_date",
+        "order" => "DESC"
+    );
+    
+    // Apply date filter if specified
+    if ($until_date) {
+        $release_args["meta_query"][] = array(
+            "key" => "release_date",
+            "value" => $until_date,
+            "compare" => "<=",
+            "type" => "DATE"
+        );
+    }
+    
+    $release_query = new WP_Query($release_args);
+    
+    if ($release_query->have_posts()) {
+        while ($release_query->have_posts()) {
+            $release_query->the_post();
+            $release_id = get_the_ID();
+            $quantity = floatval(get_field("quantity", $release_id));
+            
+            $supply["release_supplies"][] = array(
+                "id" => $release_id,
+                "quantity" => $quantity,
+                "release_date" => get_field("release_date", $release_id) ?: "Unknown",
+                "department" => get_field("department", $release_id) ?: "Unknown",
+                "confirmed" => get_field("confirmed", $release_id) ? true : false
+            );
+            
+            $supply["total_release_quantity"] += $quantity;
+        }
+        wp_reset_postdata();
+    }
+    
+    // Calculate balance
+    $supply["balance"] = $supply["total_actual_quantity"] - $supply["total_release_quantity"];
+    
+    wp_send_json_success($supply);
+}
+?>');
 
 // Create a function to register our AJAX handler through the WordPress admin_init hook
 function register_supplies_ajax_handler() {
