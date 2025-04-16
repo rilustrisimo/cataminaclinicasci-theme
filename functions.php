@@ -81,7 +81,7 @@ add_action('wp_enqueue_scripts', 'enqueue_ajax_debug_script', 999); // Load afte
 
 /**
  * Enqueue DOM structure fix stylesheet
- */
+*/
 function enqueue_dom_fix_styles() {
     wp_enqueue_style(
         'dom-fixes',
@@ -94,11 +94,9 @@ add_action('wp_enqueue_scripts', 'enqueue_dom_fix_styles', 100); // Add after ot
 
 include_once get_template_directory() . '/php/supplies-overview-link.php';
 
-
-// Add this to your theme's functions.php
-
 /**
  * Register AJAX handler for supplies overview
+ * This ensures the handler is available for AJAX requests
  */
 function include_supplies_overview_ajax_handler() {
     $ajax_handler_path = get_template_directory() . '/php/supplies-ajax-handler.php';
@@ -106,5 +104,4 @@ function include_supplies_overview_ajax_handler() {
         require_once($ajax_handler_path);
     }
 }
-
 add_action('init', 'include_supplies_overview_ajax_handler');
