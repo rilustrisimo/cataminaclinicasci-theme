@@ -23,7 +23,7 @@ function supplies_overview_redirect() {
     <script type="text/javascript">
         window.location.href = "<?php echo $url; ?>";
     </script>
-    <p>If you are not redirected automatically, follow this <a href="<?php echo $url; ?>">link to Supplies Overview</a>.</p>
+    <p>If you are not redirected automatically, follow this <a target="_blank" href="<?php echo $url; ?>">link to Supplies Overview</a>.</p>
     <?php
 }
 ?>
