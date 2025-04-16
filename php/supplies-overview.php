@@ -422,7 +422,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
                     ?>
                 </select>
             </div>
-            <div class="filter">
+            <div class="filter"> 
                 <label for="date-filter">Data Until:</label>
                 <input type="date" id="date-filter" value="<?php echo date('Y-m-d'); ?>">
                 <small style="display: block; margin-top: 2px; font-style: italic; color: #666;">Filter actual/release supplies by date</small>
