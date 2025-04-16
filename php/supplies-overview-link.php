@@ -21,7 +21,7 @@ function supplies_overview_redirect() {
     $url = home_url('/wp-content/themes/eyor-theme/php/supplies-overview.php');
     ?>
     <script type="text/javascript">
-        window.location.href = "<?php echo $url; ?>";
+        window.open("<?php echo $url; ?>", "_blank");
     </script>
     <p>If you are not redirected automatically, follow this <a target="_blank" href="<?php echo $url; ?>">link to Supplies Overview</a>.</p>
     <?php
