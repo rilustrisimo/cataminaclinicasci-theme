@@ -18,7 +18,7 @@ function add_supplies_overview_menu() {
 
 function supplies_overview_redirect() {
     // Redirect to the supplies overview script
-    $url = home_url('/wp-content/themes/cataminaclinicasci.com/php/supplies-overview.php');
+    $url = home_url('/wp-content/themes/eyor-theme/php/supplies-overview.php');
     ?>
     <script type="text/javascript">
         window.location.href = "<?php echo $url; ?>";
