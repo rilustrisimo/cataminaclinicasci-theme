@@ -35,17 +35,18 @@ $supplies_count = wp_count_posts('supplies')->publish;
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-            line-height: 1.6;
+            line-height: 1.4;
             color: #333;
             background: #f5f5f5;
             padding: 20px;
             margin: 0;
+            font-size: 13px;
         }
         .container {
-            max-width: 1200px;
+            max-width: 98%;
             margin: 0 auto;
             background: #fff;
-            padding: 20px;
+            padding: 15px;
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
@@ -54,12 +55,22 @@ $supplies_count = wp_count_posts('supplies')->publish;
             margin-top: 0;
             padding-bottom: 15px;
             border-bottom: 1px solid #eee;
+            font-size: 1.5em;
         }
+        h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        h4 {
+            font-size: 1.1em;
+            margin: 10px 0;
+        }
+        /* Progress bar styles */
         .progress-container {
-            margin: 20px 0;
+            margin: 15px 0;
             background: #f1f1f1;
             border-radius: 4px;
-            height: 25px;
+            height: 20px;
             overflow: hidden;
         }
         .progress-bar {
@@ -71,101 +82,93 @@ $supplies_count = wp_count_posts('supplies')->publish;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
         }
         .status {
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        .supply-item {
-            border: 1px solid #ddd;
             margin-bottom: 15px;
-            border-radius: 4px;
-            overflow: hidden;
+            font-size: 13px;
         }
-        .supply-header {
-            background: #0073aa;
-            color: #fff;
-            padding: 10px 15px;
-            cursor: pointer;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        
+        /* Table styles */
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 15px;
         }
-        .supply-details {
-            padding: 0 15px;
-            display: none;
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px;
         }
-        .supply-meta {
-            margin: 10px 0;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed #eee;
-            font-size: 14px;
-            display: flex;
-            flex-wrap: wrap;
-        }
-        .supply-meta span {
-            margin-right: 20px;
+        th, td {
+            padding: 5px 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+            vertical-align: middle;
             white-space: nowrap;
         }
-        .sub-items {
-            margin: 15px 0;
-        }
-        .sub-item-header {
-            background: #f8f8f8;
-            padding: 8px;
+        th {
+            background-color: #f8f8f8;
             font-weight: bold;
-            border-left: 3px solid #0073aa;
-            margin-bottom: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1);
         }
-        .sub-item {
-            padding: 5px 10px;
-            margin-bottom: 5px;
-            border-left: 1px solid #ddd;
-            font-size: 14px;
-            display: flex;
-            justify-content: space-between;
+        .supplies-table {
+            margin-bottom: 20px;
         }
-        .actual-supply {
-            background-color: #e7f7e7;
-        }
-        .release-supply {
-            background-color: #f7e7e7;
-        }
-        .quantity {
-            font-weight: bold;
-            min-width: 80px;
+        .text-right {
             text-align: right;
         }
+        .text-center {
+            text-align: center;
+        }
+        
+        /* Colors for quantity and status */
         .positive {
             color: green;
+            font-weight: bold;
         }
         .negative {
             color: red;
+            font-weight: bold;
         }
         .zero {
             color: #888;
         }
-        .date {
-            font-size: 12px;
-            color: #666;
-            width: 100px;
-            text-align: right;
+        .status-confirmed {
+            color: green;
         }
+        .status-pending {
+            color: orange;
+        }
+        .view-details-btn {
+            background: #0073aa;
+            color: #fff;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .view-details-btn:hover {
+            background: #005d8c;
+        }
+        
+        /* Button styles */
         .buttons {
-            margin-top: 20px;
+            margin-top: 15px;
             text-align: center;
         }
         .button {
             background: #0073aa;
             color: #fff;
             border: none;
-            padding: 8px 16px;
+            padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             margin: 0 5px;
         }
         .button:hover {
@@ -175,67 +178,118 @@ $supplies_count = wp_count_posts('supplies')->publish;
             background: #ccc;
             cursor: not-allowed;
         }
-        .ui-accordion .ui-accordion-header {
-            padding: 10px 15px;
-            background: #f1f1f1;
-            border: 1px solid #ddd;
-            font-weight: bold;
-            cursor: pointer;
-            margin: 2px 0 0 0;
-        }
-        .ui-accordion .ui-accordion-content {
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-top: 0;
-        }
-        .summary {
-            background: #f9f9f9;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-left: 3px solid #0073aa;
-        }
-        .summary-item {
-            margin-bottom: 5px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .summary-item span:first-child {
-            font-weight: bold;
-        }
+        
+        /* Filter styles */
         .filters {
-            margin: 20px 0;
+            margin: 15px 0;
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
         }
         .filter {
             flex: 1;
-            min-width: 200px;
+            min-width: 180px;
         }
         .filter label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
             font-weight: bold;
+            font-size: 12px;
         }
         .filter select, .filter input {
             width: 100%;
-            padding: 8px;
+            padding: 5px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            font-size: 12px;
         }
+        
+        /* Loading animation */
         .loading {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,.3);
             border-radius: 50%;
             border-top-color: #fff;
             animation: spin 1s ease-in-out infinite;
-            margin-left: 10px;
+            margin-left: 8px;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        /* Duplicate marking */
+        .duplicate-row {
+            background-color: #fff8e1;
+        }
+        .duplicate-marker {
+            color: #f57f17;
+            font-size: 11px;
+            margin-right: 3px;
+        }
+        .duplicates-summary {
+            background-color: #fff8e1;
+            border-left: 4px solid #f57f17;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .duplicates-table {
+            margin-top: 10px;
+            font-size: 11px;
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fff;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            margin: 0;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #777;
+        }
+        .modal-body {
+            padding: 15px;
+        }
+        .details-section {
+            margin-bottom: 20px;
+        }
+        .details-table {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        /* Expiration date styling */
         .expired-date {
             color: red;
             font-weight: bold;
@@ -243,6 +297,38 @@ $supplies_count = wp_count_posts('supplies')->publish;
         .warning-date {
             color: orange;
             font-weight: bold;
+        }
+        
+        /* Summary styling */
+        .summary {
+            background: #f9f9f9;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-left: 3px solid #0073aa;
+            font-size: 12px;
+        }
+        .summary-item {
+            margin-bottom: 3px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .summary-item span:first-child {
+            font-weight: bold;
+        }
+        
+        /* Section filter styles */
+        .section-filter {
+            display: none; /* Hidden by default, shown only when a relevant department is selected */
+        }
+        
+        /* Department-specific section highlight */
+        .department-section-match {
+            background-color: #e8f5e9;
+        }
+        
+        /* Hidden sections */
+        .hidden-section-row {
+            display: none;
         }
     </style>
 </head>
@@ -294,6 +380,13 @@ $supplies_count = wp_count_posts('supplies')->publish;
                     ?>
                 </select>
             </div>
+            <div class="filter section-filter" id="section-filter-container">
+                <label for="section-filter">Section:</label>
+                <select id="section-filter">
+                    <option value="">All Sections</option>
+                    <!-- Section options will be populated dynamically based on department -->
+                </select>
+            </div>
             <div class="filter">
                 <label for="type-filter">Type:</label>
                 <select id="type-filter">
@@ -338,7 +431,27 @@ $supplies_count = wp_count_posts('supplies')->publish;
         var releaseSuppliesCount = 0;
         var loadedCount = 0;
         
+        // Department to Sections mapping
+        var departmentSections = {
+            "NURSING": ["Treatment Room (Clinic A)", "Ambulatory Surgery Center (ASC)"],
+            "LABORATORY": ["Clinical Chemistry", "Immunology", "Histopathology", "Clinical Microscopy", "Hematology"],
+            "PHARMACY": ["Medical Supplies", "Medicines", "Goods"],
+            "HOUSEKEEPING": ["Comfort Rooms", "Janitor's Closet", "Autoclave Room"],
+            "MAINTENANCE": ["Transport Vehicle", "Septic Vault", "Generator", "Water Tank System", "Solar", "CCTV"]
+        };
+        
         jQuery(document).ready(function($) {
+            // Initialize section filter
+            $('#department-filter').on('change', function() {
+                var department = $(this).val();
+                updateSectionFilter(department);
+            });
+            
+            // Handle both department and section filtering
+            $('#section-filter').on('change', function() {
+                filterSupplies();
+            });
+            
             $('#load-button').on('click', function() {
                 if (isLoading) return;
                 
@@ -357,7 +470,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
             });
             
             // Filter and search functionality
-            $('#search, #department-filter, #type-filter').on('input change', function() {
+            $('#search, #department-filter, #type-filter, #section-filter').on('input change', function() {
                 filterSupplies();
             });
             
@@ -376,6 +489,34 @@ $supplies_count = wp_count_posts('supplies')->publish;
             });
         });
         
+        // Function to update section filter based on department
+        function updateSectionFilter(department) {
+            var $sectionFilter = jQuery('#section-filter');
+            var $sectionContainer = jQuery('#section-filter-container');
+            
+            // Clear existing options except the first one
+            $sectionFilter.find('option:not(:first)').remove();
+            
+            // Hide by default
+            $sectionContainer.hide();
+            
+            // If department is in our mapping, show the filter and add relevant sections
+            if (department && departmentSections[department]) {
+                var sections = departmentSections[department];
+                
+                // Add section options
+                sections.forEach(function(section) {
+                    $sectionFilter.append('<option value="' + section + '">' + section + '</option>');
+                });
+                
+                // Show the section filter
+                $sectionContainer.show();
+            }
+            
+            // Reset section selection
+            $sectionFilter.val('');
+        }
+        
         function updateSummary() {
             jQuery('#loaded-count').text(loadedCount);
             jQuery('#actual-count').text(actualSuppliesCount);
@@ -386,18 +527,29 @@ $supplies_count = wp_count_posts('supplies')->publish;
             var search = jQuery('#search').val().toLowerCase();
             var department = jQuery('#department-filter').val();
             var type = jQuery('#type-filter').val();
+            var section = jQuery('#section-filter').val();
             
-            jQuery('.supply-item').each(function() {
+            jQuery('.supply-row').each(function() {
                 var $this = jQuery(this);
                 var supplyName = $this.find('.supply-name').text().toLowerCase();
                 var supplyDepartment = $this.data('department');
                 var supplyType = $this.data('type');
+                var supplySection = $this.data('section');
                 
                 var showBySearch = !search || supplyName.indexOf(search) > -1;
                 var showByDepartment = !department || supplyDepartment === department;
                 var showByType = !type || supplyType === type;
+                var showBySection = !section || supplySection === section;
                 
-                if (showBySearch && showByDepartment && showByType) {
+                // Remove highlighting first
+                $this.removeClass('department-section-match');
+                
+                // Apply highlighting for section matches when department is selected
+                if (department && supplyDepartment === department && (!section || supplySection === section)) {
+                    $this.addClass('department-section-match');
+                }
+                
+                if (showBySearch && showByDepartment && showByType && showBySection) {
                     $this.show();
                 } else {
                     $this.hide();
@@ -439,97 +591,116 @@ $supplies_count = wp_count_posts('supplies')->publish;
                         
                         updateSummary();
                         
-                        // Append items to container
+                        // Check for first batch to create table structure
+                        if (currentOffset === 0) {
+                            // Create the table structure
+                            var tableHtml = `
+                                <div class="table-container">
+                                    <div class="duplicates-summary" style="display: none;">
+                                        <h3>Duplicate Supplies Found</h3>
+                                        <div class="duplicates-list"></div>
+                                    </div>
+                                    <table class="supplies-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Name</th>
+                                                <th>Department</th>
+                                                <th>Type</th>
+                                                <th>Section</th>
+                                                <th>Price</th>
+                                                <th>Added</th>
+                                                <th>Actual Qty</th>
+                                                <th>Release Qty</th>
+                                                <th>Balance</th>
+                                                <th>Details</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="supplies-table-body"></tbody>
+                                    </table>
+                                </div>
+                            `;
+                            $('#supplies-container').html(tableHtml);
+                        }
+                        
+                        // Duplicate detection
+                        var duplicateItems = [];
+                        var departmentNameMap = {};
+                        
                         $.each(response.data.items, function(index, item) {
-                            var supplyItem = $(
-                                '<div class="supply-item" data-department="' + item.department + '" data-type="' + item.type + '">' +
-                                    '<div class="supply-header">' +
-                                        '<span class="supply-name">' + item.name + '</span>' +
-                                        '<span>ID: ' + item.id + '</span>' +
-                                    '</div>' +
-                                    '<div class="supply-details">' +
-                                        '<div class="supply-meta">' +
-                                            '<span><strong>Department:</strong> ' + item.department + '</span>' +
-                                            '<span><strong>Type:</strong> ' + item.type + '</span>' +
-                                            '<span><strong>Section:</strong> ' + item.section + '</span>' +
-                                            '<span><strong>Date Added:</strong> ' + item.purchased_date + '</span>' +
-                                            '<span><strong>Price Per Unit:</strong> ₱' + item.price_per_unit + '</span>' +
-                                        '</div>' +
-                                        '<div class="sub-items">' +
-                                            '<div class="sub-item-header">Actual Supplies (' + item.actual_supplies.length + ')</div>' +
-                                            '<div id="actual-supplies-' + item.id + '"></div>' +
-                                        '</div>' +
-                                        '<div class="sub-items">' +
-                                            '<div class="sub-item-header">Released Supplies (' + item.release_supplies.length + ')</div>' +
-                                            '<div id="release-supplies-' + item.id + '"></div>' +
-                                        '</div>' +
-                                        '<div class="summary">' +
-                                            '<div class="summary-item">' +
-                                                '<span>Total Actual Supplies:</span>' +
-                                                '<span>' + item.total_actual_quantity + '</span>' +
-                                            '</div>' +
-                                            '<div class="summary-item">' +
-                                                '<span>Total Released Supplies:</span>' +
-                                                '<span>' + item.total_release_quantity + '</span>' +
-                                            '</div>' +
-                                            '<div class="summary-item">' +
-                                                '<span>Current Balance:</span>' +
-                                                '<span class="' + (item.balance > 0 ? 'positive' : (item.balance < 0 ? 'negative' : 'zero')) + '">' + 
-                                                    item.balance + 
-                                                '</span>' +
-                                            '</div>' +
-                                        '</div>' +
-                                    '</div>' +
-                                '</div>'
-                            );
+                            var nameLower = item.name.toLowerCase();
+                            var key = item.department + '|' + nameLower;
                             
-                            $('#supplies-container').append(supplyItem);
-                            
-                            // Add actual supplies
-                            $.each(item.actual_supplies, function(i, actual) {
-                                var expiryClass = '';
+                            if (departmentNameMap[key]) {
+                                // Mark current item as duplicate
+                                item.isDuplicate = true;
                                 
-                                // Check for expiration dates
-                                if (actual.expiry_date) {
-                                    var expDate = new Date(actual.expiry_date);
-                                    var today = new Date();
-                                    
-                                    // Add 6 months to today
-                                    var sixMonthsLater = new Date();
-                                    sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
-                                    
-                                    if (expDate < today) {
-                                        expiryClass = 'expired-date';
-                                    } else if (expDate < sixMonthsLater) {
-                                        expiryClass = 'warning-date';
-                                    }
+                                // Mark the first occurrence as duplicate
+                                if (!departmentNameMap[key].isDuplicate) {
+                                    departmentNameMap[key].isDuplicate = true;
+                                    duplicateItems.push(departmentNameMap[key]);
                                 }
                                 
-                                var actualItem = $('<div class="sub-item actual-supply">' +
-                                    '<div>' + actual.id + ': ' + (actual.lot_number ? 'Lot#: ' + actual.lot_number : '') + 
-                                    (actual.expiry_date ? ' <span class="' + expiryClass + '">Exp: ' + actual.expiry_date + '</span>' : '') + '</div>' +
-                                    '<div class="date">' + actual.date_added + '</div>' +
-                                    '<div class="quantity positive">' + actual.quantity + '</div>' +
-                                '</div>');
-                                
-                                $('#actual-supplies-' + item.id).append(actualItem);
+                                duplicateItems.push(item);
+                            } else {
+                                departmentNameMap[key] = item;
+                            }
+                        });
+                        
+                        // Add each item as a row in the table
+                        $.each(response.data.items, function(index, item) {
+                            var balanceClass = item.balance > 0 ? 'positive' : (item.balance < 0 ? 'negative' : 'zero');
+                            var rowClass = item.isDuplicate ? 'duplicate-row' : '';
+                            
+                            // Add each item as a row in the table
+                            var rowHtml = `
+                                <tr class="supply-row ${rowClass}" data-id="${item.id}" data-department="${item.department}" data-type="${item.type}" data-section="${item.section}">
+                                    <td>${item.id}</td>
+                                    <td class="supply-name">${item.isDuplicate ? '<span class="duplicate-marker">⚠️</span>' : ''} ${item.name}</td>
+                                    <td>${item.department}</td>
+                                    <td>${item.type}</td>
+                                    <td>${item.section}</td>
+                                    <td>₱${item.price_per_unit}</td>
+                                    <td>${item.purchased_date}</td>
+                                    <td class="text-right">${item.total_actual_quantity}</td>
+                                    <td class="text-right">${item.total_release_quantity}</td>
+                                    <td class="text-right ${balanceClass}">${item.balance}</td>
+                                    <td><button class="view-details-btn" data-id="${item.id}">View</button></td>
+                                </tr>
+                            `;
+                            
+                            $('#supplies-table-body').append(rowHtml);
+                        });
+                        
+                        // Update duplicates summary if found
+                        if (duplicateItems.length > 0 && currentOffset === 0) {
+                            $('.duplicates-summary').show();
+                            var duplicateHtml = '<table class="duplicates-table"><thead><tr><th>ID</th><th>Name</th><th>Department</th><th>Type</th><th>Section</th></tr></thead><tbody>';
+                            
+                            $.each(duplicateItems, function(index, item) {
+                                duplicateHtml += `
+                                    <tr>
+                                        <td>${item.id}</td>
+                                        <td>${item.name}</td>
+                                        <td>${item.department}</td>
+                                        <td>${item.type}</td>
+                                        <td>${item.section}</td>
+                                    </tr>
+                                `;
                             });
                             
-                            // Add release supplies
-                            $.each(item.release_supplies, function(i, release) {
-                                var releaseItem = $('<div class="sub-item release-supply">' +
-                                    '<div>' + release.id + ': To: ' + release.department + (release.confirmed ? ' (Confirmed)' : ' (Pending)') + '</div>' +
-                                    '<div class="date">' + release.release_date + '</div>' +
-                                    '<div class="quantity negative">' + release.quantity + '</div>' +
-                                '</div>');
-                                
-                                $('#release-supplies-' + item.id).append(releaseItem);
-                            });
-                        });
+                            duplicateHtml += '</tbody></table>';
+                            $('.duplicates-list').html(duplicateHtml);
+                        }
+                        
+                        // After adding all rows, check if we need to apply the current filter
+                        if ($('#department-filter').val() || $('#section-filter').val() || $('#type-filter').val() || $('#search').val()) {
+                            filterSupplies();
+                        }
                         
                         // Move to next batch
                         currentOffset += batchSize;
-                        setTimeout(loadNextBatch, 500); // Small delay to prevent browser freezing
+                        setTimeout(loadNextBatch, 500);
                     } else {
                         isLoading = false;
                         $('#load-button').prop('disabled', false);
