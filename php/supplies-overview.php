@@ -548,26 +548,36 @@ $supplies_count = wp_count_posts('supplies')->publish;
 </body>
 </html>
 <?php
-// Add the AJAX handler in WordPress
-add_action('wp_ajax_load_supplies_batch', 'load_supplies_batch');
+// The issue is that the AJAX handler is being defined in the same file that outputs HTML
+// This causes WordPress to not recognize the function when the AJAX request is made
+// Solution: Move the AJAX handler to a separate file or add it directly to functions.php
+
+// Instead of adding the action here, include it in a file that's loaded on admin-ajax.php requests
+// Remove this line: add_action('wp_ajax_load_supplies_batch', 'load_supplies_batch');
+
+// Create and load a separate file for the AJAX handler
+$ajax_handler_path = dirname(__FILE__) . '/supplies-ajax-handler.php';
+file_put_contents($ajax_handler_path, '<?php
+// AJAX handler for supplies overview
+add_action("wp_ajax_load_supplies_batch", "load_supplies_batch");
 
 function load_supplies_batch() {
     // Verify nonce
-    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'supplies_overview_nonce')) {
-        wp_send_json_error('Security check failed');
+    if (!isset($_POST["nonce"]) || !wp_verify_nonce($_POST["nonce"], "supplies_overview_nonce")) {
+        wp_send_json_error("Security check failed");
     }
     
-    $offset = isset($_POST['offset']) ? intval($_POST['offset']) : 0;
-    $batch_size = isset($_POST['batch_size']) ? intval($_POST['batch_size']) : 100;
+    $offset = isset($_POST["offset"]) ? intval($_POST["offset"]) : 0;
+    $batch_size = isset($_POST["batch_size"]) ? intval($_POST["batch_size"]) : 100;
     
     // Get supplies batch
     $args = array(
-        'post_type' => 'supplies',
-        'posts_per_page' => $batch_size,
-        'offset' => $offset,
-        'orderby' => 'title',
-        'order' => 'ASC',
-        'post_status' => 'publish'
+        "post_type" => "supplies",
+        "posts_per_page" => $batch_size,
+        "offset" => $offset,
+        "orderby" => "title",
+        "order" => "ASC",
+        "post_status" => "publish"
     );
     
     $supplies_query = new WP_Query($args);
@@ -582,33 +592,33 @@ function load_supplies_batch() {
             
             // Get basic supply information
             $supply = array(
-                'id' => $supply_id,
-                'name' => get_the_title(),
-                'department' => get_field('department', $supply_id) ?: 'Unknown',
-                'type' => get_field('type', $supply_id) ?: 'Unknown',
-                'section' => get_field('section', $supply_id) ?: 'None',
-                'purchased_date' => get_field('purchased_date', $supply_id) ?: 'Unknown',
-                'price_per_unit' => number_format(get_field('price_per_unit', $supply_id) ?: 0, 2),
-                'actual_supplies' => array(),
-                'release_supplies' => array(),
-                'total_actual_quantity' => 0,
-                'total_release_quantity' => 0
+                "id" => $supply_id,
+                "name" => get_the_title(),
+                "department" => get_field("department", $supply_id) ?: "Unknown",
+                "type" => get_field("type", $supply_id) ?: "Unknown",
+                "section" => get_field("section", $supply_id) ?: "None",
+                "purchased_date" => get_field("purchased_date", $supply_id) ?: "Unknown",
+                "price_per_unit" => number_format(get_field("price_per_unit", $supply_id) ?: 0, 2),
+                "actual_supplies" => array(),
+                "release_supplies" => array(),
+                "total_actual_quantity" => 0,
+                "total_release_quantity" => 0
             );
             
             // Get related actual supplies
             $actual_args = array(
-                'post_type' => 'actualsupplies',
-                'posts_per_page' => -1,
-                'meta_query' => array(
+                "post_type" => "actualsupplies",
+                "posts_per_page" => -1,
+                "meta_query" => array(
                     array(
-                        'key' => 'supply_name',
-                        'value' => $supply_id,
-                        'compare' => '='
+                        "key" => "supply_name",
+                        "value" => $supply_id,
+                        "compare" => "="
                     )
                 ),
-                'orderby' => 'meta_value',
-                'meta_key' => 'date_added',
-                'order' => 'DESC'
+                "orderby" => "meta_value",
+                "meta_key" => "date_added",
+                "order" => "DESC"
             );
             
             $actual_query = new WP_Query($actual_args);
@@ -617,17 +627,17 @@ function load_supplies_batch() {
                 while ($actual_query->have_posts()) {
                     $actual_query->the_post();
                     $actual_id = get_the_ID();
-                    $quantity = floatval(get_field('quantity', $actual_id));
+                    $quantity = floatval(get_field("quantity", $actual_id));
                     
-                    $supply['actual_supplies'][] = array(
-                        'id' => $actual_id,
-                        'quantity' => $quantity,
-                        'date_added' => get_field('date_added', $actual_id) ?: 'Unknown',
-                        'lot_number' => get_field('lot_number', $actual_id) ?: '',
-                        'expiry_date' => get_field('expiry_date', $actual_id) ?: ''
+                    $supply["actual_supplies"][] = array(
+                        "id" => $actual_id,
+                        "quantity" => $quantity,
+                        "date_added" => get_field("date_added", $actual_id) ?: "Unknown",
+                        "lot_number" => get_field("lot_number", $actual_id) ?: "",
+                        "expiry_date" => get_field("expiry_date", $actual_id) ?: ""
                     );
                     
-                    $supply['total_actual_quantity'] += $quantity;
+                    $supply["total_actual_quantity"] += $quantity;
                     $actual_count++;
                 }
                 wp_reset_postdata();
@@ -635,18 +645,18 @@ function load_supplies_batch() {
             
             // Get related release supplies
             $release_args = array(
-                'post_type' => 'releasesupplies',
-                'posts_per_page' => -1,
-                'meta_query' => array(
+                "post_type" => "releasesupplies",
+                "posts_per_page" => -1,
+                "meta_query" => array(
                     array(
-                        'key' => 'supply_name',
-                        'value' => $supply_id,
-                        'compare' => '='
+                        "key" => "supply_name",
+                        "value" => $supply_id,
+                        "compare" => "="
                     )
                 ),
-                'orderby' => 'meta_value',
-                'meta_key' => 'release_date',
-                'order' => 'DESC'
+                "orderby" => "meta_value",
+                "meta_key" => "release_date",
+                "order" => "DESC"
             );
             
             $release_query = new WP_Query($release_args);
@@ -655,24 +665,24 @@ function load_supplies_batch() {
                 while ($release_query->have_posts()) {
                     $release_query->the_post();
                     $release_id = get_the_ID();
-                    $quantity = floatval(get_field('quantity', $release_id));
+                    $quantity = floatval(get_field("quantity", $release_id));
                     
-                    $supply['release_supplies'][] = array(
-                        'id' => $release_id,
-                        'quantity' => $quantity,
-                        'release_date' => get_field('release_date', $release_id) ?: 'Unknown',
-                        'department' => get_field('department', $release_id) ?: 'Unknown',
-                        'confirmed' => get_field('confirmed', $release_id) ? true : false
+                    $supply["release_supplies"][] = array(
+                        "id" => $release_id,
+                        "quantity" => $quantity,
+                        "release_date" => get_field("release_date", $release_id) ?: "Unknown",
+                        "department" => get_field("department", $release_id) ?: "Unknown",
+                        "confirmed" => get_field("confirmed", $release_id) ? true : false
                     );
                     
-                    $supply['total_release_quantity'] += $quantity;
+                    $supply["total_release_quantity"] += $quantity;
                     $release_count++;
                 }
                 wp_reset_postdata();
             }
             
             // Calculate balance
-            $supply['balance'] = $supply['total_actual_quantity'] - $supply['total_release_quantity'];
+            $supply["balance"] = $supply["total_actual_quantity"] - $supply["total_release_quantity"];
             
             $items[] = $supply;
         }
@@ -680,9 +690,23 @@ function load_supplies_batch() {
     }
     
     wp_send_json_success(array(
-        'items' => $items,
-        'actual_count' => $actual_count,
-        'release_count' => $release_count
+        "items" => $items,
+        "actual_count" => $actual_count,
+        "release_count" => $release_count
     ));
+}');
+
+// Create a function to register our AJAX handler through the WordPress admin_init hook
+function register_supplies_ajax_handler() {
+    require_once(dirname(__FILE__) . '/supplies-ajax-handler.php');
 }
+
+// Add this function to WordPress's init hook
+add_action('init', 'register_supplies_ajax_handler');
+
+// For immediate testing, include the handler file here too
+require_once(dirname(__FILE__) . '/supplies-ajax-handler.php');
+
+// This comment line indicates we're removing the original function from this file
+// Original function load_supplies_batch() removed to prevent duplication
 ?>
