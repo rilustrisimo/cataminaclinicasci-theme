@@ -650,6 +650,8 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 $('#reset-filters').prop('disabled', false);
                 $('#expand-all, #collapse-all').prop('disabled', false);
                 $('#status').text('All supplies loaded successfully.' + filterMsg);
+                // Make sure progress bar shows 100% when complete
+                $('#progress-bar').css('width', '100%').text('100%');
                 return;
             }
             
@@ -799,7 +801,9 @@ $supplies_count = wp_count_posts('supplies')->publish;
                             currentOffset += batchSize;
                             setTimeout(loadNextBatch, 500);
                         } else {
-                            // All done or no results
+                            // All done or no results - FIXED: Ensure progress bar shows 100% when complete
+                            $('#progress-bar').css('width', '100%').text('100%');
+                            
                             isLoading = false;
                             $('#load-button').prop('disabled', false);
                             $('#apply-filters').prop('disabled', false);
