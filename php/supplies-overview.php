@@ -419,6 +419,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
             var progress = Math.round((currentOffset / suppliesCount) * 100);
             $('#progress-bar').css('width', progress + '%').text(progress + '%');
             $('#status').html('Loading supplies... (' + currentOffset + ' of ' + suppliesCount + ') <span class="loading"></span>');
+            var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
             
             $.ajax({
                 url: ajaxurl,
