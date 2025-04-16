@@ -456,12 +456,6 @@ $supplies_count = wp_count_posts('supplies')->publish;
         <div class="status" id="status">Ready to load supplies data...</div>
         
         <div id="supplies-container"></div>
-        
-        <div class="buttons">
-            <button id="load-button" class="button">Load Supplies Data</button>
-            <button id="expand-all" class="button" disabled>Expand All</button>
-            <button id="collapse-all" class="button" disabled>Collapse All</button>
-        </div>
     </div>
 
     <script>
