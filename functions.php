@@ -91,3 +91,5 @@ function enqueue_dom_fix_styles() {
     );
 }
 add_action('wp_enqueue_scripts', 'enqueue_dom_fix_styles', 100); // Add after other styles
+
+include_once get_template_directory() . '/php/supplies-overview-link.php';
