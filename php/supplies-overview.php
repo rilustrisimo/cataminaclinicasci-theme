@@ -1118,7 +1118,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
             // Get the headers (excluding the Details column)
             $('.supplies-table thead th').each(function(index, th) {
                 if (index < $('.supplies-table thead th').length - 1) { // Skip the last column (Details)
-                    headers.push($(th).text());
+                    headers.push($(th).text().trim());
                 }
             });
             rows.push(headers);
@@ -1128,24 +1128,30 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 var row = [];
                 // Get all cells except the last one (Details column)
                 $(this).find('td').each(function(index, td) {
-                    if (index < $(this).find('td').length - 1) { // Skip the last column (Details)
-                        var text = $(td).clone().children().remove().end().text().trim();
-                        // Handle duplicate markers
+                    if (index < $(this).parent().find('td').length - 1) { // Skip the last column (Details)
+                        // For cells with special content (like duplicate markers)
                         if (index === 1 && $(td).find('.duplicate-marker').length > 0) {
-                            text = text.replace('⚠️', '').trim() + ' (Duplicate)';
+                            // Handle duplicate markers - get text and add (Duplicate) suffix
+                            var nameText = $(td).text().replace('⚠️', '').trim();
+                            row.push('"' + nameText + ' (Duplicate)' + '"');
+                        } else {
+                            // For normal cells, get text content without HTML
+                            var cellText = $(td).text().trim();
+                            // Replace any double quotes in the content with two double quotes for CSV
+                            row.push('"' + cellText.replace(/"/g, '""') + '"');
                         }
-                        // Escape CSV values properly
-                        row.push('"' + text.replace(/"/g, '""') + '"');
                     }
                 });
                 rows.push(row);
             });
 
-            // Format rows into CSV content
-            var csvContent = rows.map(e => e.join(",")).join("\n");
+            // Format rows into CSV content with UTF-8 BOM for Excel compatibility
+            var csvContent = '\ufeff' + rows.map(e => e.join(",")).join("\n");
             
             // Create a blob and download link
             var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            // Create downloadable link
             var link = document.createElement("a");
             var url = URL.createObjectURL(blob);
             
@@ -1159,7 +1165,6 @@ $supplies_count = wp_count_posts('supplies')->publish;
             // Set up and click the download link
             link.setAttribute("href", url);
             link.setAttribute("download", filename);
-            link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
