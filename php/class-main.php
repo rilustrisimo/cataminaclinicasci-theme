@@ -3452,7 +3452,7 @@ class Theme {
                 'value' => $department,
                 'compare' => '='
             );
-        } else if (!current_user_can('manage_options') && !in_array('um_accounting', wp_get_current_user()->roles) && $user_id != 4) {
+        } else if (!current_user_can('manage_options') && !in_array('um_accounting', wp_get_current_user()->roles)) {
             $department_id = $user_id;
             
             $department_name = '';
@@ -3666,8 +3666,7 @@ class Theme {
         $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
         
         $has_advanced_access = current_user_can('manage_options') || 
-                               in_array('um_accounting', wp_get_current_user()->roles) || 
-                               $user_id == 4;
+                               in_array('um_accounting', wp_get_current_user()->roles);
         
         $meta_query = array(
             'relation' => 'OR',
