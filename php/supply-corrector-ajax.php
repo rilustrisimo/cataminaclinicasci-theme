@@ -674,8 +674,13 @@ function check_supply_discrepancies() {
         $matches = array_slice($matches, $offset, $batch_size);
     }
 
-    $results = array();
-
+    // Get previous consolidated data if available from localStorage
+    $previous_consolidated = isset($_POST['previous_consolidated']) ? json_decode(stripslashes($_POST['previous_consolidated']), true) : [];
+    
+    // Initialize consolidated array using previous data or create new one
+    $consolidated = is_array($previous_consolidated) ? $previous_consolidated : [];
+    
+    // First pass: Collect all supply IDs and their quantities
     foreach ($matches as $match) {
         if (!isset($match['supply_id']) || !isset($match['csv_data'])) {
             continue;
@@ -683,6 +688,59 @@ function check_supply_discrepancies() {
 
         $supply_id = $match['supply_id'];
         $csv_data = $match['csv_data'];
+        $csv_count = (float)$csv_data['actual_count'];
+        
+        if (isset($consolidated[$supply_id])) {
+            // Add the CSV count to the existing entry
+            $consolidated[$supply_id]['csv_count'] += $csv_count;
+            
+            // If lot numbers are different and both exist, combine them
+            if (!empty($csv_data['lot_number']) && !empty($consolidated[$supply_id]['csv_data']['lot_number']) && 
+                $csv_data['lot_number'] !== $consolidated[$supply_id]['csv_data']['lot_number']) {
+                $consolidated[$supply_id]['csv_data']['lot_number'] .= ', ' . $csv_data['lot_number'];
+            }
+            // If current entry doesn't have lot number but new one does
+            else if (!empty($csv_data['lot_number']) && empty($consolidated[$supply_id]['csv_data']['lot_number'])) {
+                $consolidated[$supply_id]['csv_data']['lot_number'] = $csv_data['lot_number'];
+            }
+            
+            // Keep the earliest expiry date if both exist
+            if (!empty($csv_data['expiry_date']) && !empty($consolidated[$supply_id]['csv_data']['expiry_date'])) {
+                $current_expiry = strtotime($consolidated[$supply_id]['csv_data']['expiry_date']);
+                $new_expiry = strtotime($csv_data['expiry_date']);
+                
+                if ($new_expiry < $current_expiry) {
+                    $consolidated[$supply_id]['csv_data']['expiry_date'] = $csv_data['expiry_date'];
+                }
+            }
+            // If current entry doesn't have expiry date but new one does
+            else if (!empty($csv_data['expiry_date']) && empty($consolidated[$supply_id]['csv_data']['expiry_date'])) {
+                $consolidated[$supply_id]['csv_data']['expiry_date'] = $csv_data['expiry_date'];
+            }
+        } else {
+            // Create new entry for this supply_id
+            $consolidated[$supply_id] = [
+                'supply_id' => $supply_id,
+                'csv_count' => $csv_count,
+                'csv_data' => $csv_data
+            ];
+        }
+    }
+
+    // Second pass: Calculate discrepancies for each consolidated supply
+    $results = [];
+    
+    // Store supply IDs to ensure we don't have duplicates in results
+    $processed_ids = [];
+    
+    foreach ($consolidated as $supply_id => $data) {
+        // Skip if we've already processed this supply ID
+        if (in_array($supply_id, $processed_ids)) {
+            continue;
+        }
+        
+        // Add to processed list
+        $processed_ids[] = $supply_id;
         
         // Get current balance using the same logic as supplies-ajax-handler.php
         $actual_quantity = 0;
@@ -704,9 +762,6 @@ function check_supply_discrepancies() {
         foreach ($actual_supplies as $actual) {
             $quantity = (float)get_post_meta($actual->ID, 'quantity', true);
             $actual_quantity += $quantity;
-            
-            // No longer tracking expired quantities separately
-            // Expired items are now included in the total count
         }
 
         // Get release supplies
@@ -729,9 +784,9 @@ function check_supply_discrepancies() {
             }
         }
 
-        // Calculate current balance - now we don't subtract expired_quantity
+        // Calculate current balance
         $current_balance = $actual_quantity - $release_quantity;
-        $csv_count = (float)$csv_data['actual_count'];
+        $csv_count = $data['csv_count'];
         
         // Find the absolute and percentage discrepancy
         $discrepancy = $csv_count - $current_balance;
@@ -746,17 +801,23 @@ function check_supply_discrepancies() {
             'csv_count' => $csv_count,
             'discrepancy' => $discrepancy,
             'percent_discrepancy' => $percent_discrepancy,
-            'csv_data' => $csv_data
+            'csv_data' => $data['csv_data']
         );
     }
 
+    // Check if this is the final batch
+    $is_final_batch = isset($_POST['is_final_batch']) ? boolval($_POST['is_final_batch']) : false;
+
     // Get the offset from the request
     $offset = isset($_POST['offset']) ? intval($_POST['offset']) : 0;
+    $batch_count = count($matches);
     
     wp_send_json_success(array(
         'results' => $results,
-        'offset' => $offset + count($matches),
-        'has_more' => false // Client will determine if there are more items
+        'offset' => $offset + $batch_count,
+        'has_more' => !$is_final_batch,
+        'consolidated' => $consolidated,
+        'total_consolidated' => count($consolidated)
     ));
 }
 

@@ -1312,10 +1312,13 @@ $theme = new Theme();
                         matches: JSON.stringify(matches)
                     },
                     success: function(response) {
-                        hideLoading('#step-2');
-                        if (response.success) {
+if (response.success) {
                             $('#step-2').addClass('hidden');
                             $('#step-3').removeClass('hidden');
+                            
+                            // Consolidate items with the same supply_id before checking discrepancies
+                            consolidateMatchedSupplies();
+                            
                             checkDiscrepancies();
                         } else {
                             showStatus(response.data, 'error');
@@ -1327,6 +1330,82 @@ $theme = new Theme();
                     }
                 });
             });
+            
+            /**
+             * Consolidate supplies with the same supply_id in localStorage
+             * Will sum actual_count values and use the nearest expiry date
+             */
+            function consolidateMatchedSupplies() {
+                try {
+                    // Get the matches from localStorage
+                    const matchesJson = localStorage.getItem('supply_corrector_matches');
+                    if (!matchesJson) return;
+                    
+                    const matches = JSON.parse(matchesJson);
+                    const consolidated = {};
+                    
+                    // First pass: Group items by supply_id
+                    matches.forEach(match => {
+                        const supplyId = match.supply_id;
+                        const csvData = match.csv_data;
+                        const actualCount = parseFloat(csvData.actual_count) || 0;
+                        const expiryDate = csvData.expiry_date || '';
+                        
+                        if (consolidated[supplyId]) {
+                            // Add to existing entry
+                            consolidated[supplyId].csv_data.actual_count = 
+                                (parseFloat(consolidated[supplyId].csv_data.actual_count) || 0) + actualCount;
+                            
+                            // Keep the earliest expiry date if both exist
+                            if (expiryDate && consolidated[supplyId].csv_data.expiry_date) {
+                                if (new Date(expiryDate) < new Date(consolidated[supplyId].csv_data.expiry_date)) {
+                                    consolidated[supplyId].csv_data.expiry_date = expiryDate;
+                                }
+                            } else if (expiryDate) {
+                                // Use this expiry date if the consolidated one doesn't have one
+                                consolidated[supplyId].csv_data.expiry_date = expiryDate;
+                            }
+                            
+                            // Keep lot numbers if different
+                            if (csvData.lot_number && !consolidated[supplyId].csv_data.lot_number) {
+                                consolidated[supplyId].csv_data.lot_number = csvData.lot_number;
+                            } else if (csvData.lot_number && csvData.lot_number !== consolidated[supplyId].csv_data.lot_number) {
+                                consolidated[supplyId].csv_data.lot_number += ', ' + csvData.lot_number;
+                            }
+                            
+                            // Keep status if not already set
+                            if (csvData.states__status && !consolidated[supplyId].csv_data.states__status) {
+                                consolidated[supplyId].csv_data.states__status = csvData.states__status;
+                            }
+                            
+                            // Keep serial if not already set
+                            if (csvData.serial && !consolidated[supplyId].csv_data.serial) {
+                                consolidated[supplyId].csv_data.serial = csvData.serial;
+                            }
+                        } else {
+                            // Create new entry
+                            consolidated[supplyId] = {
+                                supply_id: supplyId,
+                                supply_name: match.supply_name,
+                                csv_data: {
+                                    ...csvData,
+                                    actual_count: actualCount.toString()
+                                }
+                            };
+                        }
+                    });
+                    
+                    // Convert back to array
+                    const consolidatedArray = Object.values(consolidated);
+                    
+                    // Store the consolidated data back to localStorage
+                    localStorage.setItem('supply_corrector_matches', JSON.stringify(consolidatedArray));
+                    
+                    console.log('Consolidated ' + matches.length + ' items into ' + consolidatedArray.length + ' unique supplies');
+                } catch (e) {
+                    console.error('Error consolidating matched supplies:', e);
+                }
+            }
             
             function checkDiscrepancies(offset = 0) {
                 if (offset === 0) {
@@ -1513,10 +1592,41 @@ $theme = new Theme();
                 const low = $('.discrepancy-low').length;
                 const high = $('.discrepancy-high').length;
                 
+                // Calculate consolidated items
+                let consolidatedCount = 0;
+                try {
+                    const matchesJson = localStorage.getItem('supply_corrector_matches');
+                    if (matchesJson) {
+                        const originalMatches = JSON.parse(localStorage.getItem('supply_corrector_csv_data')).csv_data.length || 0;
+                        const consolidatedMatches = JSON.parse(matchesJson).length;
+                        consolidatedCount = originalMatches - consolidatedMatches;
+                    }
+                } catch (e) {
+                    console.error("Error calculating consolidated items:", e);
+                }
+                
                 $('#total-items').text(total);
                 $('#matching-items').text(matching);
                 $('#low-items').text(low);
                 $('#high-items').text(high);
+                
+                // Add consolidated count to the summary if any items were consolidated
+                if (consolidatedCount > 0) {
+                    // Check if the consolidated stat already exists
+                    if ($('#consolidated-items').length === 0) {
+                        // Create new stat element and add to discrepancy summary
+                        const consolidatedStat = `
+                            <div class="discrepancy-stat">
+                                <div class="discrepancy-stat-value" id="consolidated-items">${consolidatedCount}</div>
+                                <div class="discrepancy-stat-label">Consolidated Items</div>
+                            </div>
+                        `;
+                        $('.discrepancy-summary').append(consolidatedStat);
+                    } else {
+                        // Just update the existing stat
+                        $('#consolidated-items').text(consolidatedCount);
+                    }
+                }
             }
             
             // Discrepancy filtering
