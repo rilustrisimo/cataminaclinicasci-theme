@@ -93,15 +93,22 @@ function enqueue_dom_fix_styles() {
 add_action('wp_enqueue_scripts', 'enqueue_dom_fix_styles', 100); // Add after other styles
 
 include_once get_template_directory() . '/php/supplies-overview-link.php';
+include_once get_template_directory() . '/php/supply-corrector-link.php';
 
 /**
- * Register AJAX handler for supplies overview
- * This ensures the handler is available for AJAX requests
+ * Register AJAX handlers for supplies overview and corrector
+ * This ensures the handlers are available for AJAX requests
  */
-function include_supplies_overview_ajax_handler() {
-    $ajax_handler_path = get_template_directory() . '/php/supplies-ajax-handler.php';
-    if (file_exists($ajax_handler_path)) {
-        require_once($ajax_handler_path);
+function include_supplies_handlers() {
+    $overview_handler_path = get_template_directory() . '/php/supplies-ajax-handler.php';
+    $corrector_handler_path = get_template_directory() . '/php/supply-corrector-ajax.php';
+    
+    if (file_exists($overview_handler_path)) {
+        require_once($overview_handler_path);
+    }
+    
+    if (file_exists($corrector_handler_path)) {
+        require_once($corrector_handler_path);
     }
 }
-add_action('init', 'include_supplies_overview_ajax_handler');
+add_action('init', 'include_supplies_handlers');

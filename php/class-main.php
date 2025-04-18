@@ -3440,7 +3440,7 @@ class Theme {
             );
         }
         
-        if ($department !== 'ALL' && !current_user_can('manage_options') && !in_array('um_accounting', wp_get_current_user()->roles) && $user_id != 4) {
+        if ($department !== 'ALL' && !current_user_can('manage_options') && !in_array('um_accounting', wp_get_current_user()->roles)) {
             $meta_query[] = array(
                 'key' => 'department',
                 'value' => $department,
