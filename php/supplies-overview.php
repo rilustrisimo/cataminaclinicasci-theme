@@ -448,6 +448,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
         <div style="margin: 15px 0;">
             <button id="apply-filters" class="button">Apply Filters</button>
             <button id="reset-filters" class="button">Reset Filters</button>
+            <button id="export-csv" class="button" style="background: #2e7d32;" disabled>Export to CSV</button>
         </div>
         
         <div class="progress-container">
@@ -555,6 +556,11 @@ $supplies_count = wp_count_posts('supplies')->publish;
             // Initialize as accordion
             $(document).on('click', '.supply-header', function() {
                 $(this).next('.supply-details').slideToggle();
+            });
+
+            // Export to CSV button functionality
+            $('#export-csv').on('click', function() {
+                exportTableToCSV();
             });
         });
         
@@ -861,8 +867,12 @@ $supplies_count = wp_count_posts('supplies')->publish;
                             
                             if (loadedCount === 0) {
                                 $('#status').text('No supplies found matching your filters.' + filterMsg);
+                                // Disable export button if no results found
+                                $('#export-csv').prop('disabled', true);
                             } else {
                                 $('#status').text('All matching supplies loaded successfully.' + filterMsg);
+                                // Enable export button once data is fully loaded
+                                $('#export-csv').prop('disabled', false);
                             }
                         }
                     } else {
@@ -1093,10 +1103,66 @@ $supplies_count = wp_count_posts('supplies')->publish;
             var pendingCount = 0;
             releaseSupplies.forEach(function(release) {
                 if (!release.confirmed) {
-                    pendingCount += release.quantity;
+                    pendingCount += parseFloat(release.quantity);
                 }
             });
             return pendingCount;
+        }
+
+        // Export to CSV functionality
+        function exportTableToCSV() {
+            var $ = jQuery;
+            var rows = [];
+            var headers = [];
+
+            // Get the headers (excluding the Details column)
+            $('.supplies-table thead th').each(function(index, th) {
+                if (index < $('.supplies-table thead th').length - 1) { // Skip the last column (Details)
+                    headers.push($(th).text());
+                }
+            });
+            rows.push(headers);
+
+            // Get all visible rows from the table (respecting current filters)
+            $('.supplies-table tbody tr:visible').each(function() {
+                var row = [];
+                // Get all cells except the last one (Details column)
+                $(this).find('td').each(function(index, td) {
+                    if (index < $(this).find('td').length - 1) { // Skip the last column (Details)
+                        var text = $(td).clone().children().remove().end().text().trim();
+                        // Handle duplicate markers
+                        if (index === 1 && $(td).find('.duplicate-marker').length > 0) {
+                            text = text.replace('⚠️', '').trim() + ' (Duplicate)';
+                        }
+                        // Escape CSV values properly
+                        row.push('"' + text.replace(/"/g, '""') + '"');
+                    }
+                });
+                rows.push(row);
+            });
+
+            // Format rows into CSV content
+            var csvContent = rows.map(e => e.join(",")).join("\n");
+            
+            // Create a blob and download link
+            var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement("a");
+            var url = URL.createObjectURL(blob);
+            
+            // Set the filename with current date
+            var now = new Date();
+            var filename = 'supplies_export_' + 
+                now.getFullYear() + '-' + 
+                String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(now.getDate()).padStart(2, '0') + '.csv';
+            
+            // Set up and click the download link
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>

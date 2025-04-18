@@ -1206,14 +1206,15 @@ $theme = new Theme();
             });
             
             function updateMatchStats() {
-                // Count the unique items that have matches rather than the total number of matches
-                const total = $('.match-item').length;
-                const matchedItems = $('.match-item.has-matches').length;
-                const unmatched = $('.match-item.no-matches').length;
+                // Count all match items in step-2, including those without matches
+                const total = $('#step-2 .match-results .match-item').length;
+                const matchedItems = $('#step-2 .match-results .match-item.has-matches').length;
+                const unmatched = $('#step-2 .match-results .match-item.no-matches').length;
+                // Count ALL selected match options on the page
                 const selected = $('.match-option.selected').length;
                 
                 $('#total-records').text(total);
-                $('#matched-records').text(matchedItems); // This now counts items with matches, not total matches
+                $('#matched-records').text(matchedItems); 
                 $('#unmatched-records').text(unmatched);
                 $('#selected-matches').text(selected);
                 
@@ -1222,7 +1223,7 @@ $theme = new Theme();
                 // Enable the button if:
                 // - All items with matches have selections, OR
                 // - Allow partial matches is checked AND at least one match is selected
-                const allMatchedSelected = matchedItems === $('.match-item.has-matches:has(.match-option.selected)').length;
+                const allMatchedSelected = matchedItems === $('#step-2 .match-results .match-item.has-matches:has(.match-option.selected)').length;
                 const someSelected = selected > 0;
                 
                 $('#confirm-matches').prop('disabled', !(allMatchedSelected || (allowPartial && someSelected)));
