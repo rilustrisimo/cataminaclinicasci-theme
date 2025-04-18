@@ -640,7 +640,7 @@ $theme = new Theme();
                     </div>
                     <div class="filters">
                         <div class="filter-control">
-                            <label for="match-filter">Show:</label>
+                            <label for="match-filter">(<span id="filter-count"></span>) Show:</label>
                             <select id="match-filter">
                                 <option value="all">All Records</option>
                                 <option value="matched">With Matches</option>
@@ -659,6 +659,7 @@ $theme = new Theme();
                         <input type="checkbox" id="allow-partial-matches" style="margin-right: 8px;">
                         <label for="allow-partial-matches">Allow continuing with only selected matches (items without matches will be skipped)</label>
                     </div>
+                    <button id="export-matches-csv" class="button secondary">Export to CSV</button>
                     <button id="confirm-matches" class="button" disabled>Confirm Matches & Continue</button>
                     <button id="reset-step-2" class="button secondary">Reset & Start Over</button>
                 </div>
@@ -678,7 +679,7 @@ $theme = new Theme();
                 
                 <div class="discrepancy-summary">
                     <div class="discrepancy-stat">
-                        <div class="discrepancy-stat-value" id="total-items">0</div>
+                    ncy-stat-value" id="total-items">0</div>
                         <div class="discrepancy-stat-label">Total Items</div>
                     </div>
                     <div class="discrepancy-stat">
@@ -1076,10 +1077,21 @@ $theme = new Theme();
                     // Mark this row as processed
                     processedRows.add(rowKey);
                     
+                    // Determine if the item has matches
                     const hasMatches = result.matches && result.matches.length > 0;
                     const isSingleMatch = hasMatches && result.matches.length === 1;
-                    const matchClass = !hasMatches ? 'no-matches' : 
-                                      isSingleMatch ? 'single-match has-matches' : 'has-matches';
+                    
+                    // Set the appropriate match class - this is critical for counting
+                    let matchClass = '';
+                    if (!hasMatches) {
+                        matchClass = 'no-matches';
+                    } else if (isSingleMatch) {
+                        matchClass = 'single-match has-matches';
+                    } else {
+                        matchClass = 'has-matches';
+                    }
+                    
+                    // Create the appropriate badge
                     const matchBadge = hasMatches ? 
                         `<span class="badge success">${result.matches.length} ${result.matches.length === 1 ? 'match' : 'matches'}</span>` : 
                         '<span class="badge danger">No matches</span>';
@@ -1152,7 +1164,7 @@ $theme = new Theme();
                 });
                 
                 // Match option selection handling with toggle functionality
-                $('.match-results').on('click', '.match-option', function() {
+                $('.match-results').off('click', '.match-option').on('click', '.match-option', function() {
                     const $this = $(this);
                     // Don't handle clicks for hidden auto-selected options
                     if (!$this.hasClass('hidden')) {
@@ -1167,6 +1179,9 @@ $theme = new Theme();
                         updateMatchStats();
                     }
                 });
+                
+                // Update stats after adding all items
+                updateMatchStats();
             }
             
             // Function to apply the current filter selection
@@ -1177,7 +1192,7 @@ $theme = new Theme();
                     const $item = $(this);
                     const hasMatches = $item.hasClass('has-matches');
                     // Check if this item has a selected match option - include hidden selected options for auto-selected matches
-                    const hasSelected = $item.find('.match-option.selected').length > 0;
+                    const hasSelected = $item.find('.match-option.selected').length > 0 || $item.hasClass('single-match');
                     
                     switch (filter) {
                         case 'all':
@@ -1198,6 +1213,8 @@ $theme = new Theme();
                             break;
                     }
                 });
+
+                $('#filter-count').text($('.match-item:visible').length);
             }
             
             // Match filtering - reattach event handler
@@ -1209,7 +1226,10 @@ $theme = new Theme();
                 // Count all match items in step-2, including those without matches
                 const total = $('#step-2 .match-results .match-item').length;
                 const matchedItems = $('#step-2 .match-results .match-item.has-matches').length;
-                const unmatched = $('#step-2 .match-results .match-item.no-matches').length;
+                
+                // Fixed: The issue was here - explicitly count elements with the no-matches class
+                const unmatched = $('#step-2 .match-item.no-matches').length;
+                
                 // Count ALL selected match options on the page
                 const selected = $('.match-option.selected').length;
                 
@@ -1668,6 +1688,7 @@ $theme = new Theme();
                             updates: JSON.stringify(updates)
                         },
                         success: function(response) {
+                            console.log("Update response:", response);
                             hideLoading('#step-3');
                             if (response.success) {
                                 // Clear the localStorage data since the process is complete
@@ -1722,10 +1743,10 @@ $theme = new Theme();
                 // Process successful updates
                 if (data.success.length > 0) {
                     data.success.forEach(item => {
-                        // Count positives and negatives
-                        if (item.action === 'created' || (item.action === 'updated_partially' && item.target_reduction < 0)) {
+                        // Count positives and negatives based on simplified action types
+                        if (item.action === 'created_actual') {
                             positiveUpdates++;
-                        } else if (item.action === 'updated_multiple' || item.action === 'updated_partially') {
+                        } else if (item.action === 'created_release') {
                             negativeUpdates++;
                         }
                         
@@ -1734,57 +1755,25 @@ $theme = new Theme();
                         let badge = '';
                         let details = '';
                         
-                        if (item.action === 'created') {
+                        if (item.action === 'created_actual') {
                             itemClass += ' discrepancy-high';
-                            badge = '<span class="badge success">New Record</span>';
+                            badge = '<span class="badge success">Quantity Added</span>';
                             details = `
                                 <div class="match-item-details">
-                                    <p><strong>New record created with quantity:</strong> ${item.quantity_added}</p>
+                                    <p><strong>New record created in actualsupplies with quantity:</strong> ${item.quantity_added}</p>
                                     ${item.lot_number ? `<p><strong>Lot Number:</strong> ${item.lot_number}</p>` : ''}
                                     ${item.expiry_date ? `<p><strong>Expiry Date:</strong> ${item.expiry_date}</p>` : ''}
                                     ${item.serial ? `<p><strong>Serial:</strong> ${item.serial}</p>` : ''}
                                 </div>
                             `;
-                        } else if (item.action === 'updated_multiple') {
+                        } else if (item.action === 'created_release') {
                             itemClass += ' discrepancy-low';
-                            badge = '<span class="badge warning">Quantity Reduced</span>';
-                            
-                            // Create details of each updated record
-                            const recordDetails = item.updated_records.map(record => `
-                                <div class="match-selected-info" style="margin-bottom: 5px;">
-                                    <p><strong>Record ID:</strong> ${record.actual_id}</p>
-                                    <p><strong>Old Quantity:</strong> ${record.old_quantity} → <strong>New Quantity:</strong> ${record.new_quantity}</p>
-                                    <p><strong>Reduction:</strong> ${record.reduction}</p>
-                                </div>
-                            `).join('');
-                            
+                            badge = '<span class="badge warning">Quantity Released</span>';
                             details = `
                                 <div class="match-item-details">
-                                    <p><strong>Total Reduction:</strong> ${item.total_reduction}</p>
-                                    <p><strong>Updated Records:</strong></p>
-                                    ${recordDetails}
-                                </div>
-                            `;
-                        } else if (item.action === 'updated_partially') {
-                            itemClass += ' discrepancy-low';
-                            badge = '<span class="badge warning">Partially Updated</span>';
-                            
-                            // Create details of each updated record
-                            const recordDetails = item.updated_records.map(record => `
-                                <div class="match-selected-info" style="margin-bottom: 5px;">
-                                    <p><strong>Record ID:</strong> ${record.actual_id}</p>
-                                    <p><strong>Old Quantity:</strong> ${record.old_quantity} → <strong>New Quantity:</strong> ${record.new_quantity}</p>
-                                    <p><strong>Reduction:</strong> ${record.reduction}</p>
-                                </div>
-                            `).join('');
-                            
-                            details = `
-                                <div class="match-item-details">
-                                    <p><strong>Target Reduction:</strong> ${item.target_reduction}</p>
-                                    <p><strong>Actual Reduction:</strong> ${item.actual_reduction}</p>
-                                    <p class="status-message info" style="margin: 5px 0;">${item.note}</p>
-                                    <p><strong>Updated Records:</strong></p>
-                                    ${recordDetails}
+                                    <p><strong>New record created in releasesupplies with quantity:</strong> ${item.quantity_released}</p>
+                                    <p><strong>Department:</strong> Inventory Adjustment</p>
+                                    <p><strong>Status:</strong> Confirmed</p>
                                 </div>
                             `;
                         }
@@ -2069,6 +2058,137 @@ $theme = new Theme();
             
             function pad(num) {
                 return (num < 10 ? '0' : '') + num;
+            }
+
+            // Step 2 - Export to CSV functionality
+            $('#export-matches-csv').on('click', function() {
+                const matchedItems = [];
+                
+                // Get all visible matched items from the UI - fixing selector to use .match-item
+                $('.match-item:visible').each(function() {
+                    const $item = $(this);
+                    const csvRow = JSON.parse($item.attr('data-csv-row'));
+                    let matchedSupply = null;
+                    
+                    // If matched, get the match data
+                    if ($item.hasClass('has-matches')) {
+                        const $selectedOption = $item.find('.match-option.selected');
+                        if ($selectedOption.length) {
+                            const supplyId = $selectedOption.data('supply-id');
+                            const supplyName = $selectedOption.find('strong').text();
+                            // Get department, type and section from the match details
+                            const $details = $selectedOption.find('.compact-match-details');
+                            const departmentText = $details.find('.compact-match-detail:contains("Department:")').text();
+                            const typeText = $details.find('.compact-match-detail:contains("Type:")').text();
+                            const sectionText = $details.find('.compact-match-detail:contains("Section:")').text();
+                            
+                            matchedSupply = {
+                                id: supplyId,
+                                name: supplyName,
+                                department: departmentText.replace('Department:', '').trim(),
+                                type: typeText.replace('Type:', '').trim(),
+                                section: sectionText.replace('Section:', '').trim()
+                            };
+                        } else if ($item.hasClass('single-match')) {
+                            // For automatically matched items
+                            const supplyInfo = $item.find('.match-selected-info');
+                            const supplyName = supplyInfo.find('div:first-child').text().replace('Automatic match:', '').trim();
+                            const $hiddenOption = $item.find('.match-option.selected.hidden');
+                            const supplyId = $hiddenOption.data('supply-id');
+                            const $details = supplyInfo.find('.compact-match-details');
+                            const departmentText = $details.find('.compact-match-detail:contains("Department:")').text();
+                            const typeText = $details.find('.compact-match-detail:contains("Type:")').text();
+                            const sectionText = $details.find('.compact-match-detail:contains("Section:")').text();
+                            
+                            matchedSupply = {
+                                id: supplyId,
+                                name: supplyName,
+                                department: departmentText.replace('Department:', '').trim(),
+                                type: typeText.replace('Type:', '').trim(),
+                                section: sectionText.replace('Section:', '').trim()
+                            };
+                        }
+                    }
+                    
+                    matchedItems.push({
+                        csv_row: csvRow,
+                        matched_supply: matchedSupply
+                    });
+                });
+                
+                // No data to export
+                if (matchedItems.length === 0) {
+                    showStatus('No data to export', 'error');
+                    return;
+                }
+                
+                // Show loading state
+                $(this).prop('disabled', true).text('Exporting...');
+                const exportButton = $(this);
+                
+                // Call the AJAX endpoint to get the CSV data
+                $.ajax({
+                    url: '<?php echo admin_url("admin-ajax.php"); ?>',
+                    type: 'POST',
+                    data: {
+                        action: 'export_matches_csv',
+                        nonce: '<?php echo wp_create_nonce("supply_corrector_nonce"); ?>',
+                        matches_data: JSON.stringify(matchedItems)
+                    },
+                    success: function(response) {
+                        if (response.success && response.data.csv_data) {
+                            // Create and download the CSV file
+                            downloadCSV(response.data.csv_data, response.data.filename);
+                            showStatus('CSV exported successfully', 'success');
+                        } else {
+                            showStatus('Failed to export CSV: ' + (response.data || 'Unknown error'), 'error');
+                        }
+                        exportButton.prop('disabled', false).text('Export to CSV');
+                    },
+                    error: function(xhr, status, error) {
+                        showStatus('Error exporting CSV: ' + error, 'error');
+                        exportButton.prop('disabled', false).text('Export to CSV');
+                    }
+                });
+            });
+            
+            // Function to download CSV data as a file
+            function downloadCSV(data, filename) {
+                let csvContent = '';
+                
+                // Convert data array to CSV string
+                data.forEach(function(row) {
+                    let rowString = '';
+                    for (let i = 0; i < row.length; i++) {
+                        // Quote values with commas and escape existing quotes
+                        let value = row[i] !== null ? row[i].toString() : '';
+                        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                            value = '"' + value.replace(/"/g, '""') + '"';
+                        }
+                        rowString += (i > 0 ? ',' : '') + value;
+                    }
+                    csvContent += rowString + '\n';
+                });
+                
+                // Create a Blob with the CSV data
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                
+                // Create download link and trigger click
+                if (navigator.msSaveBlob) { // For IE
+                    navigator.msSaveBlob(blob, filename);
+                } else {
+                    const link = document.createElement('a');
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', filename);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }
+                }
             }
         });
     </script>
