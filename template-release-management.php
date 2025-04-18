@@ -55,7 +55,7 @@ if ( have_posts() ) : ?>
                         );
                         
                         // Check if user has advanced permissions
-                        $has_advanced_access = current_user_can('manage_options') || in_array('um_accounting', $roles) || $user_id == 4;
+                        $has_advanced_access = current_user_can('manage_options') || in_array('um_accounting', $roles);
                         
                         // If admin, accounting, or pharmacy - show department filter
                         if($has_advanced_access): ?>
