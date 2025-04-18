@@ -679,7 +679,7 @@ $theme = new Theme();
                 
                 <div class="discrepancy-summary">
                     <div class="discrepancy-stat">
-                    ncy-stat-value" id="total-items">0</div>
+                        <div class="discrepancy-stat-value" id="total-items">0</div>
                         <div class="discrepancy-stat-label">Total Items</div>
                     </div>
                     <div class="discrepancy-stat">
