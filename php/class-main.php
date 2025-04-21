@@ -1033,6 +1033,18 @@ class Theme {
                     'key' => 'supply_name',
                     'value' => $supid,
                     'compare' => '='
+                ),
+                array(
+                    'relation' => 'OR',
+                    array(
+                        "key" => "related_release_id",
+                        "compare" => "NOT EXISTS"
+                    ),
+                    array(
+                        "key" => "related_release_id",
+                        "value" => "",
+                        "compare" => "="
+                    )
                 )
             )
         );

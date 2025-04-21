@@ -926,6 +926,18 @@ function check_supply_discrepancies() {
                     'value' => $supply_id,
                     'compare' => '=',
                     'type' => 'NUMERIC'
+                ),
+                array(
+                    'relation' => 'OR',
+                    array(
+                        "key" => "related_release_id",
+                        "compare" => "NOT EXISTS"
+                    ),
+                    array(
+                        "key" => "related_release_id",
+                        "value" => "",
+                        "compare" => "="
+                    )
                 )
             ),
             'update_post_meta_cache' => true,
@@ -1190,6 +1202,18 @@ function get_supply_current_balance($supply_id) {
                 'key' => 'supply_name',
                 'value' => $supply_id,
                 'compare' => '='
+            ),
+            array(
+                'relation' => 'OR',
+                array(
+                    "key" => "related_release_id",
+                    "compare" => "NOT EXISTS"
+                ),
+                array(
+                    "key" => "related_release_id",
+                    "value" => "",
+                    "compare" => "="
+                )
             )
         )
     ));

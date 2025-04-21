@@ -181,6 +181,18 @@ function load_supplies_batch() {
                         "value" => $supply_ids,
                         "compare" => "IN",
                         "type" => "NUMERIC"
+                    ),
+                    array(
+                        'relation' => 'OR',
+                        array(
+                            "key" => "related_release_id",
+                            "compare" => "NOT EXISTS"
+                        ),
+                        array(
+                            "key" => "related_release_id",
+                            "value" => "",
+                            "compare" => "="
+                        )
                     )
                 ),
                 "update_post_meta_cache" => true
@@ -406,6 +418,18 @@ function get_supply_details() {
                 "value" => $supply_id,
                 "compare" => "=",
                 "type" => "NUMERIC"
+            ),
+            array(
+                'relation' => 'OR',
+                array(
+                    "key" => "related_release_id",
+                    "compare" => "NOT EXISTS"
+                ),
+                array(
+                    "key" => "related_release_id",
+                    "value" => "",
+                    "compare" => "="
+                )
             )
         ),
         "orderby" => "meta_value",
