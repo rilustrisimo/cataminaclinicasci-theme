@@ -3194,6 +3194,7 @@ class Theme {
 
             foreach($header as $key => $value){
                 // ...existing code...
+                $invalue = get_field($key, $postid);
                 $value = (isset($p[$key]))?$p[$key]:'';
                 $fobj = get_field_object($key, $postid);
 
@@ -3242,6 +3243,11 @@ class Theme {
                     else:
                         echo '<td>'.$value.'</td>';
                     endif;
+                    continue;
+                endif;
+
+                if(isset($invalue)):
+                    echo '<td>'.get_field($key, $value).'</td>';
                     continue;
                 endif;
                 
