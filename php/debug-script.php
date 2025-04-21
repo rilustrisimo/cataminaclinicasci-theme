@@ -82,8 +82,18 @@ while ($query->have_posts()) {
                     // Always update the field with the post object, even if it's already an object
                     $update_result = update_field('supply_name', $supply_post, $post_id);
                     
+                    // Now update the post title
+                    $supply_title = get_the_title($supply_id);
+                    $new_title = 'Actual Supply from Release - ' . $supply_title;
+                    
+                    // Update the post
+                    wp_update_post(array(
+                        'ID' => $post_id,
+                        'post_title' => $new_title,
+                    ));
+                    
                     // Consider all updates as successful since we're forcing re-updates
-                    echo "Updated post #{$post_id} - Set supply_name to post object (ID: {$supply_id}, Title: {$supply_post->post_title})\n";
+                    echo "Updated post #{$post_id} - Set supply_name to post object (ID: {$supply_id}, Title: {$supply_post->post_title}) and updated post title to '{$new_title}'\n";
                     $total_updated++;
                 } else {
                     echo "Error updating post #{$post_id} - Supply post #{$supply_id} not found\n";
