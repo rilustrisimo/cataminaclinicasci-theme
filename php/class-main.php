@@ -3197,6 +3197,8 @@ class Theme {
                 $invalue = get_field($key, $postid);
                 $value = (isset($p[$key]))?$p[$key]:'';
                 $fobj = get_field_object($key, $postid);
+                $acffields = get_fields($postid);
+
 
                 if(isset($fobj['type']) && ($fobj['type'] == "number")):
                     echo '<td>'.$this->convertNumber((float)$value).'</td>';
@@ -3246,8 +3248,19 @@ class Theme {
                     continue;
                 endif;
 
-                if(isset($invalue)):
-                    echo '<td>'.get_field($key, $value).'</td>';
+                if($key == "supply_name"):
+                    echo '<td>'.get_the_title($postid).'</td>';
+                    continue;
+                endif;
+
+                if(isset($invalue) && is_string($invalue)):
+                    echo '<td>'.$invalue.'</td>';
+                    continue;
+                endif;
+                
+
+                if(isset($acffields[$key])):
+                    echo '<td>'.$acffields[$key].'</td>';
                     continue;
                 endif;
                 
@@ -3600,7 +3613,8 @@ class Theme {
             }
             
             // Add custom fields to the post
-            update_field('supply_name', $supply_id, $actual_supply_id);
+            $supply_post = get_post($supply_id);
+            update_field('supply_name', $supply_post, $actual_supply_id);
             update_field('date_added', $release_date, $actual_supply_id);
             update_field('quantity', $quantity, $actual_supply_id); // Negative quantity to offset the release
             update_field('related_release_id', $release_id, $actual_supply_id); // Store reference to original release
