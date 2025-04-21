@@ -7,6 +7,8 @@ add_action('wp_ajax_check_supply_discrepancies', 'check_supply_discrepancies');
 add_action('wp_ajax_update_supply_quantities', 'update_supply_quantities');
 add_action('wp_ajax_export_matches_csv', 'export_matches_csv');
 add_action('wp_ajax_nopriv_export_matches_csv', 'export_matches_csv');
+add_action('wp_ajax_export_raw_matches_csv', 'export_raw_matches_csv');
+add_action('wp_ajax_nopriv_export_raw_matches_csv', 'export_raw_matches_csv');
 
 /**
  * Process uploaded CSV file
@@ -58,6 +60,18 @@ function process_supply_csv() {
             }
             
             $row = array_combine($headers, $data);
+            
+            // Sanitize and clean all values to handle single quotes and other special characters
+            foreach ($row as $key => $value) {
+                // Handle single quotes by escaping them properly
+                $clean_value = stripslashes($value); // Remove any existing escaped slashes
+                $clean_value = str_replace("'", "'", $clean_value); // Replace smart quotes
+                $clean_value = trim($clean_value); // Remove surrounding whitespace
+                
+                // Store the sanitized value
+                $row[$key] = $clean_value;
+            }
+            
             $rows_data[] = $row;
             
             // Validate required fields
@@ -157,6 +171,7 @@ function process_supply_csv() {
 
 /**
  * Search for matching supplies using word-by-word search with a point-based matching system
+ * Prioritizes 100% exact matches first, then processes partial matches
  */
 function search_supply_matches() {
     check_ajax_referer('supply_corrector_nonce', 'nonce');
@@ -180,6 +195,8 @@ function search_supply_matches() {
     }
     
     $results = array();
+    $exact_matches = array();
+    $partial_matches = array();
     
     // Get stopwords for more efficient searching
     $stopwords = array('the', 'and', 'or', 'for', 'with', 'by', 'in', 'on', 'at', 'to', 'of', 'a', 'an');
@@ -188,19 +205,82 @@ function search_supply_matches() {
     // and their match scores with each CSV row
     $db_matches = array();
     
-    // First pass: Calculate match scores for all CSV rows against all potential database matches
+    // Get existing matches if available
+    $existing_matches = isset($_POST['existing_matches']) ? json_decode(stripslashes($_POST['existing_matches']), true) : array();
+    
+    // FIRST PASS: Identify 100% exact matches by name
     foreach ($batch_data as $csv_index => $row) {
         $supply_name = trim($row['supply_name']);
         
-        // Always include the row in results, even if supply name is empty
+        // Skip empty supply names
         if (empty($supply_name)) {
-            $results[$csv_index] = array(
-                'csv_row' => $row,
-                'matches' => array(), // Empty matches array for rows without a supply name
-                'match_scores' => array()
-            );
+            $exact_matches[$csv_index] = false;
+            $partial_matches[$csv_index] = false;
             continue;
         }
+        
+        // Try exact string match using post_title
+        $exact_title_args = array(
+            'post_type' => 'supplies',
+            'posts_per_page' => 5,
+            'title' => $supply_name,
+            'exact' => true,
+            'fields' => 'ids'
+        );
+        
+        $exact_title_query = new WP_Query($exact_title_args);
+        $found_exact_match = false;
+        
+        if ($exact_title_query->have_posts()) {
+            foreach ($exact_title_query->posts as $post_id) {
+                $db_title = get_the_title($post_id);
+                
+                // Check for 100% exact string match (case insensitive)
+                if (strcasecmp($supply_name, $db_title) === 0) {
+                    $match_data = array(
+                        'id' => $post_id,
+                        'name' => $db_title,
+                        'department' => get_post_meta($post_id, 'department', true),
+                        'type' => get_post_meta($post_id, 'type', true),
+                        'section' => get_post_meta($post_id, 'section', true),
+                        'match_quality' => 'exact',
+                        'score' => 100
+                    );
+                    
+                    $exact_matches[$csv_index] = array(
+                        'csv_row' => $row,
+                        'matches' => array($match_data),
+                        'match_scores' => array($post_id => 100)
+                    );
+                    
+                    // Track this match for the database record
+                    if (!isset($db_matches[$post_id])) {
+                        $db_matches[$post_id] = array();
+                    }
+                    $db_matches[$post_id][$csv_index] = 100;
+                    
+                    $found_exact_match = true;
+                    break;
+                }
+            }
+            wp_reset_postdata();
+        }
+        
+        // If no exact match was found, add to partial matches for later processing
+        if (!$found_exact_match) {
+            $partial_matches[$csv_index] = $row;
+            $exact_matches[$csv_index] = false;
+        }
+    }
+    
+    // SECOND PASS: Process partial matches only if they weren't exactly matched
+    foreach ($partial_matches as $csv_index => $row) {
+        // Skip entries that were already exactly matched or had empty names
+        if ($row === false) {
+            continue;
+        }
+        
+        $supply_name = trim($row['supply_name']);
         
         // Prepare the supply name for searching
         $original_words = explode(' ', strtolower($supply_name));
@@ -213,13 +293,37 @@ function search_supply_matches() {
             return strlen($b) - strlen($a);
         });
         
+        // Check if we have existing matches for this CSV row
+        if (isset($existing_matches[$csv_index])) {
+            $matches = isset($existing_matches[$csv_index]['matches']) ? $existing_matches[$csv_index]['matches'] : array();
+            $match_scores = isset($existing_matches[$csv_index]['match_scores']) ? $existing_matches[$csv_index]['match_scores'] : array();
+            
+            // If we have existing matches, use them and skip further processing for this row
+            if (!empty($matches)) {
+                // Add match information to db_matches tracking
+                foreach ($match_scores as $post_id => $score) {
+                    if (!isset($db_matches[$post_id])) {
+                        $db_matches[$post_id] = array();
+                    }
+                    $db_matches[$post_id][$csv_index] = $score;
+                }
+                
+                $results[$csv_index] = array(
+                    'csv_row' => $row,
+                    'matches' => array_values($matches), // Ensure it's an indexed array
+                    'match_scores' => $match_scores
+                );
+                continue; // Skip further processing for this row
+            }
+        }
+        
         $matches = array();
         $match_scores = array();
         
-        // First try an exact match on the full supply name
+        // Try LIKE match on meta value
         $exact_match_args = array(
             'post_type' => 'supplies',
-            'posts_per_page' => 10, // Increased to get more potential matches
+            'posts_per_page' => 10,
             'meta_query' => array(
                 array(
                     'key' => 'supply_name',
@@ -236,6 +340,11 @@ function search_supply_matches() {
                 $post_id = get_the_ID();
                 $db_title = get_the_title();
                 
+                // Skip if this post_id already has a match for this CSV index
+                if (isset($db_matches[$post_id]) && isset($db_matches[$post_id][$csv_index])) {
+                    continue;
+                }
+                
                 // Calculate match score
                 $score = calculate_match_score($supply_name, $db_title);
                 
@@ -247,24 +356,27 @@ function search_supply_matches() {
                         'department' => get_post_meta($post_id, 'department', true),
                         'type' => get_post_meta($post_id, 'type', true),
                         'section' => get_post_meta($post_id, 'section', true),
-                        'match_quality' => 'exact',
+                        'match_quality' => 'partial',
                         'score' => $score
                     );
                     
-                    $matches[$post_id] = $match_data;
-                    $match_scores[$post_id] = $score;
-                    
-                    // Track this match for the database record
-                    if (!isset($db_matches[$post_id])) {
-                        $db_matches[$post_id] = array();
+                    // Only add if not already matched
+                    if (!isset($matches[$post_id])) {
+                        $matches[$post_id] = $match_data;
+                        $match_scores[$post_id] = $score;
+                        
+                        // Track this match for the database record
+                        if (!isset($db_matches[$post_id])) {
+                            $db_matches[$post_id] = array();
+                        }
+                        $db_matches[$post_id][$csv_index] = $score;
                     }
-                    $db_matches[$post_id][$csv_index] = $score;
                 }
             }
             wp_reset_postdata();
         }
         
-        // If no high-score exact matches, try word-by-word search
+        // If still no matches with high score, try word-by-word search
         if (empty($matches) && !empty($words)) {
             foreach ($words as $word) {
                 // Skip common words and short terms
@@ -288,6 +400,16 @@ function search_supply_matches() {
                         $query->the_post();
                         $post_id = get_the_ID();
                         $db_title = get_the_title();
+                        
+                        // Skip if this post_id already has a match for this CSV index
+                        if (isset($db_matches[$post_id]) && isset($db_matches[$post_id][$csv_index])) {
+                            continue;
+                        }
+                        
+                        // Skip if we already have a match for this post_id
+                        if (isset($matches[$post_id])) {
+                            continue;
+                        }
                         
                         // Calculate match score
                         $score = calculate_match_score($supply_name, $db_title);
@@ -344,6 +466,16 @@ function search_supply_matches() {
                         $meta_query->the_post();
                         $post_id = get_the_ID();
                         $db_title = get_the_title();
+                        
+                        // Skip if this post_id already has a match for this CSV index
+                        if (isset($db_matches[$post_id]) && isset($db_matches[$post_id][$csv_index])) {
+                            continue;
+                        }
+                        
+                        // Skip if we already have a match for this post_id
+                        if (isset($matches[$post_id])) {
+                            continue;
+                        }
                         
                         // Calculate match score
                         $score = calculate_match_score($supply_name, $db_title);
@@ -402,21 +534,57 @@ function search_supply_matches() {
             }
         }
         
-        // Always add to results even if no matches are found
+        // Add to results 
         $results[$csv_index] = array(
             'csv_row' => $row,
             'matches' => $best_match,
-            'match_scores' => $match_scores // Keep this for second pass
+            'match_scores' => $match_scores
         );
     }
+    
+    // THIRD PASS: Merge exact matches and processed partial matches
+    foreach ($exact_matches as $csv_index => $match_data) {
+        if ($match_data !== false) {
+            // This was an exact match, add it to results
+            $results[$csv_index] = $match_data;
+        } elseif (!isset($results[$csv_index])) {
+            // This had no exact match and no partial match was found
+            // Make sure we include the original row with empty matches
+            $results[$csv_index] = array(
+                'csv_row' => $batch_data[$csv_index],
+                'matches' => array(),
+                'match_scores' => array()
+            );
+        }
+    }
+    
+    // Sort results by index to maintain original order
+    ksort($results);
     
     // Second pass: Resolve conflicts where multiple CSV rows match the same DB record
     foreach ($db_matches as $post_id => $csv_matches) {
         // If this DB record has multiple CSV matches, find the best match
         if (count($csv_matches) > 1) {
-            // Find the highest scoring CSV row for this DB record
-            arsort($csv_matches);
-            $best_csv_index = key($csv_matches);
+            // First, check if any of the matches are exact (score = 100)
+            $has_exact_match = false;
+            $exact_match_index = null;
+            
+            foreach ($csv_matches as $csv_index => $score) {
+                if ($score == 100) {
+                    $has_exact_match = true;
+                    $exact_match_index = $csv_index;
+                    break; // Found an exact match, no need to continue
+                }
+            }
+            
+            // If we have an exact match, always prioritize it
+            if ($has_exact_match) {
+                $best_csv_index = $exact_match_index;
+            } else {
+                // Otherwise, find the highest scoring CSV row for this DB record
+                arsort($csv_matches);
+                $best_csv_index = key($csv_matches);
+            }
             
             // Remove this DB record from all other CSV rows' matches
             foreach ($csv_matches as $csv_index => $score) {
@@ -742,40 +910,54 @@ function check_supply_discrepancies() {
         // Add to processed list
         $processed_ids[] = $supply_id;
         
-        // Get current balance using the same logic as supplies-ajax-handler.php
+        // Initialize counters
         $actual_quantity = 0;
         $release_quantity = 0;
+        $actual_ids = [];
 
-        // Get actual supplies
-        $actual_supplies = get_posts(array(
+        // Get actual supplies using WP_Query instead of get_posts
+        $actual_args = array(
             'post_type' => 'actualsupplies',
             'posts_per_page' => -1,
+            'post_status' => 'publish',
             'meta_query' => array(
                 array(
                     'key' => 'supply_name',
                     'value' => $supply_id,
-                    'compare' => '='
+                    'compare' => '=',
+                    'type' => 'NUMERIC'
                 )
-            )
-        ));
+            ),
+            'update_post_meta_cache' => true,
+        );
+
+        $actual_query = new WP_Query($actual_args);
+        $actual_supplies = $actual_query->posts;
 
         foreach ($actual_supplies as $actual) {
             $quantity = (float)get_post_meta($actual->ID, 'quantity', true);
             $actual_quantity += $quantity;
         }
+        wp_reset_postdata(); // Reset post data after WP_Query
 
-        // Get release supplies
-        $release_supplies = get_posts(array(
+        // Get release supplies using WP_Query
+        $release_args = array(
             'post_type' => 'releasesupplies',
             'posts_per_page' => -1,
+            'post_status' => 'publish',
             'meta_query' => array(
                 array(
                     'key' => 'supply_name',
                     'value' => $supply_id,
-                    'compare' => '='
+                    'compare' => '=',
+                    'type' => 'NUMERIC'
                 )
-            )
-        ));
+            ),
+            'update_post_meta_cache' => true
+        );
+
+        $release_query = new WP_Query($release_args);
+        $release_supplies = $release_query->posts;
 
         foreach ($release_supplies as $release) {
             if (get_post_meta($release->ID, 'confirmed', true) == '1') {
@@ -783,8 +965,9 @@ function check_supply_discrepancies() {
                 $release_quantity += $quantity;
             }
         }
+        wp_reset_postdata(); // Reset post data after WP_Query
 
-        // Calculate current balance
+        // Calculate current balance - KEEPING THE ORIGINAL LOGIC
         $current_balance = $actual_quantity - $release_quantity;
         $csv_count = $data['csv_count'];
         
@@ -801,7 +984,8 @@ function check_supply_discrepancies() {
             'csv_count' => $csv_count,
             'discrepancy' => $discrepancy,
             'percent_discrepancy' => $percent_discrepancy,
-            'csv_data' => $data['csv_data']
+            'csv_data' => $data['csv_data'],
+            'actual_supplies' => $actual_supplies,
         );
     }
 
@@ -1000,6 +1184,7 @@ function get_supply_current_balance($supply_id) {
     $actual_supplies = get_posts(array(
         'post_type' => 'actualsupplies',
         'posts_per_page' => -1,
+        'post_status' => 'publish',
         'meta_query' => array(
             array(
                 'key' => 'supply_name',
@@ -1018,6 +1203,7 @@ function get_supply_current_balance($supply_id) {
     $release_supplies = get_posts(array(
         'post_type' => 'releasesupplies',
         'posts_per_page' => -1,
+        'post_status' => 'publish',
         'meta_query' => array(
             array(
                 'key' => 'supply_name',

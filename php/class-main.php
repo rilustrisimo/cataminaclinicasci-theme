@@ -1029,17 +1029,10 @@ class Theme {
             'posts_per_page' => -1,
             'fields' => 'ids',
             'meta_query' => array(
-                'relation' => 'AND',
                 array(
                     'key' => 'supply_name',
                     'value' => $supid,
                     'compare' => '='
-                ),
-                array(
-                    'key' => 'date_added',
-                    'value' => $formatted_to_date,
-                    'compare' => '<=',
-                    'type' => 'DATE'
                 )
             )
         );
@@ -1057,6 +1050,17 @@ class Theme {
         foreach ($actual_posts as $post_id) {
             $quantity = (float)get_field('quantity', $post_id);
             $date_added = get_field('date_added', $post_id);
+
+            // Proper date comparison with format handling
+            if (!empty($formatted_to_date) && isset($date_added)) {
+                $actual_date = $date_added;
+                // Ensure dates are in Y-m-d format for reliable comparison
+                $actual_date_formatted = date('Y-m-d', strtotime($actual_date));
+                
+                if ($actual_date_formatted > $formatted_to_date) {
+                    continue; // Skip items added after the filter date
+                }
+            }
             
             // Add to "to date" total
             $actual_quantity_to += $quantity;
@@ -3577,7 +3581,7 @@ class Theme {
             $new_actual_supply = array(
                 'post_type' => 'actualsupplies',
                 'post_status' => 'publish',
-                'post_title' => 'Actual Supply from Release #' . $release_id,
+                'post_title' => 'Actual Supply from Release - ' . get_field('supply_name', $supply_id),
                 'post_author' => $author_id // Using department's author ID
             );
             

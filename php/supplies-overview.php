@@ -919,6 +919,8 @@ $supplies_count = wp_count_posts('supplies')->publish;
                     },
                     success: function(response) {
                         $button.text(originalButtonText).prop('disabled', false);
+
+                        console.log(response);
                         
                         if (response.success) {
                             var item = response.data;

@@ -818,7 +818,13 @@ $theme = new Theme();
                 try {
                     const savedCsvData = localStorage.getItem('supply_corrector_csv_data');
                     if (savedCsvData) {
-                        const parsedData = JSON.parse(savedCsvData);
+                        const jsonData = savedCsvData;
+                        const sanitizeJsonString = jsonData.replace(/'/g, "&#39;") // Escape single quotes
+                                .replace(/\u2019/g, "&#39;") // Escape smart single quotes
+                                .replace(/\u2018/g, "&#39;") // Escape smart opening single quotes
+                                .replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); // Remove control characters
+
+                        const parsedData = JSON.parse(sanitizeJsonString);
                         const timestamp = localStorage.getItem('supply_corrector_timestamp');
                         const now = Date.now();
                         
@@ -999,7 +1005,14 @@ $theme = new Theme();
                     try {
                         const savedData = localStorage.getItem('supply_corrector_csv_data');
                         if (savedData) {
-                            csvData = JSON.parse(savedData);
+                            // Properly escape single quotes and other problematic characters before parsing
+                            const sanitizedData = savedData
+                                .replace(/'/g, "&#39;") // Escape single quotes
+                                .replace(/\u2019/g, "&#39;") // Escape smart single quotes
+                                .replace(/\u2018/g, "&#39;") // Escape smart opening single quotes
+                                .replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); // Remove control characters
+                            
+                            csvData = JSON.parse(sanitizedData);
                         }
                     } catch (e) {
                         console.error("Error retrieving saved data:", e);
@@ -1120,8 +1133,13 @@ $theme = new Theme();
                     }
                     
                     // Modified match item to always display options (no accordion)
+                    const sanitizedData = JSON.stringify(result.csv_row).replace(/'/g, "&#39;") // Escape single quotes
+                                .replace(/\u2019/g, "&#39;") // Escape smart single quotes
+                                .replace(/\u2018/g, "&#39;") // Escape smart opening single quotes
+                                .replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); // Remove control characters
+
                     const matchHtml = `
-                        <div class="match-item ${matchClass}" data-csv-row='${JSON.stringify(result.csv_row)}'>
+                        <div class="match-item ${matchClass}" data-csv-row='${sanitizedData}'>
                             <div class="match-item-header">
                                 <div>
                                     <h3>${result.csv_row.supply_name} ${matchBadge}</h3>
@@ -1266,14 +1284,24 @@ $theme = new Theme();
                 // First collect items without matches
                 $('.match-item.no-matches').each(function() {
                     const $item = $(this);
-                    const csvRow = JSON.parse($item.attr('data-csv-row'));
+                    const jsonData = $item.attr('data-csv-row');
+                    const sanitizeJsonString = jsonData.replace(/'/g, "&#39;") // Escape single quotes
+                                .replace(/\u2019/g, "&#39;") // Escape smart single quotes
+                                .replace(/\u2018/g, "&#39;") // Escape smart opening single quotes
+                                .replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); // Remove control characters
+                    const csvRow = JSON.parse(sanitizeJsonString);
                     skippedItems.push(csvRow);
                 });
                 
                 // Then collect items with matches but no selection
                 $('.match-item.has-matches').each(function() {
                     const $item = $(this);
-                    const csvRow = JSON.parse($item.attr('data-csv-row'));
+                    const jsonData = $item.attr('data-csv-row');
+                    const sanitizeJsonString = jsonData.replace(/'/g, "&#39;") // Escape single quotes
+                                .replace(/\u2019/g, "&#39;") // Escape smart single quotes
+                                .replace(/\u2018/g, "&#39;") // Escape smart opening single quotes
+                                .replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); // Remove control characters
+                    const csvRow = JSON.parse(sanitizeJsonString);
                     const selectedMatch = $item.find('.match-option.selected');
                     
                     if (selectedMatch.length) {
@@ -1340,8 +1368,13 @@ if (response.success) {
                     // Get the matches from localStorage
                     const matchesJson = localStorage.getItem('supply_corrector_matches');
                     if (!matchesJson) return;
+
+                    const sanitizeJsonString = matchesJson.replace(/'/g, "&#39;") // Escape single quotes
+                                .replace(/\u2019/g, "&#39;") // Escape smart single quotes
+                                .replace(/\u2018/g, "&#39;") // Escape smart opening single quotes
+                                .replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); // Remove control characters
                     
-                    const matches = JSON.parse(matchesJson);
+                    const matches = JSON.parse(sanitizeJsonString);
                     const consolidated = {};
                     
                     // First pass: Group items by supply_id
@@ -1517,6 +1550,17 @@ if (response.success) {
                         matches: JSON.stringify(currentBatch) // Send the actual batch data
                     },
                     success: function(response) {
+                        if(response.data.results){
+                            // Check if any supply_id is equal to 2513
+                            response.data.results.forEach(result => {
+                                if(result.supply_id === 2513) {
+                                    console.log("Found supply_id 2513:", result);
+                                    // You can add additional handling for this specific supply here
+                                }
+                            });
+
+                        }
+
                         if (response.success) {
                             displayDiscrepancies(response.data.results);
                             updateDiscrepancyStats();
@@ -1688,7 +1732,11 @@ if (response.success) {
                 try {
                     const skippedItems = localStorage.getItem('supply_corrector_skipped');
                     if (skippedItems) {
-                        const parsedSkipped = JSON.parse(skippedItems);
+                        const sanitizeJsonString = skippedItems.replace(/'/g, "&#39;") // Escape single quotes
+                                .replace(/\u2019/g, "&#39;") // Escape smart single quotes
+                                .replace(/\u2018/g, "&#39;") // Escape smart opening single quotes
+                                .replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); // Remove control characters
+                        const parsedSkipped = JSON.parse(sanitizeJsonString);
                         if (parsedSkipped && parsedSkipped.length > 0) {
                             hasSkippedItems = true;
                             skippedRows = [
@@ -1765,7 +1813,13 @@ if (response.success) {
                         const $item = $(this);
                         const supplyId = $item.attr('data-supply-id');
                         const discrepancy = parseFloat($item.attr('data-discrepancy'));
-                        const csvData = JSON.parse($item.attr('data-csv-data'));
+                        const jsonData = $item.attr('data-csv-data');
+                        const sanitizeJsonString = jsonData.replace(/'/g, "&#39;") // Escape single quotes
+                                .replace(/\u2019/g, "&#39;") // Escape smart single quotes
+                                .replace(/\u2018/g, "&#39;") // Escape smart opening single quotes
+                                .replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); // Remove control characters
+
+                        const csvData = JSON.parse(sanitizeJsonString);
                         
                         // Only include items with discrepancies
                         if (discrepancy !== 0) {
@@ -2172,97 +2226,67 @@ if (response.success) {
 
             // Step 2 - Export to CSV functionality
             $('#export-matches-csv').on('click', function() {
-                const matchedItems = [];
-                
-                // Get all visible matched items from the UI - fixing selector to use .match-item
-                $('.match-item:visible').each(function() {
-                    const $item = $(this);
-                    const csvRow = JSON.parse($item.attr('data-csv-row'));
-                    let matchedSupply = null;
-                    
-                    // If matched, get the match data
-                    if ($item.hasClass('has-matches')) {
-                        const $selectedOption = $item.find('.match-option.selected');
-                        if ($selectedOption.length) {
-                            const supplyId = $selectedOption.data('supply-id');
-                            const supplyName = $selectedOption.find('strong').text();
-                            // Get department, type and section from the match details
-                            const $details = $selectedOption.find('.compact-match-details');
-                            const departmentText = $details.find('.compact-match-detail:contains("Department:")').text();
-                            const typeText = $details.find('.compact-match-detail:contains("Type:")').text();
-                            const sectionText = $details.find('.compact-match-detail:contains("Section:")').text();
-                            
-                            matchedSupply = {
-                                id: supplyId,
-                                name: supplyName,
-                                department: departmentText.replace('Department:', '').trim(),
-                                type: typeText.replace('Type:', '').trim(),
-                                section: sectionText.replace('Section:', '').trim()
-                            };
-                        } else if ($item.hasClass('single-match')) {
-                            // For automatically matched items
-                            const supplyInfo = $item.find('.match-selected-info');
-                            const supplyName = supplyInfo.find('div:first-child').text().replace('Automatic match:', '').trim();
-                            const $hiddenOption = $item.find('.match-option.selected.hidden');
-                            const supplyId = $hiddenOption.data('supply-id');
-                            const $details = supplyInfo.find('.compact-match-details');
-                            const departmentText = $details.find('.compact-match-detail:contains("Department:")').text();
-                            const typeText = $details.find('.compact-match-detail:contains("Type:")').text();
-                            const sectionText = $details.find('.compact-match-detail:contains("Section:")').text();
-                            
-                            matchedSupply = {
-                                id: supplyId,
-                                name: supplyName,
-                                department: departmentText.replace('Department:', '').trim(),
-                                type: typeText.replace('Type:', '').trim(),
-                                section: sectionText.replace('Section:', '').trim()
-                            };
-                        }
-                    }
-                    
-                    matchedItems.push({
-                        csv_row: csvRow,
-                        matched_supply: matchedSupply
-                    });
-                });
-                
-                // No data to export
-                if (matchedItems.length === 0) {
-                    showStatus('No data to export', 'error');
-                    return;
-                }
-                
                 // Show loading state
                 $(this).prop('disabled', true).text('Exporting...');
                 const exportButton = $(this);
                 
-                // Call the AJAX endpoint to get the CSV data
-                $.ajax({
-                    url: '<?php echo admin_url("admin-ajax.php"); ?>',
-                    type: 'POST',
-                    data: {
-                        action: 'export_matches_csv',
-                        nonce: '<?php echo wp_create_nonce("supply_corrector_nonce"); ?>',
-                        matches_data: JSON.stringify(matchedItems)
-                    },
-                    success: function(response) {
-                        if (response.success && response.data.csv_data) {
-                            // Create and download the CSV file
-                            downloadCSV(response.data.csv_data, response.data.filename);
-                            showStatus('CSV exported successfully', 'success');
-                        } else {
-                            showStatus('Failed to export CSV: ' + (response.data || 'Unknown error'), 'error');
+                // Get data directly from DOM elements instead of sending to server
+                const matchItems = $('.match-item:visible');
+                
+                // No data to export
+                if (matchItems.length === 0) {
+                    showStatus('No data to export', 'error');
+                    exportButton.prop('disabled', false).text('Export to CSV');
+                    return;
+                }
+                
+                // Create headers for the CSV
+                const csvData = [
+                    ['Supply Name', 'Actual Count', 'Expiry Date', 'Date Added', 'Serial', 'Status', 'Lot Number']
+                ];
+                
+                // Process each match item and add to CSV data
+                matchItems.each(function() {
+                    try {
+                        const $item = $(this);
+                        const csvRowAttr = $item.attr('data-csv-row');
+
+                        console.log("CSV Row Attribute:", csvRowAttr);
+                        
+                        if (csvRowAttr) {
+                            // Parse the JSON data from the attribute
+                            const csvRow = sanitizeJsonString(csvRowAttr);
+                            
+                            // Add row data to CSV
+                            csvData.push([
+                                csvRow.supply_name || '',
+                                csvRow.actual_count || '',
+                                csvRow.expiry_date || '',
+                                csvRow.date_added || '',
+                                csvRow.serial || '',
+                                csvRow.states__status || '',
+                                csvRow.lot_number || ''
+                            ]);
                         }
-                        exportButton.prop('disabled', false).text('Export to CSV');
-                    },
-                    error: function(xhr, status, error) {
-                        showStatus('Error exporting CSV: ' + error, 'error');
-                        exportButton.prop('disabled', false).text('Export to CSV');
+                    } catch (e) {
+                        console.error("Error processing item for CSV export:", e);
                     }
                 });
+                
+                // Generate filename with current date
+                const filename = 'inventory_matches_' + formatDate(new Date()) + '.csv';
+                
+                // Download the CSV file directly without server processing
+                downloadCSV(csvData, filename);
+                showStatus('CSV exported successfully', 'success');
+                exportButton.prop('disabled', false).text('Export to CSV');
             });
             
-            // Function to download CSV data as a file
+            /**
+             * Download CSV data as a file
+             * @param {Array} data - Array of arrays representing CSV rows and columns
+             * @param {string} filename - Name of the file to download
+             */
             function downloadCSV(data, filename) {
                 let csvContent = '';
                 
@@ -2271,7 +2295,7 @@ if (response.success) {
                     let rowString = '';
                     for (let i = 0; i < row.length; i++) {
                         // Quote values with commas and escape existing quotes
-                        let value = row[i] !== null ? row[i].toString() : '';
+                        let value = row[i] !== null && row[i] !== undefined ? row[i].toString() : '';
                         if (value.includes(',') || value.includes('"') || value.includes('\n')) {
                             value = '"' + value.replace(/"/g, '""') + '"';
                         }
@@ -2297,6 +2321,54 @@ if (response.success) {
                         link.click();
                         document.body.removeChild(link);
                         URL.revokeObjectURL(url);
+                    }
+                }
+            }
+
+            /**
+             * Sanitize and attempt to repair malformed JSON strings
+             * @param {string} jsonString - The JSON string to sanitize
+             * @return {object} - The parsed object
+             */
+            function sanitizeJsonString(jsonString) {
+                try {
+                    // First try direct parsing
+                    return JSON.parse(jsonString);
+                } catch (e) {
+                    try {
+                        // If direct parse fails, try sanitizing and parsing again
+                        const sanitized = jsonString
+                            .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // Remove control characters
+                            .replace(/\\"/g, "'") // Replace escaped quotes with single quotes
+                            .replace(/\t/g, " ") // Replace tabs with spaces
+                            .replace(/\n/g, " ") // Replace newlines with spaces
+                            .replace(/\r/g, " "); // Replace carriage returns with spaces
+                        
+                        return JSON.parse(sanitized);
+                    } catch (e2) {
+                        // If still failing, try to extract data from the string using regex
+                        console.warn("Failed to parse JSON even after sanitization:", e2);
+                        
+                        // Extract basic properties
+                        const nameMatch = jsonString.match(/"supply_name"\s*:\s*"([^"]+)"/);
+                        const countMatch = jsonString.match(/"actual_count"\s*:\s*"?([^",]+)"?/);
+                        const expiryMatch = jsonString.match(/"expiry_date"\s*:\s*"([^"]+)"/);
+                        const lotMatch = jsonString.match(/"lot_number"\s*:\s*"([^"]+)"/);
+                        const serialMatch = jsonString.match(/"serial"\s*:\s*"([^"]+)"/);
+                        const statusMatch = jsonString.match(/"states__status"\s*:\s*"([^"]+)"/);
+                        
+                        // Get the original supply name from the displayed H3 element if regex fails
+                        let supplyName = nameMatch ? nameMatch[1] : "";
+                        
+                        // Create a basic object with the extracted data
+                        return {
+                            supply_name: supplyName, // Never use "Unknown Item"
+                            actual_count: countMatch ? countMatch[1] : "0",
+                            expiry_date: expiryMatch ? expiryMatch[1] : "",
+                            lot_number: lotMatch ? lotMatch[1] : "",
+                            serial: serialMatch ? serialMatch[1] : "",
+                            states__status: statusMatch ? statusMatch[1] : ""
+                        };
                     }
                 }
             }

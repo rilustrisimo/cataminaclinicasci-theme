@@ -186,16 +186,6 @@ function load_supplies_batch() {
                 "update_post_meta_cache" => true
             );
             
-            // Apply date filter for actualsupplies if specified
-            if (!empty($formatted_date)) {
-                $actual_args["meta_query"][] = array(
-                    "key" => "date_added",
-                    "value" => $formatted_date,
-                    "compare" => "<=",
-                    "type" => "DATE"
-                );
-            }
-            
             // Get all actual supplies
             $actual_query = new WP_Query($actual_args);
             $actual_supplies = $actual_query->posts;
@@ -212,6 +202,17 @@ function load_supplies_batch() {
                 $date_added = get_post_meta($actual_id, 'date_added', true) ?: 'Unknown';
                 $lot_number = get_post_meta($actual_id, 'lot_number', true) ?: '';
                 $expiry_date = get_post_meta($actual_id, 'expiry_date', true) ?: '';
+
+                // Proper date comparison with format handling
+                if (!empty($formatted_date) && isset($date_added)) {
+                    $actual_date = $date_added;
+                    // Ensure dates are in Y-m-d format for reliable comparison
+                    $actual_date_formatted = date('Y-m-d', strtotime($actual_date));
+                    
+                    if ($actual_date_formatted > $formatted_date) {
+                        continue; // Skip items added after the filter date
+                    }
+                }
                 
                 // Store actual supply data
                 $supply_data[$supply_id]["actual_supplies"][] = array(
@@ -413,16 +414,6 @@ function get_supply_details() {
         "update_post_meta_cache" => true
     );
     
-    // Apply date filter if specified
-    if (!empty($formatted_date)) {
-        $actual_args["meta_query"][] = array(
-            "key" => "date_added",
-            "value" => $formatted_date,
-            "compare" => "<=",
-            "type" => "DATE"
-        );
-    }
-    
     $actual_query = new WP_Query($actual_args);
     $actual_supplies = $actual_query->posts;
     wp_reset_postdata();
@@ -433,6 +424,17 @@ function get_supply_details() {
     foreach ($actual_supplies as $actual_post) {
         $actual_id = $actual_post->ID;
         $all_actual_meta = get_post_meta($actual_id);
+
+         // Proper date comparison with format handling
+         if (!empty($formatted_date) && isset($all_actual_meta['date_added'][0])) {
+            $actual_date = $all_actual_meta['date_added'][0];
+            // Ensure dates are in Y-m-d format for reliable comparison
+            $actual_date_formatted = date('Y-m-d', strtotime($actual_date));
+            
+            if ($actual_date_formatted > $formatted_date) {
+                continue; // Skip items added after the filter date
+            }
+        }
         
         $quantity = isset($all_actual_meta['quantity'][0]) ? (float)$all_actual_meta['quantity'][0] : 0;
         $date_added = isset($all_actual_meta['date_added'][0]) ? $all_actual_meta['date_added'][0] : 'Unknown';
