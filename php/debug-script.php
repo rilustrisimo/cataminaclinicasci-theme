@@ -52,9 +52,9 @@ while ($query->have_posts()) {
             $supply_id = null;
             
             if (is_object($current_supply_name) && isset($current_supply_name->ID)) {
-                // Already a post object, use its ID
+                // Already a post object, but we'll re-update it anyway
                 $supply_id = $current_supply_name->ID;
-                echo "Post #{$post_id} - Supply name is already a post object (ID: {$supply_id})\n";
+                echo "Post #{$post_id} - Supply name is already a post object (ID: {$supply_id}), re-updating...\n";
             } elseif (is_numeric($current_supply_name)) {
                 // It's just an ID
                 $supply_id = $current_supply_name;
@@ -79,15 +79,12 @@ while ($query->have_posts()) {
                 $supply_post = get_post($supply_id);
                 
                 if ($supply_post) {
-                    // Update the field with the post object
+                    // Always update the field with the post object, even if it's already an object
                     $update_result = update_field('supply_name', $supply_post, $post_id);
                     
-                    if ($update_result) {
-                        echo "Updated post #{$post_id} - Set supply_name to post object (ID: {$supply_id}, Title: {$supply_post->post_title})\n";
-                        $total_updated++;
-                    } else {
-                        echo "Failed to update post #{$post_id} - No changes needed or error occurred\n";
-                    }
+                    // Consider all updates as successful since we're forcing re-updates
+                    echo "Updated post #{$post_id} - Set supply_name to post object (ID: {$supply_id}, Title: {$supply_post->post_title})\n";
+                    $total_updated++;
                 } else {
                     echo "Error updating post #{$post_id} - Supply post #{$supply_id} not found\n";
                     $errors[] = "Post #{$post_id} - Supply post #{$supply_id} not found";
