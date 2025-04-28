@@ -815,6 +815,7 @@ var Theme = {
                                 // Add a small delay for UI to update before checking for expired items
                                 setTimeout(function() {
                                     Theme.checkExpired($);
+                                    Theme.expirationFilter($);
                                 }, 100);
                             } catch (e) {
                                 console.error('Error initializing report components:', e);
@@ -942,11 +943,16 @@ var Theme = {
         }
 
         Theme.checkExpired($);
+        Theme.expirationFilter($);
     },
 
-    checkExpired: function($){
+    checkExpired: function($) {
         // Get today's date
         const today = new Date();
+        
+        // Calculate date 180 days from now for "expiring soon" items
+        const sixMonthsFromNow = new Date();
+        sixMonthsFromNow.setDate(today.getDate() + 180);
 
         // Select all visible and non-empty .filter-exp <td> elements
         $("td.filter-exp:visible").filter(function() {
@@ -960,6 +966,15 @@ var Theme = {
 
                 // Check if the parsed date is valid
                 if (!isNaN(cellDate.getTime())) {
+                    // Mark item as expired if date is in the past
+                    if (cellDate < today) {
+                        $(this).closest('tbody').addClass('has-expired');
+                    } 
+                    // Mark as expiring soon if within next 30 days
+                    else if (cellDate <= sixMonthsFromNow) {
+                        $(this).closest('tbody').addClass('has-expiring');
+                    }
+                    
                     // Calculate the time difference in milliseconds
                     const timeDifference = cellDate.getTime() - today.getTime();
                     
@@ -977,7 +992,6 @@ var Theme = {
                 }
             }
         });
-
     },
 
     recalculateReconTotal: function($){
@@ -988,6 +1002,7 @@ var Theme = {
 
     sectionFilter: function($){
         if($('#section-list').length > 0){
+            $('#expiration-list').insertAfter('.report__result h1');
             $('#subsection-list').insertAfter('.report__result h1');
             $('#subsection-list').hide();
             
@@ -2352,6 +2367,30 @@ var Theme = {
             jQuery( '.search-form-popup' )
                 .find( '.search-field' )
                 .attr( 'placeholder', cfg.placeholder_text );
+        }
+    },
+
+    expirationFilter: function($) {
+        if ($('#expiration-list').length > 0) {
+            $('#expiration-list').change(function() {
+                var v = $(this).find('option:selected').attr('data-val');
+                
+                // First show all items (that match other filters)
+                $('tbody.sup-container').each(function() {
+                    $(this).show();
+                });
+                
+                if (v == 'expired') {
+                    // Hide all non-expired items
+                    $('tbody.sup-container:not(.has-expired)').hide();
+                } else if (v == 'expiring') {
+                    // Hide non-expiring items
+                    $('tbody.sup-container:not(.has-expiring)').hide();
+                }
+                
+                // This updates the totals based on visible items
+                Theme.reconTotal($);
+            });
         }
     },
 

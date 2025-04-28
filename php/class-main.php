@@ -1511,10 +1511,11 @@ class Theme {
                                 $expQtyAmount = isset($suppdeets['expired_qty']) ? (float)$suppdeets['expired_qty'] : 0;
                                 $expQtyAmountHTML = ($expQtyAmount && ($expQtyAmount > 0)) ? "<span class='red-warning'>(" . $expQtyAmount . ")</span>" : "";
                                 $expNameHTMLClass = ($expQtyAmount && ($expQtyAmount > 0)) ? "red-warning" : "";
+                                $expNameHTMLClassBody = ($expQtyAmount && ($expQtyAmount > 0)) ? "has-expired" : "";
                                 
                                 $expSuppExpTotal += ($expQtyAmount * $price);
                                 
-                                $res .= "<tbody class='sup-container count-supplies' data-name='".esc_attr($suppdeets['supply_name'])."'>";
+                                $res .= "<tbody class='sup-container count-supplies ".$expNameHTMLClassBody."' data-name='".esc_attr($suppdeets['supply_name'])."'>";
                                 $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
                                 $res .= "<td class='".$expNameHTMLClass."'>".esc_html($suppdeets['supply_name'])."</td>";
                                 $res .= "<td class='filter-lot'>".esc_html($lot)."</td>";
@@ -1568,6 +1569,13 @@ class Theme {
                 $res .= "<option>" . implode("</option><option>", $subsectionlist) . "</option>";
             }
             $res .= "</select>";
+            
+            // Add expiration filter dropdown
+            $res .= "<select id='expiration-list'>
+                <option data-val='all'>All Items</option>
+                <option data-val='expired'>Show Expired</option>
+                <option data-val='expiring'>Show Expiring Soon</option>
+            </select>";
             
             // Add summary information
             $res .= "<div class='sup-total'><b>SUPPLIES TOTAL:</b> <span></span></div>";

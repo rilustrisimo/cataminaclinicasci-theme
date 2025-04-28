@@ -1299,17 +1299,20 @@ a {
 }
 
 select#section-list, 
-select#subsection-list {
+select#subsection-list,
+#expiration-list {
     margin-bottom: 15px;
 }
 
-select#subsection-list {
+select#subsection-list,
+#expiration-list {
     margin-left: 15px;
 }
 
 select#select-department,
 select#section-list,
-select#subsection-list {
+select#subsection-list,
+#expiration-list {
     border: solid 1px @main-color1;
     height: 30px;
     border-radius: 5px;
@@ -1422,6 +1425,20 @@ select#subsection-list {
         transition: all .3s;
         margin-top: 15px;
         margin-bottom: 15px;
+    }
+}
+
+.has-expired {
+    td {
+        color: #f00202!important;
+        font-weight: 700!important;
+    }
+}
+
+.has-expiring {
+    td {
+        color: #000!important;
+        font-weight: 700!important;
     }
 }
 
