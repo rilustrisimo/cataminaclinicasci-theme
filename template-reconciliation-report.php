@@ -16,6 +16,12 @@
  $theme = new Theme();
  $dept = false;
 get_header();
+?>
+<!-- PDF Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+<?php
 if ( have_posts() ) : ?>
 	<?php while ( have_posts() ) { the_post(); ?>
 		<div class="page-single">

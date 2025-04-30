@@ -229,6 +229,358 @@ var Theme = {
             }
     },
 
+    printPdfReport: function($) {
+        var loc = ($('#section-list option:selected').attr('data-val') != "all") ? $('#section-list option:selected').val() : 'All Locations';
+        var subloc = ($('#subsection-list option:selected').attr('data-val') != "all") ? $('#subsection-list option:selected').val() : 'All Sub Sections';
+        var reportTitle = $('#filter-data').attr('data-title');
+        var preparedBy = $('#preparedby').val();
+        
+        // Show loading indicator
+        var loadingHtml = '<div id="pdf-loading" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center;"><div style="background: white; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.2);"><p style="margin: 0; font-weight: bold;">Generating PDF...</p></div></div>';
+        $('body').append(loadingHtml);
+        
+        try {
+            // Use direct table extraction instead of html2canvas
+            Theme.createTablePDF($, reportTitle, loc, subloc, preparedBy);
+        } catch (error) {
+            console.error('Error initializing PDF generation:', error);
+            $('#pdf-loading').remove();
+            alert('There was an error creating the PDF. Please try again or contact support.');
+            return false;
+        }
+        
+        return true;
+    },
+    
+    // New method to create PDFs directly from table data
+    createTablePDF: function($, reportTitle, loc, subloc, preparedBy) {
+        console.log('Creating PDF from table data');
+        
+        // Create PDF with portrait orientation
+        var pdf = new jspdf.jsPDF({
+            orientation: 'portrait',
+            unit: 'pt',
+            format: 'a4'
+        });
+        
+        var pageWidth = pdf.internal.pageSize.getWidth();
+        var pageHeight = pdf.internal.pageSize.getHeight();
+        var margin = 20; // Smaller margins for more content space
+        var yPos = margin;
+        var xPos = margin;
+        var tableStartY = 0;
+        
+        // Get date range from page
+        var dateRange = $('h2:contains("AS OF")').text();
+        
+        // Get total values - removing peso sign from values
+        var suppliesTotal = $('.sup-total span').text().replace(/[^\d.,]/g, '').trim();
+        var suppliesLoss = $('.sup-loss span').text().replace(/[^\d.,]/g, '').trim();
+        var overallTotal = $('.recon-total span').text().replace(/[^\d.,]/g, '').trim();
+        
+        // Set smaller fonts for compact display in portrait mode
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11);
+        
+        // Add title
+        pdf.text(reportTitle, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 16;
+        
+        // Add date range
+        pdf.setFontSize(9);
+        pdf.text(dateRange, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 14;
+        
+        // Add location info if available
+        if(loc && loc !== 'All Locations') {
+            pdf.text('Location: ' + loc, margin, yPos);
+            yPos += 12;
+        }
+        
+        if(subloc && subloc !== 'All Sub Sections') {
+            pdf.text('Sub Section: ' + subloc, margin, yPos);
+            yPos += 12;
+        }
+        
+        yPos += 8; // Space before table
+        tableStartY = yPos;
+
+        // Define the page footer height - this reserves space at the bottom of each page
+        var pageFooterHeight = 40; // Height reserved for pagination at bottom
+
+        // Process each table in the report
+        $('#report__result table').each(function(tableIndex) {
+            var $table = $(this);
+            
+            // Start a new page for each table except the first one
+            if (tableIndex > 0) {
+                pdf.addPage();
+                yPos = margin;
+                tableStartY = yPos;
+                
+                // Add header to new page
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(11);
+                pdf.text(reportTitle, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 16;
+                
+                pdf.setFontSize(9);
+                pdf.text(dateRange, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 14;
+            }
+            
+            // Table header if available
+            var tableTitle = '';
+            var $prevElement = $table.prev('h1, h2, h3, h4, h5');
+            if ($prevElement.length > 0) {
+                tableTitle = $prevElement.text().trim();
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(9);
+                pdf.text(tableTitle, margin, yPos);
+                yPos += 14;
+            }
+            
+            // Get columns and adjust widths based on content
+            var columns = [];
+            var columnWidths = [];
+            var availableWidth = pageWidth - (margin * 2);
+            
+            // Extract headers
+            $table.find('thead th').each(function(i) {
+                var headerText = $(this).text().trim();
+                columns.push({
+                    title: headerText,
+                    dataKey: 'col' + i
+                });
+            });
+            
+            // Determine column widths - optimized for portrait orientation
+            var colCount = columns.length;
+            var standardColWidth = availableWidth / colCount;
+            
+            // Set column widths based on content type
+            for (var i = 0; i < colCount; i++) {
+                var title = columns[i].title.toLowerCase();
+                var width = standardColWidth;
+                
+                // Adjust column widths for portrait mode
+                if (title.includes('serial') || title.includes('#')) {
+                    width = standardColWidth * 0.4;
+                } else if (title.includes('date') || title.includes('expiry')) {
+                    width = standardColWidth * 0.7;
+                } else if (title.includes('price') || title.includes('total')) {
+                    width = standardColWidth * 0.6;
+                } else if (title.includes('name') || title.includes('description')) {
+                    width = standardColWidth * 1.3;
+                }
+                
+                columnWidths.push(width);
+            }
+            
+            // Normalize column widths to match available space
+            var totalWidthUsed = columnWidths.reduce((a, b) => a + b, 0);
+            var scaleFactor = availableWidth / totalWidthUsed;
+            columnWidths = columnWidths.map(w => w * scaleFactor);
+            
+            // Extract table data
+            var data = [];
+            $table.find('tbody tr:visible').each(function() {
+                var rowData = {};
+                $(this).find('td').each(function(i) {
+                    // Special handling for input fields in actual count column
+                    var cellContent = $(this).text().trim();
+                    
+                    // If cell contains an input, get its value instead
+                    var $input = $(this).find('input');
+                    if ($input.length > 0) {
+                        cellContent = $input.val();
+                    }
+                    
+                    // Remove peso symbol (&#8369;) if present
+                    cellContent = cellContent.replace(/&#8369;/g, '').replace(/₱/g, '').trim();
+                    
+                    rowData['col' + i] = cellContent;
+                });
+                data.push(rowData);
+            });
+            
+            // If no data, skip this table
+            if (data.length === 0) {
+                return;
+            }
+            
+            // Create autoTable configuration optimized for portrait mode with space for footer
+            var tableConfig = {
+                startY: yPos,
+                head: [columns.map(c => c.title)],
+                body: data.map(row => columns.map(c => row[c.dataKey] || '')),
+                headStyles: {
+                    fillColor: [240, 240, 240],
+                    textColor: [0, 0, 0],
+                    fontStyle: 'bold',
+                    fontSize: 7
+                },
+                bodyStyles: {
+                    fontSize: 6.5,
+                    lineColor: [200, 200, 200],
+                    lineWidth: 0.1,
+                    cellPadding: 2
+                },
+                columnStyles: {},
+                margin: { top: margin, right: margin, bottom: margin + pageFooterHeight, left: margin },
+                theme: 'grid',
+                
+                // Define didDrawPage callback to add page numbers and prevent overlap
+                didDrawPage: function(data) {
+                    // Add page numbers at the bottom of each page
+                    var pageNumber = pdf.internal.getNumberOfPages();
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(7);
+                    pdf.setTextColor(100, 100, 100);
+                    var str = "Page " + pageNumber;
+                    pdf.text(str, pageWidth - margin - 60, pageHeight - 20);
+                }
+            };
+            
+            // Set column widths
+            for (var i = 0; i < colCount; i++) {
+                tableConfig.columnStyles[i] = { 
+                    cellWidth: columnWidths[i],
+                    overflow: 'linebreak'
+                };
+            }
+            
+            // Create the table with added page break handling
+            pdf.autoTable(tableConfig);
+            
+            // Get the final Y position for the next content
+            yPos = pdf.previousAutoTable.finalY + 10;
+        });
+        
+        // Add the totals section after all tables
+        var lastPage = pdf.internal.getNumberOfPages();
+        pdf.setPage(lastPage);
+        yPos = pdf.previousAutoTable ? pdf.previousAutoTable.finalY + 20 : yPos + 20;
+        
+        // Make sure we have enough space for totals and signature, otherwise add a new page
+        if (yPos > pageHeight - 170) { // Increased space required to prevent overlap with footer
+            pdf.addPage();
+            yPos = margin + 20;
+            lastPage = pdf.internal.getNumberOfPages();
+        }
+        
+        // Draw a line above totals - adjusted for portrait mode
+        pdf.setDrawColor(100, 100, 100);
+        var totalsLineStartX = pageWidth - 230;
+        pdf.line(totalsLineStartX, yPos, pageWidth - margin, yPos);
+        yPos += 20;
+        
+        // Add the totals with proper formatting
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9);
+        pdf.setTextColor(0, 0, 0);
+        
+        // Position totals in portrait mode
+        var totalsLabelX = pageWidth - 200;
+        var totalsValueX = pageWidth - margin - 20;
+        
+        // SUPPLIES TOTAL - removed peso sign
+        if (suppliesTotal) {
+            pdf.text('SUPPLIES TOTAL:', totalsLabelX, yPos);
+            pdf.text(suppliesTotal, totalsValueX, yPos, { align: 'right' });
+            yPos += 15;
+        }
+        
+        // SUPPLIES (LOSS) - removed peso sign
+        if (suppliesLoss) {
+            pdf.text('SUPPLIES (LOSS):', totalsLabelX, yPos);
+            pdf.text(suppliesLoss, totalsValueX, yPos, { align: 'right' });
+            yPos += 15;
+        }
+        
+        // OVERALL TOTAL - removed peso sign
+        if (overallTotal) {
+            // Draw a line before overall total
+            pdf.setDrawColor(50, 50, 50);
+            pdf.line(totalsLineStartX, yPos, pageWidth - margin, yPos);
+            yPos += 10;
+            
+            // Set a slightly larger font for the overall total
+            pdf.setFontSize(10);
+            pdf.text('OVERALL TOTAL:', totalsLabelX, yPos);
+            pdf.text(overallTotal, totalsValueX, yPos, { align: 'right' });
+            yPos += 20;
+        }
+        
+        // Add signature area adjusted for portrait mode, ensuring enough space
+        // Check if we need to add a new page for signatures
+        if (yPos > pageHeight - 120) {
+            pdf.addPage();
+            yPos = margin + 20;
+            lastPage = pdf.internal.getNumberOfPages();
+        }
+        
+        // Get total pages
+        var totalPages = pdf.internal.getNumberOfPages();
+        pdf.setPage(lastPage);
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        
+        // Position signatures for portrait mode
+        var leftCol = pageWidth / 4;
+        var rightCol = (pageWidth / 4) * 3;
+        
+        // Signature lines
+        pdf.text('Prepared By:', leftCol, yPos, { align: 'center' });
+        pdf.text('Received By:', rightCol, yPos, { align: 'center' });
+        
+        yPos += 25;
+        pdf.line(leftCol - 70, yPos, leftCol + 70, yPos); // Line for Prepared By signature
+        pdf.line(rightCol - 70, yPos, rightCol + 70, yPos); // Line for Received By signature
+        
+        yPos += 10;
+        pdf.text(preparedBy, leftCol, yPos, { align: 'center' });
+        pdf.text('Mary Angelie Buñi Atupan', rightCol, yPos, { align: 'center' });
+        
+        yPos += 15;
+        pdf.text('', leftCol, yPos, { align: 'center' }); // Empty text for prepared by position
+        pdf.text('Clinic Manager', rightCol, yPos, { align: 'center' });
+        
+        // Add page numbers with total pages count at the bottom of each page
+        for (var i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(7);
+            pdf.setTextColor(100, 100, 100);
+            var str = "Page " + i + " of " + totalPages;
+            pdf.text(str, pageWidth - margin - 60, pageHeight - 20);
+        }
+        
+        // Set document metadata
+        var currentDate = new Date();
+        var dateString = currentDate.toLocaleDateString();
+        var timeString = currentDate.toLocaleTimeString('en-US', { hour12: false });
+        var timestamp = dateString.replace(/\//g, '-') + '_' + timeString.replace(/:/g, '-');
+        
+        // Add document info to metadata
+        pdf.setProperties({
+            title: reportTitle + ' - ' + dateRange,
+            subject: 'Reconciliation Report ' + dateString,
+            creator: 'Catamina Clinic SCI System',
+            author: preparedBy,
+            keywords: 'reconciliation, report, supplies, inventory',
+            creationDate: currentDate
+        });
+        
+        // Remove loading indicator
+        $('#pdf-loading').remove();
+        
+        // Save the PDF with timestamp in filename
+        pdf.save(reportTitle + ' - ' + timestamp + '.pdf');
+    },
+
     printReport: function($){
         var loc = ($('#section-list option:selected').attr('data-val') != "all")?$('#section-list option:selected').val():'All Locations';
         var subloc = ($('#subsection-list option:selected').attr('data-val') != "all")?$('#subsection-list option:selected').val():'All Sub Sections';
@@ -1048,7 +1400,13 @@ var Theme = {
                 return false;
             }
 
-            Theme.printReport($);
+            // Check if jsPDF is available - if not, fall back to original print method
+            if (typeof jspdf !== 'undefined' && typeof html2canvas !== 'undefined') {
+                Theme.printPdfReport($);
+            } else {
+                console.warn('jsPDF or html2canvas not available, falling back to original print method');
+                Theme.printReport($);
+            }
         });
 
         $('#filter-data a.btn').click(function(e){
