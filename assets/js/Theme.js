@@ -273,6 +273,9 @@ var Theme = {
         // Get date range from page
         var dateRange = $('h2:contains("AS OF")').text();
         
+        // Get department from h1 element in report__result
+        var departmentLabel = $('.report__result h1').first().text().trim();
+        
         // Get total values - removing peso sign from values
         var suppliesTotal = $('.sup-total span').text().replace(/[^\d.,]/g, '').trim();
         var suppliesLoss = $('.sup-loss span').text().replace(/[^\d.,]/g, '').trim();
@@ -290,6 +293,14 @@ var Theme = {
         pdf.setFontSize(9);
         pdf.text(dateRange, pageWidth / 2, yPos, { align: 'center' });
         yPos += 14;
+        
+        // Add department label if available
+        if(departmentLabel) {
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(10);
+            pdf.text('Department: ' + departmentLabel, pageWidth / 2, yPos, { align: 'center' });
+            yPos += 14;
+        }
         
         // Add location info if available
         if(loc && loc !== 'All Locations') {
@@ -327,6 +338,14 @@ var Theme = {
                 pdf.setFontSize(9);
                 pdf.text(dateRange, pageWidth / 2, yPos, { align: 'center' });
                 yPos += 14;
+                
+                // Also add department label to new pages if available
+                if(departmentLabel) {
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(10);
+                    pdf.text('Department: ' + departmentLabel, pageWidth / 2, yPos, { align: 'center' });
+                    yPos += 14;
+                }
             }
             
             // Table header if available
