@@ -1270,28 +1270,52 @@ class Theme {
             return $cache[$cache_key];
         }
         
-        // Use direct SQL query which is much faster than WP_Query + ACF loops
-        global $wpdb;
+        // Format the date for comparison
+        $formatted_date = date('Y-m-d', strtotime($date));
         
-        $query = $wpdb->prepare(
-            "SELECT pm2.meta_value 
-            FROM {$wpdb->postmeta} pm1 
-            JOIN {$wpdb->postmeta} pm2 ON pm1.post_id = pm2.post_id AND pm2.meta_key = 'expiry_date'
-            JOIN {$wpdb->postmeta} pm3 ON pm1.post_id = pm3.post_id AND pm3.meta_key = 'date_added'
-            JOIN {$wpdb->posts} p ON p.ID = pm1.post_id 
-            WHERE p.post_type = 'actualsupplies' 
-            AND p.post_status = 'publish' 
-            AND pm1.meta_key = 'supply_name' 
-            AND pm1.meta_value = %d
-            AND pm3.meta_value <= %s
-            AND pm2.meta_value != ''
-            ORDER BY STR_TO_DATE(pm3.meta_value, '%%Y-%%m-%%d') DESC
-            LIMIT 1",
-            $suppid,
-            date('Y-m-d', strtotime($date))
+        // Query for actual supplies of this item added before or on the specified date
+        $args = array(
+            'post_type' => 'actualsupplies',
+            'post_status' => 'publish',
+            'posts_per_page' => 1,
+            'meta_query' => array(
+                'relation' => 'AND',
+                array(
+                    'key' => 'supply_name',
+                    'value' => $suppid,
+                    'compare' => '='
+                ),
+                array(
+                    'key' => 'date_added',
+                    'value' => $formatted_date,
+                    'compare' => '<=',
+                    'type' => 'DATE'
+                ),
+                array(
+                    'key' => 'expiry_date',
+                    'compare' => 'EXISTS'
+                ),
+                array(
+                    'key' => 'expiry_date',
+                    'value' => '',
+                    'compare' => '!='
+                )
+            ),
+            'orderby' => 'meta_value',
+            'meta_key' => 'date_added',
+            'order' => 'DESC' // Most recent first
         );
         
-        $result = $wpdb->get_var($query);
+        $query = new WP_Query($args);
+        $result = '';
+        
+        // Get the expiry date from the most recently added supply
+        if ($query->have_posts()) {
+            $query->the_post();
+            $post_id = get_the_ID();
+            $result = get_field('expiry_date', $post_id);
+            wp_reset_postdata();
+        }
         
         // Format date to mm/dd/yyyy if not empty
         if ($result) {
