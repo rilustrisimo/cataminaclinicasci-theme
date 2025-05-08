@@ -1285,7 +1285,7 @@ class Theme {
             AND pm1.meta_value = %d
             AND pm3.meta_value <= %s
             AND pm2.meta_value != ''
-            ORDER BY STR_TO_DATE(pm2.meta_value, '%%Y-%%m-%%d') DESC
+            ORDER BY STR_TO_DATE(pm3.meta_value, '%%Y-%%m-%%d') DESC
             LIMIT 1",
             $suppid,
             date('Y-m-d', strtotime($date))
