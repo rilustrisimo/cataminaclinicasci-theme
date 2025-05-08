@@ -1550,7 +1550,7 @@ class Theme {
                                 $res .= "<td class='filter-cons'>".$release."</td>";
                                 $res .= "<td class='orig-count' data-val='".$endInventory."'>".$endInventory." ".$expQtyAmountHTML."</td>";
                                 $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
-                                $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".$endInventory."'></td>";
+                                $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".($endInventory - $expQtyAmount)."'></td>";
                                 $res .= "<td class='row-variance'>0</td>";
                                 $res .= "<td class='row-total'>&#8369 ".$this->convertNumber($suptots)."</td>";
                                 $res .= "</tr>";
