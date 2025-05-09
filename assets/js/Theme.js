@@ -1187,6 +1187,7 @@ var Theme = {
                                 setTimeout(function() {
                                     Theme.checkExpired($);
                                     Theme.expirationFilter($);
+                                    Theme.reconTotal($);
                                 }, 100);
                             } catch (e) {
                                 console.error('Error initializing report components:', e);
