@@ -2779,13 +2779,17 @@ var Theme = {
                 $('tbody.sup-container').each(function() {
                     $(this).show();
                 });
+
+                $('.sup-loss, .recon-total').show();
                 
                 if (v == 'expired') {
                     // Hide all non-expired items
                     $('tbody.sup-container:not(.has-expired)').hide();
+                    $('.sup-loss, .recon-total').hide();
                 } else if (v == 'expiring') {
                     // Hide non-expiring items
                     $('tbody.sup-container:not(.has-expiring)').hide();
+                    $('.sup-loss, .recon-total').hide();
                 }
                 
                 // This updates the totals based on visible items
