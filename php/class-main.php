@@ -697,9 +697,37 @@ class Theme {
     }
 
     public function my_acf_fields_post_object_query_supply_name($args, $field, $post_id) {
-        
+        // Get current user first
         $u = wp_get_current_user();
-        $args['author'] = $u->ID;
+        $roles = (array) $u->roles;
+
+        if (!current_user_can('manage_options') && !in_array('um_accounting', $roles)) {
+            // Try to find the department associated with the user ID
+            $d = false;
+            foreach ($this->departmentArr as $dept_key => $dept_id) {
+                if ($dept_id == $u->ID) {
+                    $d = $dept_key;
+                    break;
+                }
+            }
+
+            if ($d) {
+                // Create meta_query array if it doesn't exist
+                if (!isset($args['meta_query'])) {
+                    $args['meta_query'] = array();
+                }
+                
+                $args['meta_query'][] = array(
+                    'key'     => 'department',
+                    'value'   => $d,
+                    'compare' => '='
+                );
+            }
+
+            if(!$d) {
+                $args['author'] = $u->ID;
+            }
+        }
 
         return $args;
     }
@@ -1502,7 +1530,7 @@ class Theme {
                                 $endInventory = (($beginQuantity + $purchase) - $release);
                                 $totalValue = $endInventory * $price;
                                 
-                                $res .= "<tbody class='sup-container' data-name='".$suppdeets['supply_name']."'>";
+                                $res .= "<tbody data-id='".$suppid."' class='sup-container' data-name='".$suppdeets['supply_name']."'>";
                                 $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
                                 $res .= "<td>".esc_html($suppdeets['supply_name'])."</td>";
                                 $res .= "<td class='filter-serial'>".esc_html($serial)."</td>";
@@ -1539,9 +1567,9 @@ class Theme {
                                 
                                 $expSuppExpTotal += ($expQtyAmount * $price);
                                 
-                                $res .= "<tbody class='sup-container count-supplies ".$expNameHTMLClassBody."' data-name='".esc_attr($suppdeets['supply_name'])."'>";
+                                $res .= "<tbody data-id='".$suppid."' class='sup-container count-supplies ".$expNameHTMLClassBody."' data-name='".$suppdeets['supply_name']."'>";
                                 $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
-                                $res .= "<td class='".$expNameHTMLClass."'>".esc_html($suppdeets['supply_name'])."</td>";
+                                $res .= "<td class='".$expNameHTMLClass."'>".$suppdeets['supply_name']."</td>";
                                 $res .= "<td class='filter-lot'>".esc_html($lot)."</td>";
                                 $res .= "<td class='filter-exp'>".esc_html($expiry)."</td>";
                                 $res .= "<td class='filter-beg'>".$beginQuantity."</td>";
@@ -2996,6 +3024,27 @@ class Theme {
         $paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
         
         $meta_query = array();
+
+        // Apply author restriction based on user role
+        $u = wp_get_current_user();
+        $roles = (array) $u->roles;
+
+        // Apply department filter based on user ID if not explicitly provided
+        if (!$d && !current_user_can('manage_options') && !in_array('um_accounting', $roles)) {
+            // Try to find the department associated with the user ID
+            $d = false;
+            foreach ($this->departmentArr as $dept_key => $dept_id) {
+                if ($dept_id == $u->ID) {
+                    $d = $dept_key;
+                    break;
+                }
+            }
+        }
+        
+        if (!current_user_can('manage_options') && !($roles[0] == "um_accounting") && !$d) {
+            $args['author'] = $u->ID;
+        }
+
         
         // Add department filter if specified
         if ($d) {
@@ -3046,13 +3095,6 @@ class Theme {
             $args['s'] = $s;
         }
         
-        // Apply author restriction based on user role
-        $u = wp_get_current_user();
-        $roles = (array) $u->roles;
-        
-        if (!current_user_can('manage_options') && !($roles[0] == "um_accounting")) {
-            $args['author'] = $u->ID;
-        }
         
         $pagi = '';
         

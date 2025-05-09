@@ -1066,7 +1066,7 @@ var Theme = {
                         status: status,
                         error: error,
                         statusCode: xhr.status,
-                        responseText: xhr.responseText.substring(0, 100) + '...' // Show start of response for debugging
+                        responseText: xhr.responseText ? xhr.responseText.substring(0, 100) + '...' : 'No response text' // Check if responseText exists
                     });
                     
                     // Adjust batch size down on error
