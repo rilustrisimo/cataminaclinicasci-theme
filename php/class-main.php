@@ -1563,7 +1563,7 @@ class Theme {
                                 $expQtyAmount = isset($suppdeets['expired_qty']) ? (float)$suppdeets['expired_qty'] : 0;
                                 $expQtyAmountHTML = ($expQtyAmount && ($expQtyAmount > 0)) ? "<span class='red-warning'>(" . $expQtyAmount . ")</span>" : "";
                                 $expNameHTMLClass = ($expQtyAmount && ($expQtyAmount > 0)) ? "red-warning" : "";
-                                $expNameHTMLClassBody = ($expQtyAmount && ($expQtyAmount > 0)) ? "has-expired" : "";
+                                $expNameHTMLClassBody = ($expQtyAmount && ($expQtyAmount > 0) && (($endInventory - $expQtyAmount) === 0)) ? "has-expired" : "";
                                 
                                 $expSuppExpTotal += ($expQtyAmount * $price);
                                 
