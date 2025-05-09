@@ -3056,7 +3056,7 @@ class Theme {
 
         
         // Add department filter if specified
-        if ($d) {
+        if ($d && $postType == 'supplies') {
             $meta_query[] = array(
                 'key'     => 'department',
                 'value'   => $d,

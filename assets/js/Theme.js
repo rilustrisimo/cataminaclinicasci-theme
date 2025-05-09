@@ -1792,7 +1792,10 @@ var Theme = {
             }
             return;
         }
-        
+        console.log('search', search);
+        console.log('postType', postType);
+        console.log('d', d);
+
         Theme.currentRequest = $.ajax({
             url: ajaxUrl,
             type: 'POST',
@@ -1809,6 +1812,7 @@ var Theme = {
             },
             success: function(textResponse) {
                 // Try to parse the response as JSON
+                
                 try {
                     // Check if the response starts with HTML doctype or opening tag
                     if (textResponse.trim().indexOf('<!DOCTYPE') === 0 || 
