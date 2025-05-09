@@ -1274,6 +1274,44 @@ var Theme = {
     },
 
     reconTotal: function($){
+        if($('.sup-total').length > 0){
+            var totp2 = 0;
+
+            $('.report__result tbody.count-supplies tr:visible').each(function(){
+                var q2 = $(this).find('.row-actual-count input').val();
+                var p2 = $(this).find('.row-price').attr('data-val');
+
+                var t2 = parseInt(q2) * parseFloat(p2);
+                
+                totp2 += t2;
+                
+            });
+
+            let np2 = totp2.toFixed(2);
+            let str2 = parseFloat(np2).toLocaleString("en-US");
+
+            $('.sup-total span').html("&#8369 " + str2);
+        }
+
+        if($('.sup-loss').length > 0){
+            var totp3 = 0;
+
+            $('.report__result tbody.count-supplies.has-expired').each(function(){
+                var q3 = $(this).find('.row-actual-count input').val();
+                var p3 = $(this).find('.row-price').attr('data-val');
+
+                var t3 = parseInt(q3) * parseFloat(p3);
+                
+                totp3 += t3;
+                
+            });
+
+            let np3 = totp3.toFixed(2);
+            let str3 = parseFloat(np3).toLocaleString("en-US");
+            $('.sup-loss span').attr("data-val", np3);
+            $('.sup-loss span').html("&#8369 " + str3);
+        }
+
         if($('.recon-total').length > 0){
             var totp = 0;
 
@@ -1292,25 +1330,6 @@ var Theme = {
             
 
             $('.recon-total span').html("&#8369 " + str);
-        }
-
-        if($('.sup-total').length > 0){
-            var totp2 = 0;
-
-            $('.report__result tbody.count-supplies tr:visible').each(function(){
-                var q2 = $(this).find('.row-actual-count input').val();
-                var p2 = $(this).find('.row-price').attr('data-val');
-
-                var t2 = parseInt(q2) * parseFloat(p2);
-                
-                totp2 += t2;
-                
-            });
-
-            let np2 = totp2.toFixed(2);
-            let str2 = parseFloat(np2).toLocaleString("en-US");
-
-            $('.sup-total span').html("&#8369 " + str2);
         }
 
         Theme.checkExpired($);

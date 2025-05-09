@@ -1563,9 +1563,18 @@ class Theme {
                                 $expQtyAmount = isset($suppdeets['expired_qty']) ? (float)$suppdeets['expired_qty'] : 0;
                                 $expQtyAmountHTML = ($expQtyAmount && ($expQtyAmount > 0)) ? "<span class='red-warning'>(" . $expQtyAmount . ")</span>" : "";
                                 $expNameHTMLClass = ($expQtyAmount && ($expQtyAmount > 0)) ? "red-warning" : "";
-                                $expNameHTMLClassBody = ($expQtyAmount && ($expQtyAmount > 0) && (($endInventory - $expQtyAmount) === 0)) ? "has-expired" : "";
-                                
-                                $expSuppExpTotal += ($expQtyAmount * $price);
+                                // Class to highlight completely expired supplies (where all remaining quantity is expired)
+                                $expNameHTMLClassBody = '';
+                                if ($expQtyAmount > 0) {
+                                    // Check if all inventory is expired (allowing for tiny margin of error due to floating point)
+                                    $isCompletelyExpired = ($endInventory <= $expQtyAmount + 0.01);
+                                    
+                                    if ($isCompletelyExpired) {
+                                        $expNameHTMLClassBody = "has-expired";
+                                    }
+
+                                    $expSuppExpTotal += ($expQtyAmount * $price);
+                                }
                                 
                                 $res .= "<tbody data-id='".$suppid."' class='sup-container count-supplies ".$expNameHTMLClassBody."' data-name='".$suppdeets['supply_name']."'>";
                                 $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
