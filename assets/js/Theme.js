@@ -278,8 +278,8 @@ var Theme = {
         
         // Get total values - removing peso sign from values
         var suppliesTotal = $('.sup-total span').text().replace(/[^\d.,]/g, '').trim();
-        var suppliesLoss = $('.sup-loss span').text().replace(/[^\d.,]/g, '').trim();
-        var overallTotal = $('.recon-total span').text().replace(/[^\d.,]/g, '').trim();
+        var suppliesLoss = $('.sup-loss').is(':visible') ? $('.sup-loss span').text().replace(/[^\d.,]/g, '').trim() : false;
+        var overallTotal = $('.recon-total').is(':visible') ? $('.recon-total span').text().replace(/[^\d.,]/g, '').trim() : false;
         
         // Set smaller fonts for compact display in portrait mode
         pdf.setFont('helvetica', 'bold');
