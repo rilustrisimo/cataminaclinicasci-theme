@@ -1338,12 +1338,15 @@ var Theme = {
     },
 
     checkExpired: function($) {
-        // Get today's date
-        const today = new Date();
+        // Get date from date-to input field if available, otherwise use today's date
+        const today = $('.date-to').length > 0 && $('.date-to').val() !== '' 
+            ? new Date($('.date-to').val()) 
+            : new Date();
         
-        // Calculate date 180 days from now for "expiring soon" items
-        const sixMonthsFromNow = new Date();
-        sixMonthsFromNow.setDate(today.getDate() + 180);
+        // Calculate date 240 days (8 months) from the reference date for "expiring soon" items
+        // Changed from 180 days (6 months) to 240 days (8 months)
+        const eightMonthsFromNow = new Date(today);
+        eightMonthsFromNow.setDate(today.getDate() + 240);
 
         // Select all visible and non-empty .filter-exp <td> elements
         $("td.filter-exp:visible").filter(function() {
@@ -1361,8 +1364,8 @@ var Theme = {
                     if (cellDate < today) {
                         $(this).closest('tbody').addClass('has-expired');
                     } 
-                    // Mark as expiring soon if within next 30 days
-                    else if (cellDate <= sixMonthsFromNow) {
+                    // Mark as expiring soon if within next 8 months (changed from 6 months)
+                    else if (cellDate <= eightMonthsFromNow) {
                         $(this).closest('tbody').addClass('has-expiring');
                     }
                     
@@ -1375,7 +1378,8 @@ var Theme = {
                     // Select all <td> elements in the current row (parent <tr>)
                     const allTdsInRow = $(this).closest("tr").find("td");
                     
-                    if (daysDifference <= 180) {
+                    // Also update this to match the 8 month threshold (240 days)
+                    if (daysDifference <= 240) {
                         allTdsInRow.css({
                             "font-weight": "bold"
                         });
@@ -2793,10 +2797,56 @@ var Theme = {
                     $('.sup-loss, .recon-total').hide();
                 }
                 
+                // Sort supplies by expiration date (nearest expiry first)
+                Theme.sortSuppliesByExpiry($);
+                
                 // This updates the totals based on visible items
                 Theme.reconTotal($);
             });
+            
+            // Initial sort when page loads
+            Theme.sortSuppliesByExpiry($);
         }
+    },
+    
+    // New function to sort supplies by expiration date
+    sortSuppliesByExpiry: function($) {
+        // Get all tables that might contain supply data
+        $('.report__result table').each(function() {
+            var $table = $(this);
+            
+            // Get all supply containers in this table
+            var $containers = $table.find('tbody.sup-container');
+            
+            if ($containers.length > 0) {
+                // Sort the containers based on expiration date
+                $containers.sort(function(a, b) {
+                    // Find the expiration date cell in each container
+                    var dateA = $(a).find('td.filter-exp').text().trim();
+                    var dateB = $(b).find('td.filter-exp').text().trim();
+                    
+                    // If no date found, put at the end
+                    if (!dateA) return 1;
+                    if (!dateB) return -1;
+                    
+                    // Parse the dates (assuming MM/DD/YYYY format)
+                    var dateObjA = new Date(dateA);
+                    var dateObjB = new Date(dateB);
+                    
+                    // Check if dates are valid
+                    var validA = !isNaN(dateObjA.getTime());
+                    var validB = !isNaN(dateObjB.getTime());
+                    
+                    // Handle invalid dates
+                    if (!validA && !validB) return 0;
+                    if (!validA) return 1;
+                    if (!validB) return -1;
+                    
+                    // Sort by date (ascending - nearest date first)
+                    return dateObjA - dateObjB;
+                }).appendTo($table);
+            }
+        });
     },
 
 };
