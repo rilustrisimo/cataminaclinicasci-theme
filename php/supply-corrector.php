@@ -1030,7 +1030,7 @@ $theme = new Theme();
                                (Array.isArray(csvData) ? csvData : []);
                 
                 // Process the batch client-side instead of sending to server
-                const batchSize = 10;
+                const batchSize = 300;
                 const batch = csvRows.slice(offset, offset + batchSize);
                 
                 if (!batch || batch.length === 0) {

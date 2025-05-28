@@ -1342,16 +1342,17 @@ var Theme = {
         const today = $('.date-to').length > 0 && $('.date-to').val() !== '' 
             ? new Date($('.date-to').val()) 
             : new Date();
-        
+        console.log('Checking expired items against date:', today);
         // Calculate date 240 days (8 months) from the reference date for "expiring soon" items
         // Changed from 180 days (6 months) to 240 days (8 months)
         const eightMonthsFromNow = new Date(today);
         eightMonthsFromNow.setDate(today.getDate() + 240);
+        console.log('Expiring soon threshold date:', eightMonthsFromNow);
 
         // Select all visible and non-empty .filter-exp <td> elements
         $("td.filter-exp:visible").filter(function() {
             // Get the text inside the td and trim any extra spaces
-            const dateText = $.trim($(this).html());
+            const dateText = $.trim($(this).text());
 
             // Check if the <td> has a valid date
             if (dateText !== "") {

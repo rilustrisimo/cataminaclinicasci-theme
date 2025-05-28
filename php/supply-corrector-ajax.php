@@ -208,6 +208,9 @@ function search_supply_matches() {
     // Get existing matches if available
     $existing_matches = isset($_POST['existing_matches']) ? json_decode(stripslashes($_POST['existing_matches']), true) : array();
     
+    // Track which supply IDs have been matched already
+    $matched_supply_ids = array();
+    
     // FIRST PASS: Identify 100% exact matches by name
     foreach ($batch_data as $csv_index => $row) {
         $supply_name = trim($row['supply_name']);
@@ -233,6 +236,11 @@ function search_supply_matches() {
         
         if ($exact_title_query->have_posts()) {
             foreach ($exact_title_query->posts as $post_id) {
+                // Skip if this post_id is already matched to another CSV item
+                if (in_array($post_id, $matched_supply_ids)) {
+                    continue;
+                }
+                
                 $db_title = get_the_title($post_id);
                 
                 // Check for 100% exact string match (case insensitive)
@@ -258,6 +266,9 @@ function search_supply_matches() {
                         $db_matches[$post_id] = array();
                     }
                     $db_matches[$post_id][$csv_index] = 100;
+                    
+                    // Add to our list of matched supply IDs
+                    $matched_supply_ids[] = $post_id;
                     
                     $found_exact_match = true;
                     break;
@@ -340,6 +351,11 @@ function search_supply_matches() {
                 $post_id = get_the_ID();
                 $db_title = get_the_title();
                 
+                // Skip if this supply ID has already been matched to another CSV item
+                if (in_array($post_id, $matched_supply_ids)) {
+                    continue;
+                }
+                
                 // Skip if this post_id already has a match for this CSV index
                 if (isset($db_matches[$post_id]) && isset($db_matches[$post_id][$csv_index])) {
                     continue;
@@ -400,6 +416,11 @@ function search_supply_matches() {
                         $query->the_post();
                         $post_id = get_the_ID();
                         $db_title = get_the_title();
+                        
+                        // Skip if this supply ID has already been matched to another CSV item
+                        if (in_array($post_id, $matched_supply_ids)) {
+                            continue;
+                        }
                         
                         // Skip if this post_id already has a match for this CSV index
                         if (isset($db_matches[$post_id]) && isset($db_matches[$post_id][$csv_index])) {
@@ -467,6 +488,11 @@ function search_supply_matches() {
                         $post_id = get_the_ID();
                         $db_title = get_the_title();
                         
+                        // Skip if this supply ID has already been matched to another CSV item
+                        if (in_array($post_id, $matched_supply_ids)) {
+                            continue;
+                        }
+                        
                         // Skip if this post_id already has a match for this CSV index
                         if (isset($db_matches[$post_id]) && isset($db_matches[$post_id][$csv_index])) {
                             continue;
@@ -521,6 +547,11 @@ function search_supply_matches() {
             // Only include the match if score is 50 or higher
             if ($best_score >= 50) {
                 $best_match[] = $matches[$best_id];
+                
+                // Add this to matched supply IDs
+                if (!in_array($best_id, $matched_supply_ids)) {
+                    $matched_supply_ids[] = $best_id;
+                }
                 
                 // Keep track of only this match
                 foreach ($db_matches as $post_id => $csv_matches) {
@@ -1106,7 +1137,17 @@ function update_supply_quantities() {
             }
             
             if (!empty($expiry_date)) {
-                update_field('expiry_date', $expiry_date, $post_id);
+                // Validate and format the expiry date
+                $timestamp = strtotime($expiry_date);
+                if ($timestamp) {
+                    // Format the date properly
+                    $formatted_expiry_date = date('Y-m-d', $timestamp);
+                    update_field('expiry_date', $formatted_expiry_date, $post_id);
+                } else {
+                    error_log("Invalid expiry date format for $supply_name: $expiry_date");
+                    // Still update with provided value as ACF may handle it internally
+                    update_field('expiry_date', $expiry_date, $post_id);
+                }
             }
             
             if (!empty($serial)) {
@@ -1126,7 +1167,7 @@ function update_supply_quantities() {
                 'post_id' => $post_id,
                 'quantity_added' => $quantity_to_add,
                 'lot_number' => $lot_number,
-                'expiry_date' => $expiry_date,
+                'expiry_date' => (!empty($expiry_date) && strtotime($expiry_date)) ? date('Y-m-d', strtotime($expiry_date)) : $expiry_date,
                 'serial' => $serial,
                 'discrepancy' => $discrepancy
             );
@@ -1164,21 +1205,137 @@ function update_supply_quantities() {
             // Trigger ACF save to update any computed fields
             do_action('acf/save_post', $post_id);
             
+            // Also update expiry date of latest actual supplies entry if provided in CSV
+            $expiry_updated = false;
+            if (!empty($expiry_date)) {
+                // Validate and format the expiry date
+                $timestamp = strtotime($expiry_date);
+                if ($timestamp) {
+                    // Format the date properly
+                    $formatted_expiry_date = date('Y-m-d', $timestamp);
+                    
+                    // Get the latest actual supplies entry for this supply
+                    $latest_actual = get_posts(array(
+                        'post_type' => 'actualsupplies',
+                        'posts_per_page' => 1,
+                        'post_status' => 'publish',
+                        'orderby' => 'date',
+                        'order' => 'DESC',
+                        'meta_query' => array(
+                            array(
+                                'key' => 'supply_name',
+                                'value' => $supply_id,
+                                'compare' => '='
+                            )
+                        )
+                    ));
+                    
+                    if (!empty($latest_actual)) {
+                        $actual_post_id = $latest_actual[0]->ID;
+                        $current_expiry = get_field('expiry_date', $actual_post_id);
+                        
+                        // Always update the expiry date, regardless if they are different or not
+                        $old_expiry = $current_expiry;
+                        update_field('expiry_date', $formatted_expiry_date, $actual_post_id);
+                        
+                        // Trigger ACF save to update any computed fields
+                        do_action('acf/save_post', $actual_post_id);
+                        $expiry_updated = true;
+                    }
+                }
+            }
+            
             $results['success'][] = array(
                 'supply_id' => $supply_id,
                 'action' => 'created_release',
                 'post_id' => $post_id,
                 'quantity_released' => $quantity_to_release,
-                'discrepancy' => $discrepancy
+                'discrepancy' => $discrepancy,
+                'expiry_updated' => $expiry_updated
             );
         } else {
-            // No discrepancy, nothing to update
-            $results['success'][] = array(
-                'supply_id' => $supply_id,
-                'action' => 'no_change',
-                'reason' => 'No discrepancy found',
-                'discrepancy' => $discrepancy
-            );
+            // No quantity discrepancy, but check if expiry date needs updating
+            if (!empty($expiry_date)) {
+                // Validate and format the expiry date
+                $timestamp = strtotime($expiry_date);
+                if (!$timestamp) {
+                    // Invalid date format
+                    $results['failed'][] = array(
+                        'supply_id' => $supply_id,
+                        'action' => 'invalid_date',
+                        'reason' => 'Invalid expiry date format: ' . $expiry_date,
+                        'discrepancy' => $discrepancy
+                    );
+                    continue;
+                }
+                
+                // Format the date in Y-m-d format for consistency
+                $formatted_expiry_date = date('Y-m-d', $timestamp);
+                
+                // Get the latest actual supplies entry for this supply
+                $latest_actual = get_posts(array(
+                    'post_type' => 'actualsupplies',
+                    'posts_per_page' => 1,
+                    'post_status' => 'publish',
+                    'orderby' => 'date',
+                    'order' => 'DESC',
+                    'meta_query' => array(
+                        array(
+                            'key' => 'supply_name',
+                            'value' => $supply_id,
+                            'compare' => '='
+                        )
+                    )
+                ));
+                
+                if (!empty($latest_actual)) {
+                    $actual_post_id = $latest_actual[0]->ID;
+                    $current_expiry = get_field('expiry_date', $actual_post_id);
+                    
+                    // Always update the expiry date, regardless if they are different or not
+                    $old_expiry = $current_expiry;
+                    update_field('expiry_date', $formatted_expiry_date, $actual_post_id);
+                    
+                    // Trigger ACF save to update any computed fields
+                    do_action('acf/save_post', $actual_post_id);
+                    
+                    if ($current_expiry != $formatted_expiry_date) {
+                        $results['success'][] = array(
+                            'supply_id' => $supply_id,
+                            'action' => 'updated_expiry',
+                            'post_id' => $actual_post_id,
+                            'old_expiry' => $old_expiry,
+                            'new_expiry' => $formatted_expiry_date,
+                            'reason' => 'Expiry date updated from CSV'
+                        );
+                    } else {
+                        $results['success'][] = array(
+                            'supply_id' => $supply_id,
+                            'action' => 'updated_expiry',
+                            'post_id' => $actual_post_id,
+                            'old_expiry' => $old_expiry,
+                            'new_expiry' => $formatted_expiry_date,
+                            'reason' => 'Expiry date refreshed from CSV (same date)'
+                        );
+                    }
+                } else {
+                    // No actual supplies found
+                    $results['success'][] = array(
+                        'supply_id' => $supply_id,
+                        'action' => 'no_change',
+                        'reason' => 'No actual supplies found to update',
+                        'discrepancy' => $discrepancy
+                    );
+                }
+            } else {
+                // No expiry date provided in CSV
+                $results['success'][] = array(
+                    'supply_id' => $supply_id,
+                    'action' => 'no_change',
+                    'reason' => 'No expiry date provided in CSV',
+                    'discrepancy' => $discrepancy
+                );
+            }
         }
     }
     
