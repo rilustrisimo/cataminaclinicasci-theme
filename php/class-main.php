@@ -3717,7 +3717,7 @@ class Theme {
         } 
         // If status is being changed to unconfirmed, find and delete the actualsupplies record
         else {
-            // Query to find matching actualsupplies records
+            // Query to find matching actualsupplies records 
             $args = array(
                 'post_type' => 'actualsupplies',
                 'posts_per_page' => -1,
