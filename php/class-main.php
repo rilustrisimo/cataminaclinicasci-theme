@@ -3708,8 +3708,7 @@ class Theme {
             }
             
             // Add custom fields to the post
-            $supply_post = get_post($supply_id);
-            update_field('supply_name', $supply_post, $actual_supply_id);
+            update_field('supply_name', $supply_id, $actual_supply_id);
             update_field('date_added', $release_date, $actual_supply_id);
             update_field('quantity', $quantity, $actual_supply_id); // Negative quantity to offset the release
             update_field('related_release_id', $release_id, $actual_supply_id); // Store reference to original release
