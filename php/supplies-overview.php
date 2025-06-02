@@ -12,7 +12,7 @@ require_once( dirname(__FILE__) . '/../../../../wp-load.php' );
 // Security check - only allow admin users
 if (!current_user_can('manage_options')) {
     wp_die('Access denied. You must be an administrator to view this page.');
-}
+} 
 
 // Get the Theme class
 require_once( dirname(__FILE__) . '/class-main.php' );

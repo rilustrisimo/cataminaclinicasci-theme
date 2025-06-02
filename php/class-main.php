@@ -1074,7 +1074,7 @@ class Theme {
                         "compare" => "="
                     )
                 )
-            )
+            ) 
         );
         
         $actual_posts = get_posts($actual_args);

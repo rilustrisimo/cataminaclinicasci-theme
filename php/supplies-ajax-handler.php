@@ -193,7 +193,7 @@ function load_supplies_batch() {
                             "value" => "",
                             "compare" => "="
                         )
-                    ) 
+                    )
                 ),
                 "update_post_meta_cache" => true
             );

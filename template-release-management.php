@@ -597,7 +597,7 @@ if ( have_posts() ) : ?>
                     $('#filter-releases').on('click', function() {
                         loadReleases('pending');
                         loadReleases('confirmed');
-                    });
+                    }); 
                     
                     // Event delegation for dynamically created buttons
                     $(document).on('click', '.confirm-release', function() {

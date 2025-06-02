@@ -969,7 +969,7 @@ function check_supply_discrepancies() {
                         "value" => "",
                         "compare" => "="
                     )
-                )
+                ) 
             ),
             'update_post_meta_cache' => true,
         );
