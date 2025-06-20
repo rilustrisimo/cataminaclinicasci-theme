@@ -504,6 +504,8 @@ class Theme {
             
             // Get released to department
             $released_to = get_field('department', $post->ID);
+            $section = get_field('section', $post->ID);
+            $sub_section = get_field('sub_section', $post->ID);
             
             if (!isset($grouped_supplies[$supply_name->ID])) {
                 $grouped_supplies[$supply_name->ID] = array(
@@ -511,12 +513,16 @@ class Theme {
                     'total_quantity' => 0,
                     'price_per_unit' => $price_per_unit,
                     'released_by' => $released_by,
-                    'released_to' => $released_to
+                    'released_to' => $released_to,
+                    'section' => $section,
+                    'sub_section' => $sub_section
                 );
             } else {
                 // Maintain the released from/to values - we'll use the last one in the group
                 $grouped_supplies[$supply_name->ID]['released_by'] = $released_by;
                 $grouped_supplies[$supply_name->ID]['released_to'] = $released_to;
+                $grouped_supplies[$supply_name->ID]['section'] = $section;
+                $grouped_supplies[$supply_name->ID]['sub_section'] = $sub_section;
             }
             $grouped_supplies[$supply_name->ID]['total_quantity'] += $quantity;
         }
@@ -3421,6 +3427,11 @@ class Theme {
                 return;
             }
 
+            // Handle releasesupplies auto-confirmation based on department matching
+            if($post_values->post_type == 'releasesupplies') {
+                $this->auto_confirm_release_supplies($post_id, $post_values);
+            }
+
             if($_POST['_acf_post_id'] == "new_post"){
                 foreach($this->post_types as $pt):
                     if($post_values->post_type == $pt['post_type']){
@@ -3632,6 +3643,8 @@ class Theme {
                 }
                 
                 $released_to = get_field('department', $post_id);
+                $section = get_field('section', $post_id);
+                $sub_section = get_field('sub_section', $post_id);
                 
                 $releases[] = array(
                     'id' => $post_id,
@@ -3640,7 +3653,9 @@ class Theme {
                     'release_date' => $release_date,
                     'price_per_unit' => $price_per_unit,
                     'released_by' => $released_by,
-                    'released_to' => $released_to
+                    'released_to' => $released_to,
+                    'section' => $section,
+                    'sub_section' => $sub_section
                 );
             }
             wp_reset_postdata();
@@ -3844,6 +3859,46 @@ class Theme {
         $count = $query->found_posts;
         
         wp_send_json_success($count);
+    }
+
+    /**
+     * Auto-confirm releasesupplies based on department matching
+     * 
+     * @param int $post_id The post ID being saved
+     * @param WP_Post $post_values The post object
+     */
+    private function auto_confirm_release_supplies($post_id, $post_values) {
+        // Get the department field value from the saved post
+        $department_field_value = get_field('department', $post_id);
+        
+        // Get the current user ID from post author
+        $current_user_id = $post_values->post_author;
+        
+        // Default to 0 (not confirmed) - using integer for ACF true/false field
+        $auto_confirm = 0;
+        
+        // Debug logging
+        error_log("Release Supplies Auto-Confirm Debug - Post ID: {$post_id}");
+        error_log("Release Supplies Auto-Confirm Debug - Post Author ID: {$current_user_id}");
+        error_log("Release Supplies Auto-Confirm Debug - Department Field Value: " . var_export($department_field_value, true));
+        
+        // Check if the department field value exists and if user belongs to same department
+        if (!empty($department_field_value) && isset($this->departmentArr[$department_field_value])) {
+            // Get the user ID associated with this department
+            $department_user_id = $this->departmentArr[$department_field_value];
+            
+            error_log("Release Supplies Auto-Confirm Debug - Department User ID: {$department_user_id}");
+            
+            // Auto-confirm if current user matches the department's assigned user
+            $auto_confirm = ($current_user_id == $department_user_id) ? 1 : 0;
+        }
+        
+        error_log("Release Supplies Auto-Confirm Debug - Auto Confirm Value: {$auto_confirm}");
+        
+        // Update the confirmed field using integer value
+        $result = update_field('confirmed', $auto_confirm, $post_id);
+        
+        error_log("Release Supplies Auto-Confirm Debug - Update Field Result: " . var_export($result, true));
     }
 }
 ?>

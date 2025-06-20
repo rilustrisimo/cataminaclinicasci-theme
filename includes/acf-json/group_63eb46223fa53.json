@@ -67,7 +67,7 @@
         },
         {
             "key": "field_67e76678ffc0a",
-            "label": "department",
+            "label": "Department",
             "name": "department",
             "aria-label": "",
             "type": "select",
@@ -99,6 +99,122 @@
                 "PHILHEALTH - ASC": "PHILHEALTH - ASC",
                 "PHILHEALTH - CLINIC A": "PHILHEALTH - CLINIC A",
                 "DSWD": "DSWD"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_68556a5ddc7c2",
+            "label": "Section",
+            "name": "section",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_67e76678ffc0a",
+                        "operator": "==",
+                        "value": "NURSING"
+                    }
+                ],
+                [
+                    {
+                        "field": "field_67e76678ffc0a",
+                        "operator": "==",
+                        "value": "LABORATORY"
+                    }
+                ],
+                [
+                    {
+                        "field": "field_67e76678ffc0a",
+                        "operator": "==",
+                        "value": "PHARMACY"
+                    }
+                ],
+                [
+                    {
+                        "field": "field_67e76678ffc0a",
+                        "operator": "==",
+                        "value": "HOUSEKEEPING"
+                    }
+                ],
+                [
+                    {
+                        "field": "field_67e76678ffc0a",
+                        "operator": "==",
+                        "value": "MAINTENANCE"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Treatment Room (Clinic A)": "Treatment Room (Clinic A)",
+                "Ambulatory Surgery Center (ASC)": "Ambulatory Surgery Center (ASC)",
+                "Clinical Chemistry": "Clinical Chemistry",
+                "Immunology": "Immunology",
+                "Histopathology": "Histopathology",
+                "Clinical Microscopy": "Clinical Microscopy",
+                "Hematology": "Hematology",
+                "Medical Supplies": "Medical Supplies",
+                "Medicines": "Medicines",
+                "Goods": "Goods",
+                "Comfort Rooms": "Comfort Rooms",
+                "Janitor’s Closet": "Janitor’s Closet",
+                "Autoclave Room": "Autoclave Room",
+                "Transport Vehicle": "Transport Vehicle",
+                "Septic Vault": "Septic Vault",
+                "Generator": "Generator",
+                "Water Tank System": "Water Tank System",
+                "Solar": "Solar",
+                "CCTV": "CCTV"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_68556af309055",
+            "label": "Sub Section",
+            "name": "sub_section",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_68556a5ddc7c2",
+                        "operator": "==",
+                        "value": "Ambulatory Surgery Center (ASC)"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Nurses Station": "Nurses Station",
+                "Clean Up Area": "Clean Up Area",
+                "Dressing Rooms": "Dressing Rooms",
+                "OR 1": "OR 1",
+                "OR 2": "OR 2"
             },
             "default_value": false,
             "return_format": "value",
@@ -146,5 +262,6 @@
     "hide_on_screen": "",
     "active": true,
     "description": "",
-    "show_in_rest": 0
+    "show_in_rest": 0,
+    "modified": 1750428451
 }

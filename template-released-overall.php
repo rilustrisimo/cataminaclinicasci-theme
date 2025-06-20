@@ -108,8 +108,7 @@ if ( have_posts() ) : ?>
                         </div>
                         <div class="filtered-results">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead>
+                                <table class="table table-hover align-middle mb-0">                                    <thead>
                                         <tr class="bg-light">
                                             <th class="fw-semibold text-dark py-2">Equipment / Supply Name</th>
                                             <th class="fw-semibold text-dark py-2 text-end">Quantity</th>
@@ -117,13 +116,15 @@ if ( have_posts() ) : ?>
                                             <th class="fw-semibold text-dark py-2 text-end">Total Price</th>
                                             <th class="fw-semibold text-dark py-2">Released By</th>
                                             <th class="fw-semibold text-dark py-2">Released To</th>
+                                            <th class="fw-semibold text-dark py-2">Section</th>
+                                            <th class="fw-semibold text-dark py-2">Sub Section</th>
                                         </tr>
                                     </thead>
                                     <tbody id="filtered-results-body">
                                     </tbody>
                                     <tfoot>
                                         <tr class="bg-light">
-                                            <td colspan="3" class="fw-bold text-end">Total Amount:</td>
+                                            <td colspan="5" class="fw-bold text-end">Total Amount:</td>
                                             <td id="grand-total" class="fw-bold text-end">₱0.00</td>
                                             <td colspan="2"></td>
                                         </tr>
@@ -325,9 +326,8 @@ if ( have_posts() ) : ?>
                                 if(response.success) {
                                     var html = '';
                                     var grandTotal = 0;
-                                    
-                                    if(response.data.length === 0) {
-                                        html = '<tr><td colspan="6" class="text-center text-dark py-3">No results found</td></tr>';
+                                      if(response.data.length === 0) {
+                                        html = '<tr><td colspan="8" class="text-center text-dark py-3">No results found</td></tr>';
                                         $('#export-pdf').prop('disabled', true);
                                     } else {
                                         response.data.forEach(function(item) {
@@ -345,19 +345,20 @@ if ( have_posts() ) : ?>
                                             html += '<td class="text-end fw-medium text-dark">₱' + totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>';
                                             html += '<td class="text-dark">' + item.released_by + '</td>';
                                             html += '<td class="text-dark">' + item.released_to + '</td>';
+                                            html += '<td class="text-dark">' + (item.section || '-') + '</td>';
+                                            html += '<td class="text-dark">' + (item.sub_section || '-') + '</td>';
                                             html += '</tr>';
                                         });
                                         $('#export-pdf').prop('disabled', false);
                                     }
                                     $('#filtered-results-body').html(html);
-                                    $('#grand-total').text('₱' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-                                } else {
-                                    $('#filtered-results-body').html('<tr><td colspan="6" class="text-center text-danger py-3">Error loading results</td></tr>');
+                                    $('#grand-total').text('₱' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));                                } else {
+                                    $('#filtered-results-body').html('<tr><td colspan="8" class="text-center text-danger py-3">Error loading results</td></tr>');
                                     $('#export-pdf').prop('disabled', true);
                                 }
                             },
                             error: function() {
-                                $('#filtered-results-body').html('<tr><td colspan="6" class="text-center text-danger py-3">Error loading results</td></tr>');
+                                $('#filtered-results-body').html('<tr><td colspan="8" class="text-center text-danger py-3">Error loading results</td></tr>');
                                 $('#export-pdf').prop('disabled', true);
                             },
                             complete: function() {
@@ -375,14 +376,12 @@ if ( have_posts() ) : ?>
                         
                         // Get the table data
                         var data = [];
-                        var grandTotal = 0;
-
-                        $('#filtered-results-body tr').each(function() {
+                        var grandTotal = 0;                        $('#filtered-results-body tr').each(function() {
                             var row = [];
                             $(this).find('td').each(function(index) {
                                 let text = $(this).text().trim();
-                                if (index === 0 || index === 4 || index === 5) {
-                                    // Keep supply name, released by, and released to as is
+                                if (index === 0 || index === 4 || index === 5 || index === 6 || index === 7) {
+                                    // Keep supply name, released by, released to, section, and sub section as is
                                     row.push(text);
                                 } else {
                                     // Parse numbers for quantity and price columns
@@ -402,7 +401,7 @@ if ( have_posts() ) : ?>
                         });
 
                         // Add total row to the data array - make sure it aligns with total price column
-                        data.push(['', '', 'Total Amount:', grandTotal, '', '']);
+                        data.push(['', '', 'Total Amount:', grandTotal, '', '', '', '']);
 
                         // Create PDF - maintain portrait orientation
                         const { jsPDF } = window.jspdf;
@@ -438,30 +437,30 @@ if ( have_posts() ) : ?>
                         
                         // Calculate current date for the footer
                         const now = new Date();
-                        const formattedDate = now.toISOString().split('T')[0];
-
-                        // Add table with improved styling
+                        const formattedDate = now.toISOString().split('T')[0];                        // Add table with improved styling
                         doc.autoTable({
                             startY: startY,
-                            head: [['Equipment / Supply Name', 'Quantity', 'Price per Unit', 'Total Price', 'Released By', 'Released To']],
+                            head: [['Equipment / Supply Name', 'Quantity', 'Price per Unit', 'Total Price', 'Released By', 'Released To', 'Section', 'Sub Section']],
                             body: data,
                             theme: 'grid',
                             pageBreak: 'auto',
                             margin: { top: startY, right: 10, bottom: 20, left: 10 },
                             styles: {
-                                fontSize: 8,
-                                cellPadding: 2,
+                                fontSize: 7,
+                                cellPadding: 1.5,
                                 lineColor: [80, 80, 80],
                                 lineWidth: 0.1,
                                 font: 'helvetica'
                             },
                             columnStyles: {
-                                0: { cellWidth: 40, overflow: 'linebreak' }, // Equipment/Supply Name
-                                1: { cellWidth: 15, halign: 'right' },       // Quantity
-                                2: { cellWidth: 20, halign: 'right' },       // Price per Unit
-                                3: { cellWidth: 20, halign: 'right' },       // Total Price
-                                4: { cellWidth: 30, overflow: 'linebreak' }, // Released By
-                                5: { cellWidth: 30, overflow: 'linebreak' }  // Released To
+                                0: { cellWidth: 30, overflow: 'linebreak' }, // Equipment/Supply Name
+                                1: { cellWidth: 12, halign: 'right' },       // Quantity
+                                2: { cellWidth: 15, halign: 'right' },       // Price per Unit
+                                3: { cellWidth: 15, halign: 'right' },       // Total Price
+                                4: { cellWidth: 25, overflow: 'linebreak' }, // Released By
+                                5: { cellWidth: 25, overflow: 'linebreak' }, // Released To
+                                6: { cellWidth: 20, overflow: 'linebreak' }, // Section
+                                7: { cellWidth: 20, overflow: 'linebreak' }  // Sub Section
                             },
                             headStyles: {
                                 fillColor: [0, 123, 255],
@@ -493,8 +492,7 @@ if ( have_posts() ) : ?>
                                         data.cell.styles.fontStyle = 'bold';
                                         data.cell.styles.fillColor = [240, 240, 240];
                                         data.cell.styles.textColor = [0, 0, 0];
-                                        
-                                        // Position "Total Amount:" text and value properly
+                                          // Position "Total Amount:" text and value properly
                                         if (data.column.index === 2) {
                                             data.cell.styles.halign = 'right';
                                         } else if (data.column.index === 3) {

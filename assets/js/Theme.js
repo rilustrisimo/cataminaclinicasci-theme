@@ -175,6 +175,14 @@ var Theme = {
         $('#acf-field_63f4a94f212d3').change(function(){
             Theme.checkDepartment($);
         });
+        
+        // Handle release supplies department field
+        $('#acf-field_67e76678ffc0a').change(function(){
+            Theme.checkReleaseDepartment($);
+        });
+        
+        // Initialize release supplies fields on page load
+        Theme.checkReleaseDepartment($);
     },
 
     checkDepartment: function($){
@@ -227,6 +235,51 @@ var Theme = {
         
                 $('#acf-field_64086f91f709d').val('Transport Vehicle');
             }
+    },
+
+    checkReleaseDepartment: function($){
+        var v = $('#acf-field_67e76678ffc0a').val();
+        
+        // Hide all section options first
+        $('#acf-field_68556a5ddc7c2 option').hide();
+        $('#acf-field_68556a5ddc7c2 option[value=""]').show(); // Keep empty option visible
+        
+        if(v == "NURSING"){
+            $('#acf-field_68556a5ddc7c2 option[value="Treatment Room (Clinic A)"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Ambulatory Surgery Center (ASC)"]').show();
+        }
+        
+        if(v == "LABORATORY"){
+            $('#acf-field_68556a5ddc7c2 option[value="Clinical Chemistry"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Immunology"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Histopathology"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Clinical Microscopy"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Hematology"]').show();
+        }
+        
+        if(v == "PHARMACY"){
+            $('#acf-field_68556a5ddc7c2 option[value="Medical Supplies"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Medicines"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Goods"]').show();
+        }
+        
+        if(v == "HOUSEKEEPING"){
+            $('#acf-field_68556a5ddc7c2 option[value="Comfort Rooms"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Janitor\'s Closet"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Autoclave Room"]').show();
+        }
+        
+        if(v == "MAINTENANCE"){
+            $('#acf-field_68556a5ddc7c2 option[value="Transport Vehicle"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Septic Vault"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Generator"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Water Tank System"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="Solar"]').show();
+            $('#acf-field_68556a5ddc7c2 option[value="CCTV"]').show();
+        }
+        
+        // Reset section value when department changes
+        $('#acf-field_68556a5ddc7c2').val('');
     },
 
     printPdfReport: function($) {
