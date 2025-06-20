@@ -321,6 +321,11 @@ $supplies_count = wp_count_posts('supplies')->publish;
             display: none; /* Hidden by default, shown only when a relevant department is selected */
         }
         
+        /* Sub-section filter styles */
+        .sub-section-filter {
+            display: none; /* Hidden by default, shown only when NURSING->ASC is selected */
+        }
+        
         /* Checkbox styling */
         .checkbox-label {
             display: flex !important;
@@ -411,6 +416,17 @@ $supplies_count = wp_count_posts('supplies')->publish;
                     <!-- Section options will be populated dynamically based on department -->
                 </select>
             </div>
+            <div class="filter sub-section-filter" id="sub-section-filter-container">
+                <label for="sub-section-filter">Sub-Section:</label>
+                <select id="sub-section-filter">
+                    <option value="">All Sub-Sections</option>
+                    <option value="Nurses Station">Nurses Station</option>
+                    <option value="Clean Up Area">Clean Up Area</option>
+                    <option value="Dressing Rooms">Dressing Rooms</option>
+                    <option value="OR 1">OR 1</option>
+                    <option value="OR 2">OR 2</option>
+                </select>
+            </div>
             <div class="filter">
                 <label for="type-filter">Type:</label>
                 <select id="type-filter">
@@ -486,6 +502,13 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 updateSectionFilter(department);
             });
             
+            // Initialize sub-section filter
+            $('#section-filter').on('change', function() {
+                var department = $('#department-filter').val();
+                var section = $(this).val();
+                updateSubSectionFilter(department, section);
+            });
+            
             // Apply filters when the button is clicked
             $('#apply-filters').on('click', function() {
                 if (isLoading) return;
@@ -509,13 +532,15 @@ $supplies_count = wp_count_posts('supplies')->publish;
             $('#reset-filters').on('click', function() {
                 $('#department-filter').val('');
                 $('#section-filter').val('');
+                $('#sub-section-filter').val('');
                 $('#type-filter').val('');
                 $('#search').val('');
                 $('#date-filter').val('<?php echo date('Y-m-d'); ?>');
                 $('#duplicates-only').prop('checked', false);
                 
-                // Hide the section filter
+                // Hide the section and sub-section filters
                 updateSectionFilter('');
+                updateSubSectionFilter('', '');
                 
                 // If data already loaded, trigger a re-filter
                 if (loadedCount > 0) {
@@ -544,7 +569,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
             });
             
             // Filter and search functionality - now just filters the visible items, doesn't reload
-            $('#search, #section-filter').on('input change', function() {
+            $('#search, #section-filter, #sub-section-filter').on('input change', function() {
                 filterSupplies();
             });
             
@@ -590,6 +615,26 @@ $supplies_count = wp_count_posts('supplies')->publish;
             
             // Reset section selection
             $sectionFilter.val('');
+            
+            // Reset sub-section filter when department changes
+            updateSubSectionFilter(department, '');
+        }
+        
+        // Function to update sub-section filter based on department and section
+        function updateSubSectionFilter(department, section) {
+            var $subSectionFilter = jQuery('#sub-section-filter');
+            var $subSectionContainer = jQuery('#sub-section-filter-container');
+            
+            // Hide by default
+            $subSectionContainer.hide();
+            
+            // Show sub-section filter only for NURSING department and ASC section
+            if (department === 'NURSING' && section === 'Ambulatory Surgery Center (ASC)') {
+                $subSectionContainer.show();
+            }
+            
+            // Reset sub-section selection
+            $subSectionFilter.val('');
         }
         
         function updateSummary() {
@@ -605,6 +650,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
             var department = jQuery('#department-filter').val();
             var type = jQuery('#type-filter').val();
             var section = jQuery('#section-filter').val();
+            var subSection = jQuery('#sub-section-filter').val();
             
             jQuery('.supply-row').each(function() {
                 var $this = jQuery(this);
@@ -612,11 +658,13 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 var supplyDepartment = $this.data('department');
                 var supplyType = $this.data('type');
                 var supplySection = $this.data('section');
+                var supplySubSection = $this.data('sub-section');
                 
                 var showBySearch = !search || supplyName.indexOf(search) > -1;
                 var showByDepartment = !department || supplyDepartment === department;
                 var showByType = !type || supplyType === type;
                 var showBySection = !section || supplySection === section;
+                var showBySubSection = !subSection || supplySubSection === subSection;
                 
                 // Remove highlighting first
                 $this.removeClass('department-section-match');
@@ -626,7 +674,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
                     $this.addClass('department-section-match');
                 }
                 
-                if (showBySearch && showByDepartment && showByType && showBySection) {
+                if (showBySearch && showByDepartment && showByType && showBySection && showBySubSection) {
                     $this.show();
                 } else {
                     $this.hide();
@@ -644,6 +692,9 @@ $supplies_count = wp_count_posts('supplies')->publish;
             }
             if ($('#section-filter').val()) {
                 filterMsg += ' | Section: ' + $('#section-filter').val();
+            }
+            if ($('#sub-section-filter').val()) {
+                filterMsg += ' | Sub-Section: ' + $('#sub-section-filter').val();
             }
             if ($('#type-filter').val()) {
                 filterMsg += ' | Type: ' + $('#type-filter').val();
@@ -684,6 +735,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
                     // Add filters to the AJAX request
                     department: $('#department-filter').val(),
                     section: $('#section-filter').val(),
+                    sub_section: $('#sub-section-filter').val(),
                     type: $('#type-filter').val(),
                     until_date: $('#date-filter').val(),
                     duplicates_only: $('#duplicates-only').is(':checked') ? '1' : '0'
@@ -726,6 +778,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
                                                 <th>Department</th>
                                                 <th>Type</th>
                                                 <th>Section</th>
+                                                <th>Sub-Section</th>
                                                 <th>Price</th>
                                                 <th>Added</th>
                                                 <th>Actual Qty</th>
@@ -801,12 +854,13 @@ $supplies_count = wp_count_posts('supplies')->publish;
                             
                             // Add each item as a row in the table
                             var rowHtml = `
-                                <tr class="supply-row ${rowClass}" data-id="${item.id}" data-department="${item.department}" data-type="${item.type}" data-section="${item.section}">
+                                <tr class="supply-row ${rowClass}" data-id="${item.id}" data-department="${item.department}" data-type="${item.type}" data-section="${item.section}" data-sub-section="${item.sub_section || ''}">
                                     <td>${item.id}</td>
                                     <td class="supply-name">${item.isDuplicate ? '<span class="duplicate-marker">⚠️</span>' : ''} ${item.name}</td>
                                     <td>${item.department}</td>
                                     <td>${item.type}</td>
                                     <td>${item.section}</td>
+                                    <td>${item.sub_section || '-'}</td>
                                     <td>₱${item.price_per_unit}</td>
                                     <td>${item.purchased_date}</td>
                                     <td class="text-right">${item.total_actual_quantity}</td>
@@ -827,7 +881,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
                             $('.duplicates-summary').show();
                             
                             // Generate HTML table for all duplicate items found so far
-                            var duplicateHtml = '<table class="duplicates-table"><thead><tr><th>ID</th><th>Name</th><th>Department</th><th>Type</th><th>Section</th></tr></thead><tbody>';
+                            var duplicateHtml = '<table class="duplicates-table"><thead><tr><th>ID</th><th>Name</th><th>Department</th><th>Type</th><th>Section</th><th>Sub-Section</th></tr></thead><tbody>';
                             
                             // Use all duplicate items accumulated so far
                             $.each(window.allDuplicateItems, function(index, item) {
@@ -838,6 +892,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
                                         <td>${item.department}</td>
                                         <td>${item.type}</td>
                                         <td>${item.section}</td>
+                                        <td>${item.sub_section || '-'}</td>
                                     </tr>
                                 `;
                             });
@@ -940,6 +995,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
                                                     <tr><td>Department:</td><td>${item.department}</td></tr>
                                                     <tr><td>Type:</td><td>${item.type}</td></tr>
                                                     <tr><td>Section:</td><td>${item.section}</td></tr>
+                                                    ${item.sub_section ? `<tr><td>Sub-Section:</td><td>${item.sub_section}</td></tr>` : ''}
                                                     <tr><td>Date Added:</td><td>${item.purchased_date}</td></tr>
                                                     <tr><td>Price Per Unit:</td><td>₱${item.price_per_unit}</td></tr>
                                                 </table>

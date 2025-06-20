@@ -20,6 +20,7 @@ function load_supplies_batch() {
     // Get filter parameters with proper sanitization
     $department = isset($_POST["department"]) ? sanitize_text_field($_POST["department"]) : "";
     $section = isset($_POST["section"]) ? sanitize_text_field($_POST["section"]) : "";
+    $sub_section = isset($_POST["sub_section"]) ? sanitize_text_field($_POST["sub_section"]) : "";
     $type = isset($_POST["type"]) ? sanitize_text_field($_POST["type"]) : "";
     $until_date = isset($_POST["until_date"]) ? sanitize_text_field($_POST["until_date"]) : "";
     $duplicates_only = isset($_POST["duplicates_only"]) && $_POST["duplicates_only"] === "1";
@@ -50,6 +51,14 @@ function load_supplies_batch() {
         $meta_query[] = array(
             'key' => 'section',
             'value' => $section,
+            'compare' => '='
+        );
+    }
+    
+    if (!empty($sub_section)) {
+        $meta_query[] = array(
+            'key' => 'sub_section',
+            'value' => $sub_section,
             'compare' => '='
         );
     }
@@ -137,6 +146,7 @@ function load_supplies_batch() {
                 "department" => $department,
                 "type" => get_post_meta($supply_id, 'type', true) ?: 'Unknown',
                 "section" => get_post_meta($supply_id, 'section', true) ?: 'None',
+                "sub_section" => get_post_meta($supply_id, 'sub_section', true) ?: '',
                 "purchased_date" => format_display_date(get_post_meta($supply_id, 'purchased_date', true) ?: 'Unknown'),
                 "price_per_unit" => number_format((float)get_post_meta($supply_id, 'price_per_unit', true), 2),
                 "actual_supplies" => array(),
@@ -399,6 +409,7 @@ function get_supply_details() {
         "department" => isset($all_meta['department'][0]) ? $all_meta['department'][0] : "Unknown",
         "type" => isset($all_meta['type'][0]) ? $all_meta['type'][0] : "Unknown",
         "section" => isset($all_meta['section'][0]) ? $all_meta['section'][0] : "None",
+        "sub_section" => isset($all_meta['sub_section'][0]) ? $all_meta['sub_section'][0] : "",
         "purchased_date" => isset($all_meta['purchased_date'][0]) ? format_display_date($all_meta['purchased_date'][0]) : "Unknown",
         "price_per_unit" => number_format(isset($all_meta['price_per_unit'][0]) ? (float)$all_meta['price_per_unit'][0] : 0, 2),
         "actual_supplies" => array(),
