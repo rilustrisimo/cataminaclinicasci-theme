@@ -3584,20 +3584,27 @@ class Theme {
         } else if (!current_user_can('manage_options') && !in_array('um_accounting', wp_get_current_user()->roles)) {
             $department_id = $user_id;
             
-            $department_name = '';
+            $department_names = array();
             foreach ($this->departmentArr as $dept => $id) {
                 if ($id == $department_id) {
-                    $department_name = $dept;
-                    break;
+                    $department_names[] = $dept;
                 }
             }
             
-            if ($department_name) {
-                $meta_query[] = array(
-                    'key' => 'department',
-                    'value' => $department_name,
-                    'compare' => '='
-                );
+            if (!empty($department_names)) {
+                if (count($department_names) == 1) {
+                    $meta_query[] = array(
+                        'key' => 'department',
+                        'value' => $department_names[0],
+                        'compare' => '='
+                    );
+                } else {
+                    $meta_query[] = array(
+                        'key' => 'department',
+                        'value' => $department_names,
+                        'compare' => 'IN'
+                    );
+                }
             }
         }
         
