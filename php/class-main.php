@@ -1117,7 +1117,7 @@ class Theme {
             }
 
             // If date_added is between from_date and to_date, include in date_supplies
-            if (strtotime($date_added) >= strtotime($formatted_from_date) && 
+            if (strtotime($date_added) > strtotime($formatted_from_date) && 
                 strtotime($date_added) <= strtotime($formatted_to_date)) {
                 
                 // Initialize or update date supplies data
