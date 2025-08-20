@@ -1237,7 +1237,7 @@ class Theme {
             }
 
             // If release_date is between from_date and to_date, include in release_supplies
-            if (strtotime($release_date) >= strtotime($formatted_from_date) && 
+            if (strtotime($release_date) > strtotime($formatted_from_date) && 
                 strtotime($release_date) <= strtotime($formatted_to_date)) {
                 
                 // Initialize or update release supplies data
