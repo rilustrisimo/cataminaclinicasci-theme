@@ -17,17 +17,18 @@ error_log('Analytics AJAX actions registered');
  * Get analytics data for supplies with price calculations
  */
 function get_analytics_data() {
-    // Log that function is called
-    error_log('=== GET_ANALYTICS_DATA CALLED ===');
-    error_log('POST data: ' . print_r($_POST, true));
-    
-    // Verify nonce
-    if (!isset($_POST["nonce"]) || !wp_verify_nonce($_POST["nonce"], "supplies_analytics_nonce")) {
-        error_log('Nonce verification failed');
-        error_log('Received nonce: ' . (isset($_POST["nonce"]) ? $_POST["nonce"] : 'NOT SET'));
-        wp_send_json_error("Security check failed");
-        return;
-    }
+    try {
+        // Log that function is called
+        error_log('=== GET_ANALYTICS_DATA CALLED ===');
+        error_log('POST data: ' . print_r($_POST, true));
+        
+        // Verify nonce
+        if (!isset($_POST["nonce"]) || !wp_verify_nonce($_POST["nonce"], "supplies_analytics_nonce")) {
+            error_log('Nonce verification failed');
+            error_log('Received nonce: ' . (isset($_POST["nonce"]) ? $_POST["nonce"] : 'NOT SET'));
+            wp_send_json_error("Security check failed");
+            return;
+        }
     
     error_log('Nonce verified successfully');
     
@@ -124,6 +125,17 @@ function get_analytics_data() {
     
     error_log('Sending success response');
     wp_send_json_success($result);
+    
+    } catch (Exception $e) {
+        error_log('=== ANALYTICS ERROR ===');
+        error_log('Error message: ' . $e->getMessage());
+        error_log('Error trace: ' . $e->getTraceAsString());
+        wp_send_json_error(array(
+            'message' => 'Analytics processing error: ' . $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ));
+    }
 }
 
 /**
@@ -204,9 +216,24 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $typ
     
     foreach ($actual_supplies as $actual) {
         $actual_id = $actual->ID;
-        $supply_id = get_post_meta($actual_id, 'supply_name', true);
+        $supply_id_raw = get_post_meta($actual_id, 'supply_name', true);
         
-        if (!$supply_id || !isset($supply_data_cache[$supply_id])) {
+        // Ensure we have a proper ID
+        $supply_id = null;
+        if (is_object($supply_id_raw) && isset($supply_id_raw->ID)) {
+            $supply_id = $supply_id_raw->ID;
+        } elseif (is_numeric($supply_id_raw)) {
+            $supply_id = intval($supply_id_raw);
+        }
+        
+        // Log problematic entries for debugging
+        if (!$supply_id) {
+            error_log("Analytics Debug - Actual Supply ID {$actual_id}: Invalid supply_id_raw type: " . gettype($supply_id_raw));
+            continue;
+        }
+        
+        if (!isset($supply_data_cache[$supply_id])) {
+            error_log("Analytics Debug - Actual Supply ID {$actual_id}: Supply ID {$supply_id} not found in cache");
             continue;
         }
         
@@ -348,9 +375,24 @@ function get_release_supplies_analytics($start_date, $end_date, $department, $ty
     
     foreach ($release_supplies as $release) {
         $release_id = $release->ID;
-        $supply_id = get_post_meta($release_id, 'supply_name', true);
+        $supply_id_raw = get_post_meta($release_id, 'supply_name', true);
         
-        if (!$supply_id || !isset($supply_data_cache[$supply_id])) {
+        // Ensure we have a proper ID
+        $supply_id = null;
+        if (is_object($supply_id_raw) && isset($supply_id_raw->ID)) {
+            $supply_id = $supply_id_raw->ID;
+        } elseif (is_numeric($supply_id_raw)) {
+            $supply_id = intval($supply_id_raw);
+        }
+        
+        // Log problematic entries for debugging
+        if (!$supply_id) {
+            error_log("Analytics Debug - Release Supply ID {$release_id}: Invalid supply_id_raw type: " . gettype($supply_id_raw));
+            continue;
+        }
+        
+        if (!isset($supply_data_cache[$supply_id])) {
+            error_log("Analytics Debug - Release Supply ID {$release_id}: Supply ID {$supply_id} not found in cache");
             continue;
         }
         
