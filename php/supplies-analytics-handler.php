@@ -200,7 +200,7 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $typ
         ));
         
         foreach ($supplies_query->posts as $supply_post) {
-            $supply_dept = get_post_meta($supply_post->ID, 'department', true);
+            $supply_meta = get_post_meta($supply_post->ID);
             $supply_dept = isset($supply_meta['department'][0]) ? $supply_meta['department'][0] : 'Unknown';
             $supply_type = isset($supply_meta['type'][0]) ? $supply_meta['type'][0] : 'Unknown';
             $supply_price = isset($supply_meta['price_per_unit'][0]) ? (float)$supply_meta['price_per_unit'][0] : 0;
