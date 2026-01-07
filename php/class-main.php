@@ -1067,18 +1067,6 @@ class Theme {
                     'key' => 'supply_name',
                     'value' => $supid,
                     'compare' => '='
-                ),
-                array(
-                    'relation' => 'OR',
-                    array(
-                        "key" => "related_release_id",
-                        "compare" => "NOT EXISTS"
-                    ),
-                    array(
-                        "key" => "related_release_id",
-                        "value" => "",
-                        "compare" => "="
-                    )
                 )
             ) 
         );
@@ -1094,6 +1082,12 @@ class Theme {
         
         // Process all actual supplies
         foreach ($actual_posts as $post_id) {
+            // Check if this supply has been released (skip if it has to avoid double counting)
+            $related_release_id = get_field('related_release_id', $post_id);
+            if (!empty($related_release_id)) {
+                continue; // Skip supplies that have been released
+            }
+            
             $quantity = (float)get_field('quantity', $post_id);
             $date_added = get_field('date_added', $post_id);
 
