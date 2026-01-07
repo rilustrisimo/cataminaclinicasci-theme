@@ -734,6 +734,16 @@ $supplies_count = wp_count_posts('supplies')->publish;
                             <option value="ADMINISTRATION">ADMINISTRATION</option>
                         </select>
                     </div>
+                    <div class="filter">
+                        <label for="analytics-type-filter">Type:</label>
+                        <select id="analytics-type-filter" class="analytics-filter-input">
+                            <option value="Supply">Supply</option>
+                            <option value="Equipment">Equipment</option>
+                            <option value="Reagent">Reagent</option>
+                            <option value="Miscellaneous">Miscellaneous</option>
+                            <option value="Adjustment">Adjustment</option>
+                        </select>
+                    </div>
                 </div>
                 <div style="margin-top: 10px;">
                     <button id="apply-analytics-filters" class="button">Apply Filters</button>
@@ -887,6 +897,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 $('#analytics-end-date').val(formatDate(today));
                 $('#analytics-start-date').val(formatDate(beginningOfTime));
                 $('#analytics-department-filter').val('');
+                $('#analytics-type-filter').val('Supply'); // Default to Supply
                 
                 loadAnalyticsData();
             }
@@ -914,11 +925,13 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 var startDate = $('#analytics-start-date').val();
                 var endDate = $('#analytics-end-date').val();
                 var department = $('#analytics-department-filter').val();
+                var type = $('#analytics-type-filter').val();
                 
                 console.log('=== ANALYTICS DEBUG ===');
                 console.log('Start Date:', startDate);
                 console.log('End Date:', endDate);
                 console.log('Department:', department);
+                console.log('Type:', type);
                 console.log('AJAX URL:', '<?php echo admin_url('admin-ajax.php'); ?>');
                 
                 // Validation
@@ -937,6 +950,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
                     start_date: startDate,
                     end_date: endDate,
                     department: department,
+                    type: type,
                     nonce: '<?php echo wp_create_nonce('supplies_analytics_nonce'); ?>'
                 };
                 

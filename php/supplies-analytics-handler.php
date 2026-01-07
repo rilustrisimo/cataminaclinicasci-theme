@@ -35,10 +35,12 @@ function get_analytics_data() {
     $start_date = isset($_POST["start_date"]) ? sanitize_text_field($_POST["start_date"]) : "";
     $end_date = isset($_POST["end_date"]) ? sanitize_text_field($_POST["end_date"]) : "";
     $department = isset($_POST["department"]) ? sanitize_text_field($_POST["department"]) : "";
+    $type = isset($_POST["type"]) ? sanitize_text_field($_POST["type"]) : "";
     
     error_log('Start Date: ' . $start_date);
     error_log('End Date: ' . $end_date);
     error_log('Department: ' . $department);
+    error_log('Type: ' . $type);
     
     // Validate required dates
     if (empty($start_date) || empty($end_date)) {
@@ -66,7 +68,7 @@ function get_analytics_data() {
     error_log('Date validation passed');
     
     // Check cache
-    $cache_key = 'analytics_' . md5($start_date . $end_date . $department);
+    $cache_key = 'analytics_' . md5($start_date . $end_date . $department . $type);
     $cached = wp_cache_get($cache_key);
     
     if ($cached !== false) {
@@ -91,12 +93,12 @@ function get_analytics_data() {
     
     // Get actual supplies data
     error_log('Fetching actual supplies data...');
-    $actual_data = get_actual_supplies_analytics($start_date, $end_date, $department, $aggregation);
+    $actual_data = get_actual_supplies_analytics($start_date, $end_date, $department, $type, $aggregation);
     error_log('Actual supplies data count: ' . count($actual_data));
     
     // Get release supplies data
     error_log('Fetching release supplies data...');
-    $release_data = get_release_supplies_analytics($start_date, $end_date, $department, $aggregation);
+    $release_data = get_release_supplies_analytics($start_date, $end_date, $department, $type, $aggregation);
     error_log('Release supplies data count: ' . count($release_data));
     
     // Calculate summary
@@ -109,6 +111,7 @@ function get_analytics_data() {
             "start_date" => $start_date,
             "end_date" => $end_date,
             "department" => $department,
+            "type" => $type,
             "aggregation" => $aggregation
         ),
         "actual_supplies" => $actual_data,
@@ -126,8 +129,8 @@ function get_analytics_data() {
 /**
  * Get actual supplies analytics data
  */
-function get_actual_supplies_analytics($start_date, $end_date, $department, $aggregation) {
-    error_log('get_actual_supplies_analytics called with start: ' . $start_date . ', end: ' . $end_date . ', dept: ' . $department);
+function get_actual_supplies_analytics($start_date, $end_date, $department, $type, $aggregation) {
+    error_log('get_actual_supplies_analytics called with start: ' . $start_date . ', end: ' . $end_date . ', dept: ' . $department . ', type: ' . $type);
     
     // Build meta query for actual supplies
     $meta_query = array(
@@ -177,11 +180,13 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $agg
         foreach ($supplies_query->posts as $supply_post) {
             $supply_meta = get_post_meta($supply_post->ID);
             $supply_dept = isset($supply_meta['department'][0]) ? $supply_meta['department'][0] : 'Unknown';
+            $supply_type = isset($supply_meta['type'][0]) ? $supply_meta['type'][0] : 'Unknown';
             $supply_price = isset($supply_meta['price_per_unit'][0]) ? (float)$supply_meta['price_per_unit'][0] : 0;
             
             $supply_data_cache[$supply_post->ID] = array(
                 'name' => $supply_post->post_title,
                 'department' => $supply_dept,
+                'type' => $supply_type,
                 'price_per_unit' => $supply_price
             );
         }
@@ -203,6 +208,11 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $agg
         
         // Apply department filter
         if (!empty($department) && $supply_info['department'] !== $department) {
+            continue;
+        }
+        
+        // Apply type filter
+        if (!empty($type) && $supply_info['type'] !== $type) {
             continue;
         }
         
@@ -259,7 +269,7 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $agg
 /**
  * Get release supplies analytics data
  */
-function get_release_supplies_analytics($start_date, $end_date, $department, $aggregation) {
+function get_release_supplies_analytics($start_date, $end_date, $department, $type, $aggregation) {
     // Build meta query for release supplies
     $meta_query = array(
         'relation' => 'AND',
@@ -308,11 +318,13 @@ function get_release_supplies_analytics($start_date, $end_date, $department, $ag
         foreach ($supplies_query->posts as $supply_post) {
             $supply_meta = get_post_meta($supply_post->ID);
             $supply_dept = isset($supply_meta['department'][0]) ? $supply_meta['department'][0] : 'Unknown';
+            $supply_type = isset($supply_meta['type'][0]) ? $supply_meta['type'][0] : 'Unknown';
             $supply_price = isset($supply_meta['price_per_unit'][0]) ? (float)$supply_meta['price_per_unit'][0] : 0;
             
             $supply_data_cache[$supply_post->ID] = array(
                 'name' => $supply_post->post_title,
                 'department' => $supply_dept,
+                'type' => $supply_type,
                 'price_per_unit' => $supply_price
             );
         }
@@ -334,6 +346,11 @@ function get_release_supplies_analytics($start_date, $end_date, $department, $ag
         
         // Apply department filter
         if (!empty($department) && $supply_info['department'] !== $department) {
+            continue;
+        }
+        
+        // Apply type filter
+        if (!empty($type) && $supply_info['type'] !== $type) {
             continue;
         }
         
