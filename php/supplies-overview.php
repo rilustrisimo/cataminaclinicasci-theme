@@ -501,6 +501,82 @@ $supplies_count = wp_count_posts('supplies')->publish;
             color: #666;
             font-style: italic;
         }
+        
+        /* Supplies List Styles */
+        .supplies-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .supply-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+        
+        .supply-list-item:hover {
+            background: #f9f9f9;
+        }
+        
+        .supply-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .supply-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .supply-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .supply-details {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .supply-value {
+            text-align: right;
+            margin-left: 15px;
+        }
+        
+        .supply-value .value {
+            font-weight: bold;
+            color: #0073aa;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        .supply-value .quantity {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+        
+        .supply-rank {
+            background: #0073aa;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-right: 12px;
+            min-width: 30px;
+            text-align: center;
+        }
+        
+        .supply-rank.top-3 {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+        }
     </style>
 </head>
 <body>
@@ -728,6 +804,23 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 </div>
             </div>
             
+            <!-- Top Supplies Lists -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="chart-container">
+                    <h3>Top Actual Supplies Added (By Value)</h3>
+                    <div id="top-actual-supplies-list" class="supplies-list">
+                        <p style="text-align: center; color: #999; padding: 20px;">Loading...</p>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>Top Released Supplies (By Value)</h3>
+                    <div id="top-release-supplies-list" class="supplies-list">
+                        <p style="text-align: center; color: #999; padding: 20px;">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            
             <div class="analytics-status" id="analytics-status">
                 Select a date range and click "Apply Filters" to view analytics data.
             </div>
@@ -914,6 +1007,9 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 } else {
                     $('#department-breakdown-container').hide();
                 }
+                
+                // Render top supplies lists
+                renderTopSuppliesLists(data.actual_supplies, data.release_supplies);
             }
             
             // Format money with commas
@@ -1235,6 +1331,120 @@ $supplies_count = wp_count_posts('supplies')->publish;
                         }
                     }
                 });
+            }
+            
+            // Render Top Supplies Lists
+            function renderTopSuppliesLists(actualData, releaseData) {
+                // Aggregate supplies by supply_id and name from actual supplies
+                var actualSuppliesMap = {};
+                actualData.forEach(function(datePoint) {
+                    datePoint.items.forEach(function(item) {
+                        var key = item.supply_id;
+                        if (!actualSuppliesMap[key]) {
+                            actualSuppliesMap[key] = {
+                                supply_id: item.supply_id,
+                                supply_name: item.supply_name,
+                                department: item.department,
+                                total_value: 0,
+                                total_quantity: 0
+                            };
+                        }
+                        actualSuppliesMap[key].total_value += parseFloat(item.total_price);
+                        actualSuppliesMap[key].total_quantity += parseFloat(item.quantity);
+                    });
+                });
+                
+                // Convert to array and sort by total value (descending)
+                var topActualSupplies = Object.values(actualSuppliesMap)
+                    .sort(function(a, b) {
+                        return b.total_value - a.total_value;
+                    })
+                    .slice(0, 20); // Top 20
+                
+                // Aggregate supplies by supply_id and name from release supplies
+                var releaseSuppliesMap = {};
+                releaseData.forEach(function(datePoint) {
+                    datePoint.items.forEach(function(item) {
+                        var key = item.supply_id;
+                        if (!releaseSuppliesMap[key]) {
+                            releaseSuppliesMap[key] = {
+                                supply_id: item.supply_id,
+                                supply_name: item.supply_name,
+                                department: item.department,
+                                total_value: 0,
+                                total_quantity: 0,
+                                confirmed_count: 0,
+                                pending_count: 0
+                            };
+                        }
+                        releaseSuppliesMap[key].total_value += parseFloat(item.total_price);
+                        releaseSuppliesMap[key].total_quantity += parseFloat(item.quantity);
+                        if (item.confirmed) {
+                            releaseSuppliesMap[key].confirmed_count++;
+                        } else {
+                            releaseSuppliesMap[key].pending_count++;
+                        }
+                    });
+                });
+                
+                // Convert to array and sort by total value (descending)
+                var topReleaseSupplies = Object.values(releaseSuppliesMap)
+                    .sort(function(a, b) {
+                        return b.total_value - a.total_value;
+                    })
+                    .slice(0, 20); // Top 20
+                
+                // Render actual supplies list
+                var actualListHtml = '';
+                if (topActualSupplies.length > 0) {
+                    topActualSupplies.forEach(function(supply, index) {
+                        var rankClass = index < 3 ? 'top-3' : '';
+                        actualListHtml += `
+                            <div class="supply-list-item">
+                                <div class="supply-rank ${rankClass}">${index + 1}</div>
+                                <div class="supply-info">
+                                    <div class="supply-name" title="${supply.supply_name}">${supply.supply_name}</div>
+                                    <div class="supply-details">${supply.department} | Qty: ${supply.total_quantity.toFixed(0)}</div>
+                                </div>
+                                <div class="supply-value">
+                                    <div class="value">₱${formatMoney(supply.total_value)}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    actualListHtml = '<p style="text-align: center; color: #999; padding: 20px;">No actual supplies found in this date range</p>';
+                }
+                $('#top-actual-supplies-list').html(actualListHtml);
+                
+                // Render release supplies list
+                var releaseListHtml = '';
+                if (topReleaseSupplies.length > 0) {
+                    topReleaseSupplies.forEach(function(supply, index) {
+                        var rankClass = index < 3 ? 'top-3' : '';
+                        var statusInfo = supply.confirmed_count > 0 && supply.pending_count > 0 
+                            ? `${supply.confirmed_count} confirmed, ${supply.pending_count} pending`
+                            : supply.confirmed_count > 0 
+                            ? `${supply.confirmed_count} confirmed`
+                            : `${supply.pending_count} pending`;
+                        
+                        releaseListHtml += `
+                            <div class="supply-list-item">
+                                <div class="supply-rank ${rankClass}">${index + 1}</div>
+                                <div class="supply-info">
+                                    <div class="supply-name" title="${supply.supply_name}">${supply.supply_name}</div>
+                                    <div class="supply-details">${supply.department} | Qty: ${supply.total_quantity.toFixed(0)} | ${statusInfo}</div>
+                                </div>
+                                <div class="supply-value">
+                                    <div class="value">₱${formatMoney(supply.total_value)}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    releaseListHtml = '<p style="text-align: center; color: #999; padding: 20px;">No released supplies found in this date range</p>';
+                }
+                $('#top-release-supplies-list').html(releaseListHtml);
             }
             
             // ===== OVERVIEW TAB FUNCTIONALITY (Existing Code) =====
