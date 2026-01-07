@@ -146,6 +146,7 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $typ
     error_log('get_actual_supplies_analytics called with start: ' . $start_date . ', end: ' . $end_date . ', dept: ' . $department . ', type: ' . $type);
     
     // Build meta query for actual supplies - query ALL supplies up to end_date (cumulative)
+    // Exclude supplies that have been released (to avoid double counting)
     $meta_query = array(
         'relation' => 'AND',
         array(
@@ -153,6 +154,18 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $typ
             'value' => $end_date,
             'compare' => '<=',
             'type' => 'DATE'
+        ),
+        array(
+            'relation' => 'OR',
+            array(
+                'key' => 'related_release_id',
+                'compare' => 'NOT EXISTS'
+            ),
+            array(
+                'key' => 'related_release_id',
+                'value' => '',
+                'compare' => '='
+            )
         )
     );
     
