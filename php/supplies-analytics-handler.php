@@ -120,8 +120,8 @@ function get_analytics_data() {
         "summary" => $summary
     );
     
-    // Cache for 1 hour
-    wp_cache_set($cache_key, $result, '', 3600);
+    // Cache for 4 hours (14400 seconds) to reduce database load
+    wp_cache_set($cache_key, $result, '', 14400);
     
     error_log('Sending success response');
     wp_send_json_success($result);
@@ -163,17 +163,20 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $typ
         "orderby" => "meta_value",
         "meta_key" => "date_added",
         "order" => "ASC",
-        "update_post_meta_cache" => true
+        "fields" => "ids", // Only get IDs, much faster
+        "no_found_rows" => true, // Skip counting total rows
+        "update_post_meta_cache" => true,
+        "update_post_term_cache" => false // Skip term cache
     );
     
     $query = new WP_Query($args);
-    $actual_supplies = $query->posts;
+    $actual_supply_ids = $query->posts; // These are now just IDs
     wp_reset_postdata();
     
     // Get all unique supply IDs to fetch their data
     $supply_ids = array();
-    foreach ($actual_supplies as $actual) {
-        $supply_id = get_post_meta($actual->ID, 'supply_name', true);
+    foreach ($actual_supply_ids as $actual_id) {
+        $supply_id = get_post_meta($actual_id, 'supply_name', true);
         if ($supply_id) {
             // Ensure we have an ID, not a WP_Post object
             if (is_object($supply_id) && isset($supply_id->ID)) {
@@ -192,11 +195,13 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $typ
             'post_type' => 'supplies',
             'post__in' => $supply_ids,
             'posts_per_page' => -1,
-            'update_post_meta_cache' => true
+            'no_found_rows' => true,
+            'update_post_meta_cache' => true,
+            'update_post_term_cache' => false
         ));
         
         foreach ($supplies_query->posts as $supply_post) {
-            $supply_meta = get_post_meta($supply_post->ID);
+            $supply_dept = get_post_meta($supply_post->ID, 'department', true);
             $supply_dept = isset($supply_meta['department'][0]) ? $supply_meta['department'][0] : 'Unknown';
             $supply_type = isset($supply_meta['type'][0]) ? $supply_meta['type'][0] : 'Unknown';
             $supply_price = isset($supply_meta['price_per_unit'][0]) ? (float)$supply_meta['price_per_unit'][0] : 0;
@@ -214,8 +219,7 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $typ
     // Process and aggregate data
     $aggregated_data = array();
     
-    foreach ($actual_supplies as $actual) {
-        $actual_id = $actual->ID;
+    foreach ($actual_supply_ids as $actual_id) {
         $supply_id_raw = get_post_meta($actual_id, 'supply_name', true);
         
         // Ensure we have a proper ID
@@ -322,17 +326,20 @@ function get_release_supplies_analytics($start_date, $end_date, $department, $ty
         "orderby" => "meta_value",
         "meta_key" => "release_date",
         "order" => "ASC",
-        "update_post_meta_cache" => true
+        "fields" => "ids", // Only get IDs, much faster
+        "no_found_rows" => true, // Skip counting total rows
+        "update_post_meta_cache" => true,
+        "update_post_term_cache" => false // Skip term cache
     );
     
     $query = new WP_Query($args);
-    $release_supplies = $query->posts;
+    $release_supply_ids = $query->posts; // These are now just IDs
     wp_reset_postdata();
     
     // Get all unique supply IDs to fetch their data
     $supply_ids = array();
-    foreach ($release_supplies as $release) {
-        $supply_id = get_post_meta($release->ID, 'supply_name', true);
+    foreach ($release_supply_ids as $release_id) {
+        $supply_id = get_post_meta($release_id, 'supply_name', true);
         if ($supply_id) {
             // Ensure we have an ID, not a WP_Post object
             if (is_object($supply_id) && isset($supply_id->ID)) {
@@ -351,7 +358,9 @@ function get_release_supplies_analytics($start_date, $end_date, $department, $ty
             'post_type' => 'supplies',
             'post__in' => $supply_ids,
             'posts_per_page' => -1,
-            'update_post_meta_cache' => true
+            'no_found_rows' => true,
+            'update_post_meta_cache' => true,
+            'update_post_term_cache' => false
         ));
         
         foreach ($supplies_query->posts as $supply_post) {
@@ -373,8 +382,7 @@ function get_release_supplies_analytics($start_date, $end_date, $department, $ty
     // Process and aggregate data
     $aggregated_data = array();
     
-    foreach ($release_supplies as $release) {
-        $release_id = $release->ID;
+    foreach ($release_supply_ids as $release_id) {
         $supply_id_raw = get_post_meta($release_id, 'supply_name', true);
         
         // Ensure we have a proper ID
