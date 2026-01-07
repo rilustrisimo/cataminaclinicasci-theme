@@ -287,9 +287,58 @@ function render_supply_test_page() {
     
     echo '</div>';
     
-    // 4. Summary
+    // 4. Check for related_release_id
     echo '<div class="test-section">';
-    echo '<h2>4. Summary & Diagnosis</h2>';
+    echo '<h2>4. Related Release Check</h2>';
+    echo '<p>Checking why some actual supplies might not show in overview...</p>';
+    
+    // Get all actual supplies for this supply and check related_release_id
+    $all_actual_for_supply = array(
+        "post_type" => "actualsupplies",
+        "posts_per_page" => -1,
+        "meta_query" => array(
+            array(
+                "key" => "supply_name",
+                "value" => $supply_id,
+                "compare" => "=",
+                "type" => "NUMERIC"
+            )
+        )
+    );
+    
+    $check_query = new WP_Query($all_actual_for_supply);
+    
+    if ($check_query->have_posts()) {
+        echo '<table class="wp-list-table widefat fixed striped">';
+        echo '<thead><tr><th>Actual ID</th><th>Quantity</th><th>Date Added</th><th>related_release_id</th><th>Shows in Overview?</th></tr></thead><tbody>';
+        
+        while ($check_query->have_posts()) {
+            $check_query->the_post();
+            $actual_id = get_the_ID();
+            $quantity = get_post_meta($actual_id, 'quantity', true);
+            $date_added = get_post_meta($actual_id, 'date_added', true);
+            $related_release = get_post_meta($actual_id, 'related_release_id', true);
+            
+            $shows_in_overview = (empty($related_release) || $related_release === '');
+            $status_color = $shows_in_overview ? '#46b450' : '#dc3232';
+            
+            echo '<tr>';
+            echo '<td>' . $actual_id . '</td>';
+            echo '<td>' . $quantity . '</td>';
+            echo '<td>' . $date_added . '</td>';
+            echo '<td>' . ($related_release ? $related_release : '(empty)') . '</td>';
+            echo '<td style="color:' . $status_color . ';font-weight:bold;">' . ($shows_in_overview ? 'YES' : 'NO - Already Released') . '</td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table>';
+    }
+    wp_reset_postdata();
+    
+    echo '</div>';
+    
+    // 5. Summary
+    echo '<div class="test-section">';
+    echo '<h2>5. Summary & Diagnosis</h2>';
     echo '<ul>';
     echo '<li><strong>Supply exists:</strong> ' . ($supply_post ? 'Yes' : 'No') . '</li>';
     echo '<li><strong>Actual supplies (numeric query):</strong> ' . $actual_query->found_posts . '</li>';
