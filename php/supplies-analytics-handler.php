@@ -163,7 +163,12 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $typ
     foreach ($actual_supplies as $actual) {
         $supply_id = get_post_meta($actual->ID, 'supply_name', true);
         if ($supply_id) {
-            $supply_ids[] = $supply_id;
+            // Ensure we have an ID, not a WP_Post object
+            if (is_object($supply_id) && isset($supply_id->ID)) {
+                $supply_ids[] = $supply_id->ID;
+            } elseif (is_numeric($supply_id)) {
+                $supply_ids[] = intval($supply_id);
+            }
         }
     }
     
@@ -302,7 +307,12 @@ function get_release_supplies_analytics($start_date, $end_date, $department, $ty
     foreach ($release_supplies as $release) {
         $supply_id = get_post_meta($release->ID, 'supply_name', true);
         if ($supply_id) {
-            $supply_ids[] = $supply_id;
+            // Ensure we have an ID, not a WP_Post object
+            if (is_object($supply_id) && isset($supply_id->ID)) {
+                $supply_ids[] = $supply_id->ID;
+            } elseif (is_numeric($supply_id)) {
+                $supply_ids[] = intval($supply_id);
+            }
         }
     }
     
