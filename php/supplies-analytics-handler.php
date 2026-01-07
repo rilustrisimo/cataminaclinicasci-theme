@@ -128,17 +128,18 @@ function get_analytics_data() {
 
 /**
  * Get actual supplies analytics data
+ * Modified to match SOC Report logic: shows cumulative inventory from beginning up to end_date
  */
 function get_actual_supplies_analytics($start_date, $end_date, $department, $type, $aggregation) {
     error_log('get_actual_supplies_analytics called with start: ' . $start_date . ', end: ' . $end_date . ', dept: ' . $department . ', type: ' . $type);
     
-    // Build meta query for actual supplies
+    // Build meta query for actual supplies - query ALL supplies up to end_date (cumulative)
     $meta_query = array(
         'relation' => 'AND',
         array(
             'key' => 'date_added',
-            'value' => array($start_date, $end_date),
-            'compare' => 'BETWEEN',
+            'value' => $end_date,
+            'compare' => '<=',
             'type' => 'DATE'
         )
     );
@@ -268,15 +269,16 @@ function get_actual_supplies_analytics($start_date, $end_date, $department, $typ
 
 /**
  * Get release supplies analytics data
+ * Modified to match SOC Report logic: shows cumulative releases from beginning up to end_date
  */
 function get_release_supplies_analytics($start_date, $end_date, $department, $type, $aggregation) {
-    // Build meta query for release supplies
+    // Build meta query for release supplies - query ALL releases up to end_date (cumulative)
     $meta_query = array(
         'relation' => 'AND',
         array(
             'key' => 'release_date',
-            'value' => array($start_date, $end_date),
-            'compare' => 'BETWEEN',
+            'value' => $end_date,
+            'compare' => '<=',
             'type' => 'DATE'
         )
     );

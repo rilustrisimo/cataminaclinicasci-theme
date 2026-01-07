@@ -753,24 +753,24 @@ $supplies_count = wp_count_posts('supplies')->publish;
             
             <div class="analytics-summary-cards" id="analytics-summary">
                 <div class="summary-card actual">
-                    <h3>Total Actual Supplies Value</h3>
+                    <h3>Total Supplies Inventory</h3>
                     <p class="value" id="total-actual-value">₱0.00</p>
-                    <p class="context" id="actual-context">All Departments</p>
+                    <p class="context" id="actual-context">Cumulative up to end date</p>
                 </div>
                 <div class="summary-card release">
-                    <h3>Total Release Supplies Value</h3>
+                    <h3>Total Released Supplies</h3>
                     <p class="value" id="total-release-value">₱0.00</p>
-                    <p class="context" id="release-context">All Departments</p>
+                    <p class="context" id="release-context">Cumulative up to end date</p>
                 </div>
                 <div class="summary-card net">
-                    <h3>Net Inventory Value</h3>
+                    <h3>Current Inventory Value</h3>
                     <p class="value" id="net-value">₱0.00</p>
-                    <p class="context" id="net-context">Actual - Released</p>
+                    <p class="context" id="net-context">Available inventory (matches SOC Report)</p>
                 </div>
                 <div class="summary-card" id="department-count-card">
                     <h3>Active Departments</h3>
                     <p class="value" id="active-departments">0</p>
-                    <p class="context">In selected range</p>
+                    <p class="context">As of end date</p>
                 </div>
             </div>
             
