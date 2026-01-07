@@ -216,9 +216,17 @@ function load_supplies_batch() {
             // Process actual supplies
             foreach ($actual_supplies as $actual_post) {
                 $actual_id = $actual_post->ID;
-                $supply_id = get_post_meta($actual_id, 'supply_name', true);
+                $supply_id_raw = get_post_meta($actual_id, 'supply_name', true);
                 
-                if (!isset($supply_data[$supply_id])) continue;
+                // Ensure we have a proper ID
+                $supply_id = null;
+                if (is_object($supply_id_raw) && isset($supply_id_raw->ID)) {
+                    $supply_id = $supply_id_raw->ID;
+                } elseif (is_numeric($supply_id_raw)) {
+                    $supply_id = intval($supply_id_raw);
+                }
+                
+                if (!$supply_id || !isset($supply_data[$supply_id])) continue;
                 
                 $quantity = (float)get_post_meta($actual_id, 'quantity', true);
                 $date_added = get_post_meta($actual_id, 'date_added', true) ?: 'Unknown';
@@ -294,9 +302,17 @@ function load_supplies_batch() {
             // Process release supplies
             foreach ($release_supplies as $release_post) {
                 $release_id = $release_post->ID;
-                $supply_id = get_post_meta($release_id, 'supply_name', true);
+                $supply_id_raw = get_post_meta($release_id, 'supply_name', true);
                 
-                if (!isset($supply_data[$supply_id])) continue;
+                // Ensure we have a proper ID
+                $supply_id = null;
+                if (is_object($supply_id_raw) && isset($supply_id_raw->ID)) {
+                    $supply_id = $supply_id_raw->ID;
+                } elseif (is_numeric($supply_id_raw)) {
+                    $supply_id = intval($supply_id_raw);
+                }
+                
+                if (!$supply_id || !isset($supply_data[$supply_id])) continue;
                 
                 $quantity = (float)get_post_meta($release_id, 'quantity', true);
                 $release_date = get_post_meta($release_id, 'release_date', true) ?: 'Unknown';
