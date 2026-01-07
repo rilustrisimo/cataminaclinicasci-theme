@@ -1,11 +1,19 @@
 <?php
 /**
  * Test script to debug supply retrieval for supply ID 31673
- * Access via: /wp-content/themes/eyor-theme/php/test-supply-retrieval.php
+ * Access via WordPress admin or add to functions.php temporarily
  */
 
-// Load WordPress
-require_once('../../../../../../wp-load.php');
+// This file should be called via WordPress, not directly
+if (!defined('ABSPATH')) {
+    // Try to load WordPress
+    $parse_uri = explode('wp-content', $_SERVER['SCRIPT_FILENAME']);
+    if (isset($parse_uri[0])) {
+        require_once($parse_uri[0] . 'wp-load.php');
+    } else {
+        die('WordPress not loaded. Please access this via WordPress or add it as an admin page.');
+    }
+}
 
 $supply_id = 31673;
 
