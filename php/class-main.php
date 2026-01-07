@@ -927,7 +927,7 @@ class Theme {
         $actual_quantity = 0;
         
         foreach ($actual_posts as $post_id) {
-            $actual_quantity += (float)get_field('quantity', $post_id);
+            $actual_quantity += (float)get_post_meta($post_id, 'quantity', true);
         }
         
         // Get release supplies quantity
@@ -961,7 +961,7 @@ class Theme {
         $release_quantity = 0;
         
         foreach ($release_posts as $post_id) {
-            $release_quantity += (float)get_field('quantity', $post_id);
+            $release_quantity += (float)get_post_meta($post_id, 'quantity', true);
         }
         
         // Calculate remaining quantity
@@ -973,7 +973,7 @@ class Theme {
             
             // Calculate expired quantity
             foreach ($actual_posts as $post_id) {
-                $expiry_date = get_field('expiry_date', $post_id);
+                $expiry_date = get_post_meta($post_id, 'expiry_date', true);
                 
                 // Skip if no expiry date
                 if (empty($expiry_date)) {
@@ -1001,7 +1001,7 @@ class Theme {
                 
                 // If expiry date is before or equal to the given date
                 if ($expiry_timestamp && $expiry_timestamp <= strtotime($formatted_date)) {
-                    $expired_quantity += (float)get_field('quantity', $post_id);
+                    $expired_quantity += (float)get_post_meta($post_id, 'quantity', true);
                 }
             }
             
@@ -1083,13 +1083,13 @@ class Theme {
         // Process all actual supplies
         foreach ($actual_posts as $post_id) {
             // Check if this supply has been released (skip if it has to avoid double counting)
-            $related_release_id = get_field('related_release_id', $post_id);
+            $related_release_id = get_post_meta($post_id, 'related_release_id', true);
             if (!empty($related_release_id)) {
                 continue; // Skip supplies that have been released
             }
             
-            $quantity = (float)get_field('quantity', $post_id);
-            $date_added = get_field('date_added', $post_id);
+            $quantity = (float)get_post_meta($post_id, 'quantity', true);
+            $date_added = get_post_meta($post_id, 'date_added', true);
 
             // Proper date comparison with format handling
             if (!empty($formatted_to_date) && isset($date_added)) {
@@ -1127,25 +1127,25 @@ class Theme {
                 }
                 
                 // Add to quantity
-                $date_supplies[$supid]['quantity'] += (float)get_field('quantity', $post_id);
+                $date_supplies[$supid]['quantity'] += (float)get_post_meta($post_id, 'quantity', true);
                 
                 // Update other fields only if they have values
-                $states = get_field('states__status', $post_id);
+                $states = get_post_meta($post_id, 'states__status', true);
                 if (!empty($states)) {
                     $date_supplies[$supid]['states__status'] = $states;
                 }
                 
-                $lot = get_field('lot_number', $post_id);
+                $lot = get_post_meta($post_id, 'lot_number', true);
                 if (!empty($lot)) {
                     $date_supplies[$supid]['lot_number'] = $lot;
                 }
                 
-                $expiry = get_field('expiry_date', $post_id);
+                $expiry = get_post_meta($post_id, 'expiry_date', true);
                 if (!empty($expiry)) {
                     $date_supplies[$supid]['expiry_date'] = $expiry;
                 }
                 
-                $serial = get_field('serial', $post_id);
+                $serial = get_post_meta($post_id, 'serial', true);
                 if (!empty($serial)) {
                     $date_supplies[$supid]['serial'] = $serial;
                 }
@@ -1153,7 +1153,7 @@ class Theme {
             
             // If we need expired info, process expiry dates
             if ($expired) {
-                $expiry_date = get_field('expiry_date', $post_id);
+                $expiry_date = get_post_meta($post_id, 'expiry_date', true);
                 if (!empty($expiry_date)) {
                     // Normalize expiry date format
                     $expiry_timestamp = false;
@@ -1219,8 +1219,8 @@ class Theme {
         $release_quantity_from = 0;
         
         foreach ($release_posts as $post_id) {
-            $quantity = (float)get_field('quantity', $post_id);
-            $release_date = get_field('release_date', $post_id);
+            $quantity = (float)get_post_meta($post_id, 'quantity', true);
+            $release_date = get_post_meta($post_id, 'release_date', true);
             
             // Add to "to date" total
             $release_quantity_to += $quantity;
@@ -1243,7 +1243,7 @@ class Theme {
                 }
                 
                 // Add to quantity
-                $release_supplies[$supid]['quantity'] += (float)get_field('quantity', $post_id);
+                $release_supplies[$supid]['quantity'] += (float)get_post_meta($post_id, 'quantity', true);
             }
         }
         
