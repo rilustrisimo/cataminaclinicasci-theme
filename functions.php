@@ -102,6 +102,7 @@ include_once get_template_directory() . '/php/supply-corrector-link.php';
 function include_supplies_handlers() {
     $overview_handler_path = get_template_directory() . '/php/supplies-ajax-handler.php';
     $corrector_handler_path = get_template_directory() . '/php/supply-corrector-ajax.php';
+    $analytics_handler_path = get_template_directory() . '/php/supplies-analytics-handler.php';
     
     if (file_exists($overview_handler_path)) {
         require_once($overview_handler_path);
@@ -109,6 +110,10 @@ function include_supplies_handlers() {
     
     if (file_exists($corrector_handler_path)) {
         require_once($corrector_handler_path);
+    }
+    
+    if (file_exists($analytics_handler_path)) {
+        require_once($analytics_handler_path);
     }
 }
 add_action('init', 'include_supplies_handlers');

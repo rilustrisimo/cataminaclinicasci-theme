@@ -351,12 +351,170 @@ $supplies_count = wp_count_posts('supplies')->publish;
         .hidden-section-row {
             display: none;
         }
+        
+        /* Tab Navigation Styles */
+        .tab-navigation {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+            gap: 5px;
+        }
+        
+        .tab-button {
+            background: #f5f5f5;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            border-radius: 5px 5px 0 0;
+            transition: all 0.3s ease;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            position: relative;
+            bottom: -2px;
+        }
+        
+        .tab-button:hover {
+            background: #e8e8e8;
+            color: #333;
+        }
+        
+        .tab-button.active {
+            background: #fff;
+            color: #0073aa;
+            border-color: #0073aa;
+            border-bottom: 2px solid #fff;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Analytics Specific Styles */
+        .analytics-filters {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .analytics-filters .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .analytics-filters .filter {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .analytics-summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .summary-card.actual {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+        
+        .summary-card.release {
+            background: linear-gradient(135deg, #F44336 0%, #d32f2f 100%);
+        }
+        
+        .summary-card.net {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+        
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        
+        .summary-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .summary-card .context {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        .chart-container {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .chart-container h3 {
+            margin-top: 0;
+            color: #23282d;
+            font-size: 16px;
+            border-bottom: 2px solid #0073aa;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+        
+        .chart-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        
+        .analytics-status {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Supplies Overview</h1>
+        <h1>Supplies Management System</h1>
         
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="analytics">Analytics</button>
+        </div>
+        
+        <!-- Overview Tab -->
+        <div id="overview-tab" class="tab-content active">
         <div class="summary" id="summary">
             <div class="summary-item">
                 <span>Total Supplies:</span>
@@ -473,8 +631,112 @@ $supplies_count = wp_count_posts('supplies')->publish;
         <div class="status" id="status">Ready to load supplies data...</div>
         
         <div id="supplies-container"></div>
+        </div>
+        <!-- End Overview Tab -->
+        
+        <!-- Analytics Tab -->
+        <div id="analytics-tab" class="tab-content">
+            <div class="analytics-filters">
+                <div class="filter-row">
+                    <div class="filter">
+                        <label for="analytics-start-date">From Date:</label>
+                        <input type="date" id="analytics-start-date" class="analytics-filter-input">
+                    </div>
+                    <div class="filter">
+                        <label for="analytics-end-date">To Date:</label>
+                        <input type="date" id="analytics-end-date" class="analytics-filter-input">
+                    </div>
+                    <div class="filter">
+                        <label for="analytics-department-filter">Department:</label>
+                        <select id="analytics-department-filter" class="analytics-filter-input">
+                            <option value="">All Departments</option>
+                            <option value="NURSING">NURSING</option>
+                            <option value="LABORATORY">LABORATORY</option>
+                            <option value="PHARMACY">PHARMACY</option>
+                            <option value="HOUSEKEEPING">HOUSEKEEPING</option>
+                            <option value="MAINTENANCE">MAINTENANCE</option>
+                            <option value="ADMINISTRATION">ADMINISTRATION</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button id="apply-analytics-filters" class="button">Apply Filters</button>
+                    <button id="reset-analytics-filters" class="button">Reset to All Records</button>
+                </div>
+            </div>
+            
+            <div class="analytics-summary-cards" id="analytics-summary">
+                <div class="summary-card actual">
+                    <h3>Total Actual Supplies Value</h3>
+                    <p class="value" id="total-actual-value">₱0.00</p>
+                    <p class="context" id="actual-context">All Departments</p>
+                </div>
+                <div class="summary-card release">
+                    <h3>Total Release Supplies Value</h3>
+                    <p class="value" id="total-release-value">₱0.00</p>
+                    <p class="context" id="release-context">All Departments</p>
+                </div>
+                <div class="summary-card net">
+                    <h3>Net Inventory Value</h3>
+                    <p class="value" id="net-value">₱0.00</p>
+                    <p class="context" id="net-context">Actual - Released</p>
+                </div>
+                <div class="summary-card" id="department-count-card">
+                    <h3>Active Departments</h3>
+                    <p class="value" id="active-departments">0</p>
+                    <p class="context">In selected range</p>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 id="actual-chart-title">Actual Supplies Value Over Time</h3>
+                <div class="chart-wrapper">
+                    <canvas id="actual-supplies-chart"></canvas>
+                    <div class="chart-loading" id="actual-chart-loading" style="display:none;">
+                        <span class="loading"></span>
+                        <p>Loading chart data...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 id="release-chart-title">Release Supplies Value Over Time</h3>
+                <div class="chart-wrapper">
+                    <canvas id="release-supplies-chart"></canvas>
+                    <div class="chart-loading" id="release-chart-loading" style="display:none;">
+                        <span class="loading"></span>
+                        <p>Loading chart data...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 id="comparison-chart-title">Combined Comparison</h3>
+                <div class="chart-wrapper">
+                    <canvas id="comparison-chart"></canvas>
+                    <div class="chart-loading" id="comparison-chart-loading" style="display:none;">
+                        <span class="loading"></span>
+                        <p>Loading chart data...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-container" id="department-breakdown-container" style="display:none;">
+                <h3>Department Breakdown</h3>
+                <div class="chart-wrapper">
+                    <canvas id="department-breakdown-chart"></canvas>
+                </div>
+            </div>
+            
+            <div class="analytics-status" id="analytics-status">
+                Select a date range and click "Apply Filters" to view analytics data.
+            </div>
+        </div>
+        <!-- End Analytics Tab -->
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script>
         var suppliesCount = <?php echo $supplies_count; ?>;
         var batchSize = 100;
@@ -496,6 +758,487 @@ $supplies_count = wp_count_posts('supplies')->publish;
         };
         
         jQuery(document).ready(function($) {
+            // ===== TAB NAVIGATION =====
+            $('.tab-button').on('click', function() {
+                var tabName = $(this).data('tab');
+                
+                // Update active button
+                $('.tab-button').removeClass('active');
+                $(this).addClass('active');
+                
+                // Update active content
+                $('.tab-content').removeClass('active');
+                $('#' + tabName + '-tab').addClass('active');
+                
+                // If switching to analytics, load default data if not already loaded
+                if (tabName === 'analytics' && !window.analyticsLoaded) {
+                    initializeAnalytics();
+                }
+            });
+            
+            // ===== ANALYTICS FUNCTIONALITY =====
+            var analyticsCharts = {
+                actual: null,
+                release: null,
+                comparison: null,
+                department: null
+            };
+            
+            // Initialize analytics with default date range (from beginning of time to today)
+            function initializeAnalytics() {
+                var today = new Date();
+                // Set start date to a very early date (beginning of records)
+                // Using year 2000 as a safe "beginning of time" for this system
+                var beginningOfTime = new Date('2000-01-01');
+                
+                $('#analytics-end-date').val(formatDate(today));
+                $('#analytics-start-date').val(formatDate(beginningOfTime));
+                $('#analytics-department-filter').val('');
+                
+                loadAnalyticsData();
+            }
+            
+            // Format date to YYYY-MM-DD
+            function formatDate(date) {
+                var year = date.getFullYear();
+                var month = String(date.getMonth() + 1).padStart(2, '0');
+                var day = String(date.getDate()).padStart(2, '0');
+                return year + '-' + month + '-' + day;
+            }
+            
+            // Apply analytics filters
+            $('#apply-analytics-filters').on('click', function() {
+                loadAnalyticsData();
+            });
+            
+            // Reset analytics filters
+            $('#reset-analytics-filters').on('click', function() {
+                initializeAnalytics();
+            });
+            
+            // Load analytics data via AJAX
+            function loadAnalyticsData() {
+                var startDate = $('#analytics-start-date').val();
+                var endDate = $('#analytics-end-date').val();
+                var department = $('#analytics-department-filter').val();
+                
+                console.log('=== ANALYTICS DEBUG ===');
+                console.log('Start Date:', startDate);
+                console.log('End Date:', endDate);
+                console.log('Department:', department);
+                console.log('AJAX URL:', '<?php echo admin_url('admin-ajax.php'); ?>');
+                
+                // Validation
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates');
+                    return;
+                }
+                
+                // Show loading state
+                $('#analytics-status').html('<span class="loading"></span> Loading analytics data...').show();
+                $('#apply-analytics-filters').prop('disabled', true);
+                $('.chart-loading').show();
+                
+                var ajaxData = {
+                    action: 'get_analytics_data',
+                    start_date: startDate,
+                    end_date: endDate,
+                    department: department,
+                    nonce: '<?php echo wp_create_nonce('supplies_analytics_nonce'); ?>'
+                };
+                
+                console.log('AJAX Data:', ajaxData);
+                
+                // Make AJAX request
+                $.ajax({
+                    url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: ajaxData,
+                    success: function(response) {
+                        console.log('AJAX Success Response:', response);
+                        $('#apply-analytics-filters').prop('disabled', false);
+                        $('.chart-loading').hide();
+                        
+                        if (response.success) {
+                            window.analyticsLoaded = true;
+                            renderAnalytics(response.data);
+                            $('#analytics-status').hide();
+                        } else {
+                            console.error('Response Error:', response.data);
+                            $('#analytics-status').text('Error: ' + response.data);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('=== AJAX ERROR ===');
+                        console.error('Status:', status);
+                        console.error('Error:', error);
+                        console.error('Response Text:', xhr.responseText);
+                        console.error('Status Code:', xhr.status);
+                        
+                        $('#apply-analytics-filters').prop('disabled', false);
+                        $('.chart-loading').hide();
+                        $('#analytics-status').text('AJAX Error: ' + error + ' (Status: ' + xhr.status + ')');
+                    }
+                });
+            }
+            
+            // Render analytics data and charts
+            function renderAnalytics(data) {
+                var department = $('#analytics-department-filter').val();
+                var deptContext = department ? department : 'All Departments';
+                
+                // Update summary cards
+                $('#total-actual-value').text('₱' + formatMoney(data.summary.total_actual_value));
+                $('#total-release-value').text('₱' + formatMoney(data.summary.total_release_value));
+                $('#net-value').text('₱' + formatMoney(data.summary.net_value));
+                $('#active-departments').text(data.summary.active_departments);
+                
+                $('#actual-context').text(deptContext);
+                $('#release-context').text(deptContext);
+                
+                // Update chart titles
+                $('#actual-chart-title').text('Actual Supplies Value Over Time' + (department ? ' (' + department + ')' : ' (All Departments)'));
+                $('#release-chart-title').text('Release Supplies Value Over Time' + (department ? ' (' + department + ')' : ' (All Departments)'));
+                $('#comparison-chart-title').text('Combined Comparison' + (department ? ' (' + department + ')' : ' (All Departments)'));
+                
+                // Render charts
+                renderActualSuppliesChart(data.actual_supplies);
+                renderReleaseSuppliesChart(data.release_supplies);
+                renderComparisonChart(data.actual_supplies, data.release_supplies);
+                
+                // Show/hide department breakdown chart
+                if (!department && data.summary.active_departments > 1) {
+                    $('#department-breakdown-container').show();
+                    renderDepartmentBreakdownChart(data.summary.department_breakdown);
+                } else {
+                    $('#department-breakdown-container').hide();
+                }
+            }
+            
+            // Format money with commas
+            function formatMoney(value) {
+                return parseFloat(value).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+            }
+            
+            // Render Actual Supplies Chart
+            function renderActualSuppliesChart(data) {
+                var ctx = document.getElementById('actual-supplies-chart');
+                
+                if (analyticsCharts.actual) {
+                    analyticsCharts.actual.destroy();
+                }
+                
+                var labels = data.map(item => item.date);
+                var values = data.map(item => item.total_value);
+                
+                analyticsCharts.actual = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Actual Supplies Value (₱)',
+                            data: values,
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        var label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        label += '₱' + formatMoney(context.parsed.y);
+                                        var dataPoint = data[context.dataIndex];
+                                        label += ' (' + dataPoint.item_count + ' items)';
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₱' + formatMoney(value);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Render Release Supplies Chart
+            function renderReleaseSuppliesChart(data) {
+                var ctx = document.getElementById('release-supplies-chart');
+                
+                if (analyticsCharts.release) {
+                    analyticsCharts.release.destroy();
+                }
+                
+                var labels = data.map(item => item.date);
+                var confirmedValues = data.map(item => item.confirmed_value);
+                var pendingValues = data.map(item => item.pending_value);
+                
+                analyticsCharts.release = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Confirmed Releases (₱)',
+                            data: confirmedValues,
+                            backgroundColor: '#F44336',
+                            stack: 'releases'
+                        }, {
+                            label: 'Pending Releases (₱)',
+                            data: pendingValues,
+                            backgroundColor: '#FF9800',
+                            stack: 'releases'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        var label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        label += '₱' + formatMoney(context.parsed.y);
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                stacked: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₱' + formatMoney(value);
+                                    }
+                                }
+                            },
+                            x: {
+                                stacked: true
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Render Comparison Chart
+            function renderComparisonChart(actualData, releaseData) {
+                var ctx = document.getElementById('comparison-chart');
+                
+                if (analyticsCharts.comparison) {
+                    analyticsCharts.comparison.destroy();
+                }
+                
+                // Merge dates from both datasets
+                var allDates = [...new Set([
+                    ...actualData.map(item => item.date),
+                    ...releaseData.map(item => item.date)
+                ])].sort();
+                
+                // Create data arrays aligned by date
+                var actualValues = allDates.map(date => {
+                    var item = actualData.find(d => d.date === date);
+                    return item ? item.total_value : 0;
+                });
+                
+                var releaseValues = allDates.map(date => {
+                    var item = releaseData.find(d => d.date === date);
+                    return item ? item.confirmed_value : 0;
+                });
+                
+                // Calculate cumulative net value
+                var netValues = [];
+                var cumulativeActual = 0;
+                var cumulativeRelease = 0;
+                
+                for (var i = 0; i < allDates.length; i++) {
+                    cumulativeActual += actualValues[i];
+                    cumulativeRelease += releaseValues[i];
+                    netValues.push(cumulativeActual - cumulativeRelease);
+                }
+                
+                analyticsCharts.comparison = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: allDates,
+                        datasets: [{
+                            label: 'Actual Supplies (₱)',
+                            data: actualValues,
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            yAxisID: 'y',
+                            tension: 0.4
+                        }, {
+                            label: 'Released Supplies (₱)',
+                            data: releaseValues,
+                            borderColor: '#F44336',
+                            backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                            yAxisID: 'y',
+                            tension: 0.4
+                        }, {
+                            label: 'Net Value (Cumulative) (₱)',
+                            data: netValues,
+                            borderColor: '#2196F3',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            yAxisID: 'y1',
+                            borderWidth: 3,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        var label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        label += '₱' + formatMoney(context.parsed.y);
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Daily Value (₱)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₱' + formatMoney(value);
+                                    }
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Cumulative Net Value (₱)'
+                                },
+                                grid: {
+                                    drawOnChartArea: false
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₱' + formatMoney(value);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Render Department Breakdown Chart
+            function renderDepartmentBreakdownChart(breakdown) {
+                var ctx = document.getElementById('department-breakdown-chart');
+                
+                if (analyticsCharts.department) {
+                    analyticsCharts.department.destroy();
+                }
+                
+                var departments = Object.keys(breakdown);
+                var actualValues = departments.map(dept => breakdown[dept].actual);
+                var releaseValues = departments.map(dept => breakdown[dept].release);
+                
+                analyticsCharts.department = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: departments,
+                        datasets: [{
+                            label: 'Actual Supplies (₱)',
+                            data: actualValues,
+                            backgroundColor: '#4CAF50'
+                        }, {
+                            label: 'Released Supplies (₱)',
+                            data: releaseValues,
+                            backgroundColor: '#F44336'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        var label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        label += '₱' + formatMoney(context.parsed.y);
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₱' + formatMoney(value);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // ===== OVERVIEW TAB FUNCTIONALITY (Existing Code) =====
+            
             // Initialize section filter
             $('#department-filter').on('change', function() {
                 var department = $(this).val();
@@ -1231,17 +1974,6 @@ $supplies_count = wp_count_posts('supplies')->publish;
 </body>
 </html>
 <?php
-// Instead of dynamically creating the file, we'll just load the existing one
-// The file should be committed to Git and deployed properly
-
-// Create a function to register our AJAX handler through the WordPress init hook
-function register_supplies_ajax_handler() {
-    require_once(dirname(__FILE__) . '/supplies-ajax-handler.php');
-}
-
-// Add this function to WordPress's init hook
-add_action('init', 'register_supplies_ajax_handler');
-
-// For immediate testing, include the handler file here too
-require_once(dirname(__FILE__) . '/supplies-ajax-handler.php');
+// AJAX handlers are now loaded globally via functions.php
+// No need to include them here
 ?>
