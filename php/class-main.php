@@ -927,6 +927,12 @@ class Theme {
         $actual_quantity = 0;
         
         foreach ($actual_posts as $post_id) {
+            // Check if this supply has been released (skip if it has to avoid double counting)
+            $related_release_id = get_post_meta($post_id, 'related_release_id', true);
+            if (!empty($related_release_id)) {
+                continue; // Skip supplies that have been released
+            }
+            
             $actual_quantity += (float)get_post_meta($post_id, 'quantity', true);
         }
         
@@ -973,6 +979,12 @@ class Theme {
             
             // Calculate expired quantity
             foreach ($actual_posts as $post_id) {
+                // Check if this supply has been released (skip if it has)
+                $related_release_id = get_post_meta($post_id, 'related_release_id', true);
+                if (!empty($related_release_id)) {
+                    continue;
+                }
+                
                 $expiry_date = get_post_meta($post_id, 'expiry_date', true);
                 
                 // Skip if no expiry date
