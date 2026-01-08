@@ -31,10 +31,11 @@ if (WP_DEBUG && file_exists(PARENT_DIR . '/php/wp-head-debug.php')) {
 
 /**
  * Load wp_head hook profiler (only in debug mode)
+ * DISABLED: Causes infinite loops by re-executing hooks
  */
-if (WP_DEBUG && file_exists(PARENT_DIR . '/php/wp-head-hook-profiler.php')) {
-    require_once PARENT_DIR . '/php/wp-head-hook-profiler.php';
-}
+// if (WP_DEBUG && file_exists(PARENT_DIR . '/php/wp-head-hook-profiler.php')) {
+//     require_once PARENT_DIR . '/php/wp-head-hook-profiler.php';
+// }
 
 require PARENT_DIR . '/includes/core.php';
 require PARENT_DIR . '/php/class-main.php';
