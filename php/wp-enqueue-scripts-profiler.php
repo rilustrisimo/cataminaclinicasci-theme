@@ -21,7 +21,12 @@ class WP_Enqueue_Scripts_Profiler {
         // Hook VERY early to profile wp_enqueue_scripts
         add_action('wp_enqueue_scripts', array(__CLASS__, 'start_profiling'), -999999);
         add_action('wp_enqueue_scripts', array(__CLASS__, 'checkpoint_1'), 5);
-        add_action('wp_enqueue_scripts', array(__CLASS__, 'checkpoint_2'), 10);
+        
+        // Add hooks right before and after each priority 10 function
+        add_action('wp_enqueue_scripts', array(__CLASS__, 'before_wp_common_block'), 9);
+        add_action('wp_enqueue_scripts', array(__CLASS__, 'after_wp_common_block'), 11);
+        add_action('wp_enqueue_scripts', array(__CLASS__, 'after_theme_assets'), 12);
+        
         add_action('wp_enqueue_scripts', array(__CLASS__, 'checkpoint_3'), 15);
         add_action('wp_enqueue_scripts', array(__CLASS__, 'checkpoint_4'), 20);
         add_action('wp_enqueue_scripts', array(__CLASS__, 'end_profiling'), 999999);
@@ -35,8 +40,16 @@ class WP_Enqueue_Scripts_Profiler {
         self::log_timing('After priority 5');
     }
     
-    public static function checkpoint_2() {
-        self::log_timing('After priority 10 (theme assets should be loaded)');
+    public static function before_wp_common_block() {
+        self::log_timing('BEFORE priority 10 functions');
+    }
+    
+    public static function after_wp_common_block() {
+        self::log_timing('AFTER priority 10 functions');
+    }
+    
+    public static function after_theme_assets() {
+        self::log_timing('AFTER priority 11 (all theme assets loaded)');
     }
     
     public static function checkpoint_3() {

@@ -69,8 +69,9 @@ add_action('init', function() {
  * PERFORMANCE FIX: Disable WordPress global styles that cause 20+ second delays
  * This removes block editor styles which aren't needed for this classic theme
  */
-remove_action('wp_enqueue_scripts', 'wp_enqueue_global_styles');
-remove_action('wp_body_open', 'wp_global_styles_render_svg_filters');
+// REVERTED - Not the culprit
+// remove_action('wp_enqueue_scripts', 'wp_enqueue_global_styles');
+// remove_action('wp_body_open', 'wp_global_styles_render_svg_filters');
 
 /**
  * 
