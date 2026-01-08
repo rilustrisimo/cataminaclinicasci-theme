@@ -116,14 +116,34 @@ if ( ! function_exists( 'qed_filter_theme_styles' ) ) {
 
 		$is_rtl = is_rtl();
 
-		// PERFORMANCE FIX: Always use cache, even in dev mode
-		// In dev mode, cache expires after 1 day instead of never recompiling
+		// PERFORMANCE FIX: Cache with LESS file change detection
 		$cache_id = 'qed_generated_styles_list' . ( $is_rtl ? '_rtl' : '' );
 		$cache_expiration = THEME_IS_DEV_MODE ? DAY_IN_SECONDS : 0; // 1 day in dev, permanent in production
 
-		$cached_value = get_transient( $cache_id );
+		// Check if LESS files have changed by comparing modification times
+		$less_files_hash = '';
+		if ( THEME_IS_DEV_MODE ) {
+			$less_dir = PARENT_DIR . '/assets/less';
+			if ( is_dir( $less_dir ) ) {
+				$less_files = glob( $less_dir . '/*.less' );
+				$mod_times = array();
+				foreach ( $less_files as $file ) {
+					$mod_times[] = filemtime( $file );
+				}
+				$less_files_hash = md5( implode( ',', $mod_times ) );
+			}
+		}
 
-		if ( false === $cached_value || empty( $cached_value['version'] ) || QED_VERSION !== $cached_value['version'] || $is_customize_request ) {
+		$cached_value = get_transient( $cache_id );
+		$stored_hash = get_transient( $cache_id . '_less_hash' );
+
+		// Recompile if: no cache, version changed, customize request, or LESS files changed
+		if ( false === $cached_value || 
+		     empty( $cached_value['version'] ) || 
+		     QED_VERSION !== $cached_value['version'] || 
+		     $is_customize_request ||
+		     ( THEME_IS_DEV_MODE && $less_files_hash !== $stored_hash ) ) {
+			
 			$app = qed_di( 'app' );
 			$style_options = $app->get_style_options( $is_customize_request );
 			// Special variable used to point url locations.
@@ -154,8 +174,11 @@ if ( ! function_exists( 'qed_filter_theme_styles' ) ) {
 				'value' => array_merge( $default_set, $compiled ),
 			);
 			
-			// Set transient with expiration (1 hour in dev mode, permanent in production)
+			// Store cache and LESS files hash
 			set_transient( $cache_id, $cached_value, $cache_expiration );
+			if ( THEME_IS_DEV_MODE && $less_files_hash ) {
+				set_transient( $cache_id . '_less_hash', $less_files_hash, $cache_expiration );
+			}
 		}
 
 		return isset( $cached_value['value'] ) ? $cached_value['value'] : $default_set;
@@ -172,6 +195,8 @@ if ( ! function_exists( 'qed_flush_style_cache' ) ) {
 	function qed_flush_style_cache() {
 		delete_transient( 'qed_generated_styles_list' );
 		delete_transient( 'qed_generated_styles_list_rtl' );
+		delete_transient( 'qed_generated_styles_list_less_hash' );
+		delete_transient( 'qed_generated_styles_list_rtl_less_hash' );
 	}
 	add_action( 'customize_save_after', 'qed_flush_style_cache' );
 	add_action( 'after_switch_theme', 'qed_flush_style_cache' );
