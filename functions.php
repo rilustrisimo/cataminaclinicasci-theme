@@ -47,6 +47,18 @@ if (file_exists(get_template_directory() . '/php/error-logger.php')) {
 }
 
 /**
+ * Disable Ultimate Member wp_head hooks on non-homepage pages to improve performance
+ */
+add_action('init', function() {
+    // Only load UM head hooks on homepage
+    if (!is_front_page() && !is_home()) {
+        // Remove Ultimate Member wp_head hooks
+        remove_action('wp_head', 'um_add_form_honeypot_css', 10);
+        remove_action('wp_head', 'um_profile_dynamic_meta_desc', 20);
+    }
+}, 999); // Run late to ensure UM has already added its hooks
+
+/**
  * 
  *  Instantiate classes
  */
