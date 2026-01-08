@@ -66,23 +66,20 @@ add_action('init', function() {
 }, 999); // Run late to ensure UM has already added its hooks
 
 /**
- * PERFORMANCE FIX: Disable WordPress functions causing 20+ second delays
+ * PERFORMANCE FIX: Test disabling theme asset loading
  */
 add_action('wp_enqueue_scripts', function() {
     if (class_exists('Homepage_Performance_Debug')) {
-        Homepage_Performance_Debug::log_checkpoint('Testing: Before removing WP style functions');
+        Homepage_Performance_Debug::log_checkpoint('Testing: BEFORE theme asset functions');
     }
 }, 9);
 
-// Test disabling each WordPress core style function one by one
-remove_action('wp_enqueue_scripts', 'wp_enqueue_global_styles');
-remove_action('wp_enqueue_scripts', 'wp_enqueue_stored_styles'); 
-remove_action('wp_enqueue_scripts', 'wp_common_block_scripts_and_styles');
-remove_action('wp_enqueue_scripts', 'wp_enqueue_classic_theme_styles');
+// Temporarily disable theme asset functions to test
+remove_action('wp_enqueue_scripts', 'qed_init_theme_assets');
 
 add_action('wp_enqueue_scripts', function() {
     if (class_exists('Homepage_Performance_Debug')) {
-        Homepage_Performance_Debug::log_checkpoint('Testing: After removing WP style functions');
+        Homepage_Performance_Debug::log_checkpoint('Testing: AFTER removing qed_init_theme_assets');
     }
 }, 11);
 
