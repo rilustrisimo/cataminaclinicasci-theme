@@ -33,7 +33,7 @@ if ( ! function_exists( 'qed_init_theme_assets' ) ) {
 			} else {
 				wp_enqueue_style( 'bootstrap', PARENT_URL . '/assets/csslib/bootstrap.css' );
 			}
-
+/*
 			wp_enqueue_style( 'datepicker', 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css', array(), '' );
 			wp_enqueue_style( 'fontawesome',  PARENT_URL . '/assets/fontawesome/css/all.css', array(), '6.1.1');
 			wp_enqueue_style( 'bootstrap-select', PARENT_URL . '/assets/csslib/bootstrap-select/bootstrap-select.min.css', array(), '1.12.2' );
@@ -55,6 +55,7 @@ if ( ! function_exists( 'qed_init_theme_assets' ) ) {
 			wp_enqueue_script( 'waypoints', PARENT_URL . '/assets/jslib/jquery.waypoints.min.js', array( 'jquery' ), '4.0.1', true );
 			wp_enqueue_script( 'counterup', PARENT_URL . '/assets/jslib/jquery.counterup.min.js', array( 'jquery', 'waypoints' ), '1.0', true );
 			wp_enqueue_script( 'vivus', PARENT_URL . '/assets/jslib/vivus.min.js', array(), '0.4.2', true );
+			*/
 			wp_register_script( 'fitvid', PARENT_URL . '/assets/jslib/bxslider/vendor/jquery.fitvids.js', array( 'jquery' ), '1.0', true );
 			wp_register_script( 'magnific-popup', PARENT_URL . '/assets/jslib/jquery.magnific-popup.min.js', array( 'jquery' ), '1.1.0', true );
 			wp_register_script( 'theme', PARENT_URL . '/assets/js/Theme.js', array( 'jquery' ), rand(), true );
