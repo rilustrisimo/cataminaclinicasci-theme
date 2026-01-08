@@ -97,9 +97,14 @@ include_once get_template_directory() . '/php/supply-corrector-link.php';
 
 /**
  * Register AJAX handlers for supplies overview and corrector
- * This ensures the handlers are available for AJAX requests
+ * Only load these handlers when doing AJAX requests to improve performance
  */
 function include_supplies_handlers() {
+    // Only load AJAX handlers during AJAX requests
+    if (!defined('DOING_AJAX') || !DOING_AJAX) {
+        return;
+    }
+    
     $overview_handler_path = get_template_directory() . '/php/supplies-ajax-handler.php';
     $corrector_handler_path = get_template_directory() . '/php/supply-corrector-ajax.php';
     $analytics_handler_path = get_template_directory() . '/php/supplies-analytics-handler.php';
