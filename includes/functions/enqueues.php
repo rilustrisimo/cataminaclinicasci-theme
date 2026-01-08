@@ -85,8 +85,6 @@ if ( ! function_exists( 'qed_init_theme_assets' ) ) {
 			'style-css' => get_stylesheet_uri(),
 		));
 
-		$style_collection = false;
-
 		if ( $style_collection ) {
 			foreach ( $style_collection as $_item_key => $resource_info ) {
 				$_style_text = null;
