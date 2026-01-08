@@ -66,12 +66,25 @@ add_action('init', function() {
 }, 999); // Run late to ensure UM has already added its hooks
 
 /**
- * PERFORMANCE FIX: Disable WordPress global styles that cause 20+ second delays
- * This removes block editor styles which aren't needed for this classic theme
+ * PERFORMANCE FIX: Disable WordPress functions causing 20+ second delays
  */
-// REVERTED - Not the culprit
-// remove_action('wp_enqueue_scripts', 'wp_enqueue_global_styles');
-// remove_action('wp_body_open', 'wp_global_styles_render_svg_filters');
+add_action('wp_enqueue_scripts', function() {
+    if (class_exists('Homepage_Performance_Debug')) {
+        Homepage_Performance_Debug::log_checkpoint('Testing: Before removing WP style functions');
+    }
+}, 9);
+
+// Test disabling each WordPress core style function one by one
+remove_action('wp_enqueue_scripts', 'wp_enqueue_global_styles');
+remove_action('wp_enqueue_scripts', 'wp_enqueue_stored_styles'); 
+remove_action('wp_enqueue_scripts', 'wp_common_block_scripts_and_styles');
+remove_action('wp_enqueue_scripts', 'wp_enqueue_classic_theme_styles');
+
+add_action('wp_enqueue_scripts', function() {
+    if (class_exists('Homepage_Performance_Debug')) {
+        Homepage_Performance_Debug::log_checkpoint('Testing: After removing WP style functions');
+    }
+}, 11);
 
 /**
  * 
