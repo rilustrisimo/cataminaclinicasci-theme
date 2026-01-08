@@ -31,8 +31,16 @@ class Homepage_Performance_Debug {
         add_action('wp_loaded', array(__CLASS__, 'checkpoint_wp_loaded'), 1);
         add_action('template_redirect', array(__CLASS__, 'checkpoint_template_redirect'), 1);
         add_action('wp_enqueue_scripts', array(__CLASS__, 'checkpoint_enqueue_scripts'), 1);
+        
+        // Add multiple checkpoints within wp_head at different priorities
         add_action('wp_head', array(__CLASS__, 'checkpoint_wp_head_start'), 1);
+        add_action('wp_head', array(__CLASS__, 'checkpoint_wp_head_after_preload'), 2); // After wp_preload_resources
+        add_action('wp_head', array(__CLASS__, 'checkpoint_wp_head_after_emoji'), 8); // After emoji script
+        add_action('wp_head', array(__CLASS__, 'checkpoint_wp_head_after_print_styles'), 9); // After wp_print_styles
+        add_action('wp_head', array(__CLASS__, 'checkpoint_wp_head_after_print_scripts'), 10); // After wp_print_head_scripts
+        add_action('wp_head', array(__CLASS__, 'checkpoint_wp_head_after_resources'), 11); // After qed_render_header_resources
         add_action('wp_head', array(__CLASS__, 'checkpoint_wp_head_end'), 999);
+        
         add_action('wp_footer', array(__CLASS__, 'checkpoint_wp_footer'), 1);
         add_action('shutdown', array(__CLASS__, 'write_report'), 1);
         
@@ -74,19 +82,33 @@ class Homepage_Performance_Debug {
         self::log_checkpoint('wp_enqueue_scripts hook');
     }
     
-    public static function checkpoint_before_get_header() {
-        self::log_checkpoint('Before get_header() call');
-    }
-    
     public static function checkpoint_wp_head_start() {
-        self::log_checkpoint('wp_head start');
+        self::log_checkpoint('wp_head start (priority 1)');
     }
     
+    public static function checkpoint_wp_head_after_preload() {
+        self::log_checkpoint('wp_head after preload (priority 2)');
+    }
+    
+    public static function checkpoint_wp_head_after_emoji() {
+        self::log_checkpoint('wp_head after emoji (priority 8)');
+    }
+    
+    public static function checkpoint_wp_head_after_print_styles() {
+        self::log_checkpoint('wp_head after print_styles (priority 9)');
+    }
+    
+    public static function checkpoint_wp_head_after_print_scripts() {
+        self::log_checkpoint('wp_head after print_scripts (priority 10)');
+    }
+    
+    public static function checkpoint_wp_head_after_resources() {
+        self::log_checkpoint('wp_head after qed_render_header_resources (priority 11)');
+    }
+
     public static function checkpoint_wp_head_end() {
-        self::log_checkpoint('wp_head end');
-    }
-    
-    public static function checkpoint_wp_footer() {
+        self::log_checkpoint('wp_head end (priority 999)');
+    }    public static function checkpoint_wp_footer() {
         self::log_checkpoint('wp_footer hook');
     }
     
