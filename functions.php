@@ -15,6 +15,13 @@ define( 'QED_VERSION', '1.0.0' );
 define( 'PARENT_DIR', get_template_directory() );
 define( 'PARENT_URL', get_template_directory_uri() );
 
+/**
+ * Load homepage performance debugger (only in debug mode)
+ */
+if (WP_DEBUG && file_exists(PARENT_DIR . '/php/homepage-debug.php')) {
+    require_once PARENT_DIR . '/php/homepage-debug.php';
+}
+
 require PARENT_DIR . '/includes/core.php';
 require PARENT_DIR . '/php/class-main.php';
 
