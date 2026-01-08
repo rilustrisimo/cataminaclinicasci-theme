@@ -47,7 +47,10 @@
     <div class="page-breadcrumbs" style="<?php echo (!is_user_logged_in())?'display:none;':''; ?>">
         <?php $theme->get_breadcrumb();?>
     </div>
-    <?php if(!is_user_logged_in()): ?>
+    <?php 
+    // Only load Ultimate Member forms on homepage for logged out users
+    if(!is_user_logged_in() && (is_front_page() || is_home())): 
+    ?>
     <div class="login-status__forms">
         <div class="login-status__forms-login"><?php echo do_shortcode('[ultimatemember form_id="97"]'); ?></div>
         <div class="login-status__forms-register"><?php echo do_shortcode('[ultimatemember form_id="96"]'); ?></div>
@@ -58,6 +61,3 @@
     //SD_Js_Client_Script::add_script( 'initResizeHandler', 'Theme.initResizeHandler(' . wp_json_encode( $js_config ) . ');' );
     get_template_part( 'templates/header/header', 'section' );
     do_action('eyor_before_main_content');
-    ?>
-</body>
-</html>
