@@ -74,6 +74,10 @@ class Homepage_Performance_Debug {
         self::log_checkpoint('wp_enqueue_scripts hook');
     }
     
+    public static function checkpoint_before_get_header() {
+        self::log_checkpoint('Before get_header() call');
+    }
+    
     public static function checkpoint_wp_head_start() {
         self::log_checkpoint('wp_head start');
     }

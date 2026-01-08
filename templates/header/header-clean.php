@@ -6,7 +6,16 @@
  * @version   1.0.0
  */
 
- $theme = new Theme();
+// Performance tracking
+if (class_exists('Homepage_Performance_Debug')) {
+    Homepage_Performance_Debug::log_checkpoint('header-clean.php START (before Theme instantiation)');
+}
+
+$theme = new Theme();
+
+if (class_exists('Homepage_Performance_Debug')) {
+    Homepage_Performance_Debug::log_checkpoint('header-clean.php AFTER Theme instantiation');
+}
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
