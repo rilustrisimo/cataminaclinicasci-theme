@@ -75,7 +75,7 @@ add_action('wp_enqueue_scripts', function() {
 }, 9);
 
 // Temporarily disable theme asset functions to test
-remove_action('wp_enqueue_scripts', 'qed_init_theme_assets');
+//remove_action('wp_enqueue_scripts', 'qed_init_theme_assets');
 
 add_action('wp_enqueue_scripts', function() {
     if (class_exists('Homepage_Performance_Debug')) {
