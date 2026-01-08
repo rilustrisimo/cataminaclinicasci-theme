@@ -66,22 +66,10 @@ add_action('init', function() {
 }, 999); // Run late to ensure UM has already added its hooks
 
 /**
- * PERFORMANCE FIX: Test disabling theme asset loading
+ * PERFORMANCE FIX: External CDN scripts (datepicker, jQuery UI) were causing 20+ second timeouts
+ * They have been disabled in includes/functions/enqueues.php
+ * If you need datepicker or jQuery UI, download local copies to /assets/jslib/
  */
-add_action('wp_enqueue_scripts', function() {
-    if (class_exists('Homepage_Performance_Debug')) {
-        Homepage_Performance_Debug::log_checkpoint('Testing: BEFORE theme asset functions');
-    }
-}, 9);
-
-// Temporarily disable theme asset functions to test
-//remove_action('wp_enqueue_scripts', 'qed_init_theme_assets');
-
-add_action('wp_enqueue_scripts', function() {
-    if (class_exists('Homepage_Performance_Debug')) {
-        Homepage_Performance_Debug::log_checkpoint('Testing: AFTER removing qed_init_theme_assets');
-    }
-}, 11);
 
 /**
  * 
