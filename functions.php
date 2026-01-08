@@ -22,6 +22,13 @@ if (WP_DEBUG && file_exists(PARENT_DIR . '/php/homepage-debug.php')) {
     require_once PARENT_DIR . '/php/homepage-debug.php';
 }
 
+/**
+ * Load wp_head debugger (only in debug mode)
+ */
+if (WP_DEBUG && file_exists(PARENT_DIR . '/php/wp-head-debug.php')) {
+    require_once PARENT_DIR . '/php/wp-head-debug.php';
+}
+
 require PARENT_DIR . '/includes/core.php';
 require PARENT_DIR . '/php/class-main.php';
 
