@@ -8,6 +8,8 @@
  */
 
 if ( ! defined( 'THEME_IS_DEV_MODE' ) ) {
+	// Dev mode enables individual asset loading instead of minified bundles
+	// CSS compilation is now cached for 1 hour even in dev mode (see helpers.php)
 	define( 'THEME_IS_DEV_MODE', true );
 }
 

@@ -116,11 +116,14 @@ if ( ! function_exists( 'qed_filter_theme_styles' ) ) {
 
 		$is_rtl = is_rtl();
 
-		$cache_id = $is_customize_request || THEME_IS_DEV_MODE ? '' : ( 'qed_generated_styles_list' . ( $is_rtl ? '_rtl' : '' ) );
+		// PERFORMANCE FIX: Always use cache, even in dev mode
+		// In dev mode, cache expires after 1 day instead of never recompiling
+		$cache_id = 'qed_generated_styles_list' . ( $is_rtl ? '_rtl' : '' );
+		$cache_expiration = THEME_IS_DEV_MODE ? DAY_IN_SECONDS : 0; // 1 day in dev, permanent in production
 
-		$cached_value = $cache_id ? get_transient( $cache_id ) : false;
+		$cached_value = get_transient( $cache_id );
 
-		if ( false === $cached_value || empty( $cached_value['version'] ) || QED_VERSION !== $cached_value['version'] ) {
+		if ( false === $cached_value || empty( $cached_value['version'] ) || QED_VERSION !== $cached_value['version'] || $is_customize_request ) {
 			$app = qed_di( 'app' );
 			$style_options = $app->get_style_options( $is_customize_request );
 			// Special variable used to point url locations.
@@ -150,9 +153,9 @@ if ( ! function_exists( 'qed_filter_theme_styles' ) ) {
 				'version' => QED_VERSION,
 				'value' => array_merge( $default_set, $compiled ),
 			);
-			if ( $cache_id ) {
-				set_transient( $cache_id, $cached_value );
-			}
+			
+			// Set transient with expiration (1 hour in dev mode, permanent in production)
+			set_transient( $cache_id, $cached_value, $cache_expiration );
 		}
 
 		return isset( $cached_value['value'] ) ? $cached_value['value'] : $default_set;
@@ -172,6 +175,11 @@ if ( ! function_exists( 'qed_flush_style_cache' ) ) {
 	}
 	add_action( 'customize_save_after', 'qed_flush_style_cache' );
 	add_action( 'after_switch_theme', 'qed_flush_style_cache' );
+	
+	// PERFORMANCE: Allow manual cache flush via URL parameter in dev mode
+	if ( THEME_IS_DEV_MODE && isset( $_GET['flush_styles'] ) ) {
+		qed_flush_style_cache();
+	}
 } // End if().
 
 if ( ! function_exists( 'qed_get_fonts_icons' ) ) {
