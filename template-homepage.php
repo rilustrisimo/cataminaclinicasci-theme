@@ -13,16 +13,7 @@
  */
 defined( 'ABSPATH' ) || die();
 
-// Track timing before get_header
-if (class_exists('Homepage_Performance_Debug')) {
-    Homepage_Performance_Debug::log_checkpoint('template-homepage.php: Before get_header()');
-}
-
 get_header();
-
-if (class_exists('Homepage_Performance_Debug')) {
-    Homepage_Performance_Debug::log_checkpoint('template-homepage.php: After get_header()');
-}
 
 if ( have_posts() ) : ?>
 	<?php while ( have_posts() ) { the_post(); ?>

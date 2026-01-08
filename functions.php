@@ -42,13 +42,6 @@ require PARENT_DIR . '/includes/core.php';
 require PARENT_DIR . '/php/class-main.php';
 
 /**
- * Load WP Enqueue Scripts Profiler (debug mode only)
- */
-if (WP_DEBUG && file_exists(get_template_directory() . '/php/wp-enqueue-scripts-profiler.php')) {
-    require_once(get_template_directory() . '/php/wp-enqueue-scripts-profiler.php');
-}
-
-/**
  * Load custom error logger
  */
 if (file_exists(get_template_directory() . '/php/error-logger.php')) {

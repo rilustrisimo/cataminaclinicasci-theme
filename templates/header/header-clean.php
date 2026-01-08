@@ -6,16 +6,7 @@
  * @version   1.0.0
  */
 
-// Performance tracking
-if (class_exists('Homepage_Performance_Debug')) {
-    Homepage_Performance_Debug::log_checkpoint('header-clean.php START (before Theme instantiation)');
-}
-
 $theme = new Theme();
-
-if (class_exists('Homepage_Performance_Debug')) {
-    Homepage_Performance_Debug::log_checkpoint('header-clean.php AFTER Theme instantiation');
-}
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -28,15 +19,7 @@ if (class_exists('Homepage_Performance_Debug')) {
 	?>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="profile" href="http://gmpg.org/xfn/11">
-	<?php 
-	if (class_exists('Homepage_Performance_Debug')) {
-	    Homepage_Performance_Debug::log_checkpoint('BEFORE acf_form_head()');
-	}
-	acf_form_head(); 
-	if (class_exists('Homepage_Performance_Debug')) {
-	    Homepage_Performance_Debug::log_checkpoint('AFTER acf_form_head(), BEFORE wp_head()');
-	}
-	?>
+	<?php acf_form_head(); ?>
 	<?php wp_head(); ?>
 	<script>
 	jQuery(document).ready(function($) {
