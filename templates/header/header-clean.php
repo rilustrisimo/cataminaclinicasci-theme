@@ -89,6 +89,18 @@
 	</script>
 </head>
 <body <?php body_class(); ?>>
+<!-- Page Loading Overlay -->
+<div class="page-loading-overlay">
+    <div class="page-loading-overlay__spinner"></div>
+    <div class="page-loading-overlay__message">Loading...</div>
+</div>
+
+<!-- AJAX Loading Overlay -->
+<div class="page-loading-overlay page-loading-overlay--ajax hidden">
+    <div class="page-loading-overlay__spinner"></div>
+    <div class="page-loading-overlay__message">Processing...</div>
+</div>
+
 <div class="modal-container">
 	<div class="modal__inner">
 		<div class="modal__close"><i class="fa-solid fa-xmark"></i></div>
