@@ -117,5 +117,5 @@ if ( ! function_exists( 'qed_init_theme_assets' ) ) {
 		wp_register_style( 'jquery-ui-datepicker-custom', PARENT_URL . '/assets/csslib/jquery-ui-custom/jquery-ui.min.css', array(), '1.11.4' );
 	}
 
-	add_action( 'wp_enqueue_scripts', 'qed_init_theme_assets' );
+	//add_action( 'wp_enqueue_scripts', 'qed_init_theme_assets' );
 }
