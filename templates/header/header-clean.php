@@ -28,7 +28,15 @@ if (class_exists('Homepage_Performance_Debug')) {
 	?>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="profile" href="http://gmpg.org/xfn/11">
-	<?php acf_form_head(); ?>
+	<?php 
+	if (class_exists('Homepage_Performance_Debug')) {
+	    Homepage_Performance_Debug::log_checkpoint('BEFORE acf_form_head()');
+	}
+	acf_form_head(); 
+	if (class_exists('Homepage_Performance_Debug')) {
+	    Homepage_Performance_Debug::log_checkpoint('AFTER acf_form_head(), BEFORE wp_head()');
+	}
+	?>
 	<?php wp_head(); ?>
 	<script>
 	jQuery(document).ready(function($) {
