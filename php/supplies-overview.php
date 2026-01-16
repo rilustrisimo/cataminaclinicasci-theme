@@ -898,6 +898,22 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 department: null
             };
             
+            // Show/hide sub-section filter based on department selection
+            function toggleSubSectionFilter() {
+                var department = $('#analytics-department-filter').val();
+                if (department === 'NURSING') {
+                    $('#sub-section-filter-container').show();
+                } else {
+                    $('#sub-section-filter-container').hide();
+                    $('#analytics-sub-section-filter').val('');
+                }
+            }
+            
+            // Attach event handler for department change
+            $('#analytics-department-filter').on('change', function() {
+                toggleSubSectionFilter();
+            });
+            
             // Initialize analytics with default date range (from beginning of time to today)
             function initializeAnalytics() {
                 var today = new Date();
@@ -912,19 +928,11 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 $('#sub-section-filter-container').hide();
                 $('#analytics-type-filter').val('Supply'); // Default to Supply
                 
+                // Check if sub-section should be shown based on current department
+                toggleSubSectionFilter();
+                
                 loadAnalyticsData();
             }
-            
-            // Show/hide sub-section filter based on department selection
-            $('#analytics-department-filter').on('change', function() {
-                var department = $(this).val();
-                if (department === 'NURSING') {
-                    $('#sub-section-filter-container').show();
-                } else {
-                    $('#sub-section-filter-container').hide();
-                    $('#analytics-sub-section-filter').val('');
-                }
-            });
             
             // Format date to YYYY-MM-DD
             function formatDate(date) {
