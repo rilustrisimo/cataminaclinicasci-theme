@@ -734,6 +734,17 @@ $supplies_count = wp_count_posts('supplies')->publish;
                             <option value="ADMINISTRATION">ADMINISTRATION</option>
                         </select>
                     </div>
+                    <div class="filter" id="sub-section-filter-container" style="display: none;">
+                        <label for="analytics-sub-section-filter">Sub Section:</label>
+                        <select id="analytics-sub-section-filter" class="analytics-filter-input">
+                            <option value="">All</option>
+                            <option value="Nurses Station">Nurses Station</option>
+                            <option value="Clean Up Area">Clean Up Area</option>
+                            <option value="Dressing Rooms">Dressing Rooms</option>
+                            <option value="OR 1">OR 1</option>
+                            <option value="OR 2">OR 2</option>
+                        </select>
+                    </div>
                     <div class="filter">
                         <label for="analytics-type-filter">Type:</label>
                         <select id="analytics-type-filter" class="analytics-filter-input">
@@ -897,10 +908,23 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 $('#analytics-end-date').val(formatDate(today));
                 $('#analytics-start-date').val(formatDate(beginningOfTime));
                 $('#analytics-department-filter').val('');
+                $('#analytics-sub-section-filter').val('');
+                $('#sub-section-filter-container').hide();
                 $('#analytics-type-filter').val('Supply'); // Default to Supply
                 
                 loadAnalyticsData();
             }
+            
+            // Show/hide sub-section filter based on department selection
+            $('#analytics-department-filter').on('change', function() {
+                var department = $(this).val();
+                if (department === 'NURSING') {
+                    $('#sub-section-filter-container').show();
+                } else {
+                    $('#sub-section-filter-container').hide();
+                    $('#analytics-sub-section-filter').val('');
+                }
+            });
             
             // Format date to YYYY-MM-DD
             function formatDate(date) {
@@ -925,12 +949,14 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 var startDate = $('#analytics-start-date').val();
                 var endDate = $('#analytics-end-date').val();
                 var department = $('#analytics-department-filter').val();
+                var subSection = $('#analytics-sub-section-filter').val();
                 var type = $('#analytics-type-filter').val();
                 
                 console.log('=== ANALYTICS DEBUG ===');
                 console.log('Start Date:', startDate);
                 console.log('End Date:', endDate);
                 console.log('Department:', department);
+                console.log('Sub Section:', subSection);
                 console.log('Type:', type);
                 console.log('AJAX URL:', '<?php echo admin_url('admin-ajax.php'); ?>');
                 
@@ -950,6 +976,7 @@ $supplies_count = wp_count_posts('supplies')->publish;
                     start_date: startDate,
                     end_date: endDate,
                     department: department,
+                    sub_section: subSection,
                     type: type,
                     nonce: '<?php echo wp_create_nonce('supplies_analytics_nonce'); ?>'
                 };
@@ -993,7 +1020,13 @@ $supplies_count = wp_count_posts('supplies')->publish;
             // Render analytics data and charts
             function renderAnalytics(data) {
                 var department = $('#analytics-department-filter').val();
+                var subSection = $('#analytics-sub-section-filter').val();
                 var deptContext = department ? department : 'All Departments';
+                
+                // Add sub-section to context if NURSING and sub-section selected
+                if (department === 'NURSING' && subSection) {
+                    deptContext += ' - ' + subSection;
+                }
                 
                 // Update summary cards
                 $('#total-actual-value').text('₱' + formatMoney(data.summary.total_actual_value));
@@ -1005,9 +1038,10 @@ $supplies_count = wp_count_posts('supplies')->publish;
                 $('#release-context').text(deptContext);
                 
                 // Update chart titles
-                $('#actual-chart-title').text('Actual Supplies Value Over Time' + (department ? ' (' + department + ')' : ' (All Departments)'));
-                $('#release-chart-title').text('Release Supplies Value Over Time' + (department ? ' (' + department + ')' : ' (All Departments)'));
-                $('#comparison-chart-title').text('Combined Comparison' + (department ? ' (' + department + ')' : ' (All Departments)'));
+                var titleSuffix = department ? ' (' + deptContext + ')' : ' (All Departments)';
+                $('#actual-chart-title').text('Actual Supplies Value Over Time' + titleSuffix);
+                $('#release-chart-title').text('Release Supplies Value Over Time' + titleSuffix);
+                $('#comparison-chart-title').text('Combined Comparison' + titleSuffix);
                 
                 // Render charts
                 renderActualSuppliesChart(data.actual_supplies);
