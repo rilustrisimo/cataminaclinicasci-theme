@@ -901,16 +901,24 @@ $supplies_count = wp_count_posts('supplies')->publish;
             // Show/hide sub-section filter based on department selection
             function toggleSubSectionFilter() {
                 var department = $('#analytics-department-filter').val();
+                console.log('toggleSubSectionFilter called, department:', department);
+                console.log('Sub-section container exists:', $('#sub-section-filter-container').length);
+                
                 if (department === 'NURSING') {
-                    $('#sub-section-filter-container').show();
+                    console.log('Showing sub-section filter');
+                    $('#sub-section-filter-container').css('display', 'block').show();
                 } else {
-                    $('#sub-section-filter-container').hide();
+                    console.log('Hiding sub-section filter');
+                    $('#sub-section-filter-container').css('display', 'none').hide();
                     $('#analytics-sub-section-filter').val('');
                 }
+                
+                console.log('Sub-section container display after toggle:', $('#sub-section-filter-container').css('display'));
             }
             
             // Attach event handler for department change
             $('#analytics-department-filter').on('change', function() {
+                console.log('Department changed to:', $(this).val());
                 toggleSubSectionFilter();
             });
             
