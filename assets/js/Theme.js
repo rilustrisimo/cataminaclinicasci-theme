@@ -37,7 +37,6 @@ var Theme = {
         this.filterShow($);
         this.socReportGenerate($);
         this.reconReportGenerate($);
-        this.processSOCsupplies($);
         this.checkDeptSelect($);
 
         $( '[data-toggle="tooltip"]' ).tooltip();
@@ -686,18 +685,58 @@ var Theme = {
     },
 
     socReportGenerate: function($){
-        if($('.soc-report').length > 0){
-            Theme.initialReportDateFitler($, $('.soc-report').attr('dfrom'), $('.soc-report').attr('dto'));
+        if($('#report__result').length > 0 && $('#filter-data').attr('data-report') == 'soc_report'){
+            var dfrom = $('#report__result').attr('dfrom');
+            var dto = $('#report__result').attr('dto');
+            Theme.loadSOCReportFull($, dfrom, dto);
         }
     },
 
     processSOCsupplies: function($){
+        // Legacy batch processing - kept for reference but no longer called for SOC
         if($('.supplies-json').length > 0){
             var supjson = $('.supplies-json').text();
             supjson = JSON.parse(supjson);
-            
+
             Theme.processBatch($, supjson);
         }
+    },
+
+    /**
+     * Load SOC report in a single AJAX call (replaces batch processing).
+     * Supply calculations are done server-side via bulk SQL.
+     */
+    loadSOCReportFull: function($, fromdate, todate){
+        $.ajax({
+            url: $('#ajax-url').val(),
+            type: 'POST',
+            dataType: 'JSON',
+            data: {
+                action: 'load_soc_report_full',
+                fromdate: fromdate,
+                todate: todate
+            },
+            beforeSend: function(){
+                $('.report__result').addClass('overlay');
+                $('#progress-container').show();
+                $("#progress").css("width", "100%").addClass('soc-loading-bar');
+                $("#result").text('Generating report...');
+            },
+            success: function(resp){
+                if(resp.success){
+                    $('.report__result').html(resp.data);
+                    $('.filter-show__item input').prop('checked', true);
+                }
+                $('.report__result').removeClass('overlay');
+                $("#progress").removeClass('soc-loading-bar').css("width", "100%").text("100%");
+                $("#result").text('');
+            },
+            error: function(xhr, status, error){
+                console.error('SOC Report error:', error);
+                $('.report__result').removeClass('overlay');
+                $("#result").text('An error occurred while generating the report.');
+            }
+        });
     },
 
     mergeAndSumJSON: function(json1, json2) {
@@ -1509,7 +1548,7 @@ var Theme = {
         $('#filter-data a.btn').click(function(e){
             e.preventDefault();
             Theme.socsupplies = {};
-            
+
             var from = $('.date-from').val();
             var to = $('.date-to').val();
             var d = false;
@@ -1517,6 +1556,12 @@ var Theme = {
             var exp = 'all';
 
             if(from.length == 0 || to.length == 0){
+                return false;
+            }
+
+            // SOC report uses optimized single-call endpoint
+            if($('#filter-data').attr('data-report') == 'soc_report'){
+                Theme.loadSOCReportFull($, from, to);
                 return false;
             }
 
@@ -1547,7 +1592,7 @@ var Theme = {
                     expensecat: exp,
                     suppdata: Theme.socsupplies
                     },
-                beforeSend : function()   {           
+                beforeSend : function()   {
                    $('.report__result').addClass('overlay');
                 },
                 success: function (resp) {
@@ -1556,20 +1601,16 @@ var Theme = {
                             $('.report__result').html(resp.data);
                             $('.filter-show__item input').prop('checked', true);
 
-                            Theme.processSOCsupplies($); //soc
-
                             //recon
                             if($('.supplies-json-recon').length > 0){
                                 var supjson = $('.supplies-json-recon').text();
                                 supjson = JSON.parse(supjson);
-                                
+
                                 Theme.reconBatchProcess($, supjson);
                             }
                        }
 
-                       if($('.supplies-json').length == 0){
-                        $('.report__result').removeClass('overlay');
-                       }
+                       $('.report__result').removeClass('overlay');
 
                         Theme.actualCountCalculator($);
                         Theme.sectionFilter($);

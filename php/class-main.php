@@ -357,6 +357,7 @@ class Theme {
         add_action( 'init', array($this, 'createPostTypes')); 
         add_action( 'template_redirect', array($this, 'redirect_to_homepage'));
         add_action('acf/save_post', array($this, 'my_save_post'));
+        add_action('save_post', array($this, 'invalidate_soc_cache'), 20);
         add_action( 'wp_ajax_edit_item', array($this, 'edit_item') );
         add_action( 'wp_ajax_nopriv_edit_item', array($this, 'edit_item') ); 
         add_action( 'wp_ajax_load_items_per_search', array($this, 'load_items_per_search') );
@@ -368,7 +369,9 @@ class Theme {
         add_action( 'wp_ajax_load_goods_report', array($this, 'load_goods_report') );
         add_action( 'wp_ajax_nopriv_load_goods_report', array($this, 'load_goods_report') ); 
         add_action( 'wp_ajax_load_soc_report', array($this, 'load_soc_report') );
-        add_action( 'wp_ajax_nopriv_load_soc_report', array($this, 'load_soc_report') ); 
+        add_action( 'wp_ajax_nopriv_load_soc_report', array($this, 'load_soc_report') );
+        add_action( 'wp_ajax_load_soc_report_full', array($this, 'load_soc_report_full') );
+        add_action( 'wp_ajax_nopriv_load_soc_report_full', array($this, 'load_soc_report_full') );
         add_action( 'wp_ajax_load_financial_report', array($this, 'load_financial_report') );
         add_action( 'wp_ajax_nopriv_load_financial_report', array($this, 'load_financial_report') ); 
         add_action( 'wp_ajax_load_release_data', array($this, 'load_release_data') );
@@ -876,6 +879,196 @@ class Theme {
 
         wp_send_json_success($this->getSOCReport($from, $to, $supd));
 
+    }
+
+    public function load_soc_report_full() {
+        $from = date('Y-m-d', strtotime($_POST['fromdate']));
+        $to = date('Y-m-d', strtotime($_POST['todate']));
+        $cache_key = 'soc_report_' . md5($from . $to);
+
+        $cached = get_transient($cache_key);
+        if($cached !== false) {
+            wp_send_json_success($cached);
+            return;
+        }
+
+        $suppdept = $this->getBulkSupplyTotals($to);
+        $html = $this->getSOCReport($from, $to, $suppdept);
+
+        set_transient($cache_key, $html, 900); // 15 min TTL
+        wp_send_json_success($html);
+    }
+
+    /**
+     * Invalidate SOC report transient cache when relevant post types are saved.
+     */
+    public function invalidate_soc_cache($post_id) {
+        if(wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) {
+            return;
+        }
+
+        $invalidate_types = array(
+            'supplies', 'actualsupplies', 'releasesupplies', 'cashcheques',
+            'liabilities', 'capitals', 'retainedearnings', 'beforeincometax',
+            'declareddividends', 'unrecordedcredits', 'unrecordeddebits',
+            'incomeexpenses', 'depreciationitems'
+        );
+
+        if(in_array(get_post_type($post_id), $invalidate_types)) {
+            global $wpdb;
+            $wpdb->query(
+                "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_soc_report_%' OR option_name LIKE '_transient_timeout_soc_report_%'"
+            );
+        }
+    }
+
+    /**
+     * Bulk calculate supply totals using direct SQL instead of individual WP_Query calls.
+     * Produces the same $suppdept structure as the JS batch_process_supplies accumulation:
+     * $suppdept[$deptslug][$typeslug][$suppid] = array(price * remaining_qty, expired_qty * price)
+     */
+    public function getBulkSupplyTotals($to) {
+        global $wpdb;
+
+        $formatted_to = date('Y-m-d', strtotime($to));
+        $suppdept = array();
+
+        // Date normalization: DB has mixed formats — YYYYMMDD, mm/dd/yyyy, Y-m-d.
+        // We use CASE + STR_TO_DATE to normalize all formats into a proper DATE for comparison.
+        // IMPORTANT: %% is used because $wpdb->prepare() treats % as format specifiers.
+        // %% gets converted to literal % in the final SQL.
+        $date_norm = "CASE
+            WHEN pm_date.meta_value REGEXP '^[0-9]{8}$' THEN STR_TO_DATE(pm_date.meta_value, '%%Y%%m%%d')
+            WHEN pm_date.meta_value REGEXP '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$' THEN STR_TO_DATE(pm_date.meta_value, '%%m/%%d/%%Y')
+            ELSE CAST(pm_date.meta_value AS DATE)
+        END";
+
+        $exp_norm = "CASE
+            WHEN pm_exp.meta_value REGEXP '^[0-9]{8}$' THEN STR_TO_DATE(pm_exp.meta_value, '%%Y%%m%%d')
+            WHEN pm_exp.meta_value REGEXP '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$' THEN STR_TO_DATE(pm_exp.meta_value, '%%m/%%d/%%Y')
+            ELSE CAST(pm_exp.meta_value AS DATE)
+        END";
+
+        // Query 1: Get all supply metadata (price, department, type)
+        $supplies = $wpdb->get_results($wpdb->prepare(
+            "SELECT p.ID,
+                MAX(CASE WHEN pm.meta_key='price_per_unit' THEN pm.meta_value END) as price_per_unit,
+                MAX(CASE WHEN pm.meta_key='department' THEN pm.meta_value END) as department,
+                MAX(CASE WHEN pm.meta_key='type' THEN pm.meta_value END) as type
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND pm.meta_key IN ('price_per_unit','department','type')
+            GROUP BY p.ID
+            HAVING type NOT IN ('Equipment','Adjustment')",
+            'supplies', 'publish'
+        ));
+
+        if(empty($supplies)) {
+            return $suppdept;
+        }
+
+        // Build lookup arrays
+        $supply_meta = array();
+        foreach($supplies as $s) {
+            $supply_meta[$s->ID] = array(
+                'price' => (float)$s->price_per_unit,
+                'department' => $s->department,
+                'type' => $s->type
+            );
+        }
+
+        // Query 2: Get actual supply quantities (aggregated, excluding released items)
+        $actual_results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as total_qty
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
+            LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} <= %s
+                AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
+            GROUP BY pm_name.meta_value",
+            'actualsupplies', 'publish', $formatted_to
+        ));
+
+        $actual_qty = array();
+        foreach($actual_results as $r) {
+            $actual_qty[$r->supply_id] = (float)$r->total_qty;
+        }
+
+        // Query 3: Get release quantities (aggregated)
+        $release_results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as total_released
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'release_date'
+            INNER JOIN {$wpdb->postmeta} pm_conf ON p.ID = pm_conf.post_id AND pm_conf.meta_key = 'confirmed' AND pm_conf.meta_value = '1'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} <= %s
+            GROUP BY pm_name.meta_value",
+            'releasesupplies', 'publish', $formatted_to
+        ));
+
+        $release_qty = array();
+        foreach($release_results as $r) {
+            $release_qty[$r->supply_id] = (float)$r->total_released;
+        }
+
+        // Query 4: Get expired quantities (aggregated)
+        $expired_results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as expired_qty
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_exp ON p.ID = pm_exp.post_id AND pm_exp.meta_key = 'expiry_date'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
+            LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} <= %s
+                AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
+                AND pm_exp.meta_value != ''
+                AND {$exp_norm} <= %s
+            GROUP BY pm_name.meta_value",
+            'actualsupplies', 'publish', $formatted_to, $formatted_to
+        ));
+
+        $expired_qty = array();
+        foreach($expired_results as $r) {
+            $expired_qty[$r->supply_id] = (float)$r->expired_qty;
+        }
+
+        // Build the $suppdept array with the same structure as batch_process_supplies() output
+        foreach($supply_meta as $suppid => $meta) {
+            $price = $meta['price'];
+            $dept = $meta['department'];
+            $type = $meta['type'];
+            $deptslug = strtolower(str_replace(" ", "_", $dept));
+            $stype = strtolower(str_replace(" ", "_", $type));
+
+            $actual = isset($actual_qty[$suppid]) ? $actual_qty[$suppid] : 0;
+            $released = isset($release_qty[$suppid]) ? $release_qty[$suppid] : 0;
+            $remaining = $actual - $released;
+
+            $expired = isset($expired_qty[$suppid]) ? $expired_qty[$suppid] : 0;
+            // Expired remaining = expired - released (can't be negative)
+            $expired_remaining = $expired - $released;
+            if($expired_remaining < 0) {
+                $expired_remaining = 0;
+            }
+
+            $suppdept[$deptslug][$stype][$suppid] = array(
+                ($price * $remaining),
+                ($expired_remaining * $price)
+            );
+        }
+
+        return $suppdept;
     }
 
     public function load_financial_report() {
@@ -1967,6 +2160,22 @@ class Theme {
         $totalcandb = 0;
         $totalexclu = 0;
 
+        // Prime meta cache for all cashcheques posts (Level 1)
+        $cc_post_ids = wp_list_pluck($query->posts, 'ID');
+        if(!empty($cc_post_ids)) {
+            update_meta_cache('post', $cc_post_ids);
+        }
+
+        // Collect related bank post IDs and prime their meta cache (Level 2)
+        $bank_ids = array();
+        foreach($query->posts as $p) {
+            $bid = get_post_meta($p->ID, 'name_of_bank', true);
+            if($bid) $bank_ids[] = $bid;
+        }
+        if(!empty($bank_ids)) {
+            update_meta_cache('post', array_unique($bank_ids));
+        }
+
         foreach($query->posts as $k => $p):
             $bank = get_field('name_of_bank', $p->ID);
 
@@ -2101,6 +2310,12 @@ class Theme {
 
         $query = $this->createQuery('depreciationitems');
 
+        // Prime meta cache for depreciation items
+        $dep_ids = wp_list_pluck($query->posts, 'ID');
+        if(!empty($dep_ids)) {
+            update_meta_cache('post', $dep_ids);
+        }
+
         foreach($query->posts as $deps):
             $depitems[$deps->ID] = array(
                 'description' => get_field('item_name', $deps->ID),
@@ -2167,6 +2382,12 @@ class Theme {
         $paysupptot = 0;
         $payaccttot = 0;
 
+        // Prime meta cache for liabilities
+        $liab_ids = wp_list_pluck($query->posts, 'ID');
+        if(!empty($liab_ids)) {
+            update_meta_cache('post', $liab_ids);
+        }
+
         foreach($query->posts as $liab):
             if(get_field('paid',$liab->ID) == "NOT PAID"):
                 $lslug = preg_replace('/[^A-Za-z0-9\-]/', '_', str_replace(" ", "_", strtolower(get_field('category',$liab->ID))));
@@ -2201,6 +2422,22 @@ class Theme {
         $query = $this->createQuery('capitals');
         $captot = 0;
 
+        // Prime meta cache for capitals (Level 1)
+        $cap_ids = wp_list_pluck($query->posts, 'ID');
+        if(!empty($cap_ids)) {
+            update_meta_cache('post', $cap_ids);
+        }
+
+        // Collect related investor post IDs and prime their meta cache (Level 2)
+        $investor_ids = array();
+        foreach($query->posts as $cap) {
+            $iid = get_post_meta($cap->ID, 'investor_name', true);
+            if($iid) $investor_ids[] = $iid;
+        }
+        if(!empty($investor_ids)) {
+            update_meta_cache('post', array_unique($investor_ids));
+        }
+
         $res .= "<table>";
         $res .= "<tbody>";
 
@@ -2234,6 +2471,10 @@ class Theme {
         $query = $this->createQuery('retainedearnings', $meta_query, -1, 'date', 'ASC');
         $rettot = 0;
 
+        // Prime meta cache for retained earnings
+        $re_ids = wp_list_pluck($query->posts, 'ID');
+        if(!empty($re_ids)) update_meta_cache('post', $re_ids);
+
         foreach($query->posts as $ret):
             $rettot = (float)get_field('retained_earnings', $ret->ID);
         endforeach;
@@ -2245,12 +2486,16 @@ class Theme {
                 'key'     => 'date_added',
                 'value'   =>  array(date('Y-m-d', strtotime($from)), date('Y-m-d', strtotime($to))),
                 'type'      =>  'date',
-                'compare' =>  'between'  
+                'compare' =>  'between'
             )
         );
 
         $query = $this->createQuery('beforeincometax', $meta_query, -1, 'date', 'ASC');
         $beforetax = 0;
+
+        // Prime meta cache for before income tax
+        $bt_ids = wp_list_pluck($query->posts, 'ID');
+        if(!empty($bt_ids)) update_meta_cache('post', $bt_ids);
 
         foreach($query->posts as $tax):
             $beforetax += (float)get_field('pre-tax_income_amount', $tax->ID);
@@ -2267,6 +2512,9 @@ class Theme {
         $query = $this->createQuery('declareddividends', $meta_query, -1, 'date', 'ASC');
         $dectot = 0;
 
+        $dd_ids = wp_list_pluck($query->posts, 'ID');
+        if(!empty($dd_ids)) update_meta_cache('post', $dd_ids);
+
         foreach($query->posts as $dec):
             $dectot = (float)get_field('declared_dividends', $dec->ID);
         endforeach;
@@ -2279,6 +2527,9 @@ class Theme {
         $query = $this->createQuery('unrecordedcredits', $meta_query, -1, 'date', 'ASC');
         $uncredits = 0;
 
+        $uc_ids = wp_list_pluck($query->posts, 'ID');
+        if(!empty($uc_ids)) update_meta_cache('post', $uc_ids);
+
         foreach($query->posts as $cre):
             $uncredits += (float)get_field('credit_amount', $cre->ID);
         endforeach;
@@ -2287,6 +2538,9 @@ class Theme {
 
         $query = $this->createQuery('unrecordeddebits', $meta_query, -1, 'date', 'ASC');
         $undebits = 0;
+
+        $ud_ids = wp_list_pluck($query->posts, 'ID');
+        if(!empty($ud_ids)) update_meta_cache('post', $ud_ids);
 
         foreach($query->posts as $deb):
             $undebits += (float)get_field('debit_amount', $deb->ID);
@@ -2710,6 +2964,10 @@ class Theme {
         $incs = array();
         $exps = array();
 
+        // Prime meta cache for income/expenses
+        $ie_ids = wp_list_pluck($query->posts, 'ID');
+        if(!empty($ie_ids)) update_meta_cache('post', $ie_ids);
+
         foreach($query->posts as $p):
             $type = strtolower(get_field('type',$p->ID));
             $slug = preg_replace('/[^A-Za-z0-9\-]/', '_', str_replace(" ", "_", $type));
@@ -2752,6 +3010,10 @@ class Theme {
 
         $query = $this->createQuery('depreciationitems');
 
+        // Prime meta cache for depreciation items (in getIncomeExpensesTotalNet)
+        $di2_ids = wp_list_pluck($query->posts, 'ID');
+        if(!empty($di2_ids)) update_meta_cache('post', $di2_ids);
+
         foreach($query->posts as $deps):
             $depitems[$deps->ID] = array(
                 'description' => get_field('item_name', $deps->ID),
@@ -2760,7 +3022,7 @@ class Theme {
                 'type' => get_field('type', $deps->ID)
             );
         endforeach;
-        
+
         ksort($incs);
 
         $totinc = 0;
