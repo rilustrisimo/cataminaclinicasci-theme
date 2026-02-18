@@ -13,7 +13,6 @@
  * @since 1.0.0
  */
 
- $theme = new Theme();
  $dept = false;
 get_header();
 ?>
@@ -106,6 +105,7 @@ if ( have_posts() ) : ?>
                     <div id="result"></div>
                 </div>
                 <div class="report__result init-recon-report" dfrom="<?php echo date('01-m-Y'); ?>" dto="<?php echo date('d-m-Y', strtotime('last day of this month'));?>" ddept="<?php echo $dept; ?>" id="report__result">
+                <div class="soc-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading Reconciliation Report...</div>
                 </div>
 			</main>
 		</div>

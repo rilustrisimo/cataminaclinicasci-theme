@@ -707,6 +707,20 @@ var Theme = {
      * Supply calculations are done server-side via bulk SQL.
      */
     loadSOCReportFull: function($, fromdate, todate){
+        var progressTimer = null;
+        var currentProgress = 0;
+
+        function simulateProgress(){
+            progressTimer = setInterval(function(){
+                if(currentProgress < 90){
+                    currentProgress += Math.random() * 8 + 2;
+                    if(currentProgress > 90) currentProgress = 90;
+                    var pct = Math.round(currentProgress);
+                    $("#progress").css("width", pct + "%").text(pct + "%");
+                }
+            }, 800);
+        }
+
         $.ajax({
             url: $('#ajax-url').val(),
             type: 'POST',
@@ -719,10 +733,13 @@ var Theme = {
             beforeSend: function(){
                 $('.report__result').addClass('overlay');
                 $('#progress-container').show();
-                $("#progress").css("width", "100%").addClass('soc-loading-bar');
+                currentProgress = 5;
+                $("#progress").removeClass('soc-loading-bar').css("width", "5%").text("5%").addClass('soc-loading-bar');
                 $("#result").text('Generating report...');
+                simulateProgress();
             },
             success: function(resp){
+                clearInterval(progressTimer);
                 if(resp.success){
                     $('.report__result').html(resp.data);
                     $('.filter-show__item input').prop('checked', true);
@@ -732,8 +749,10 @@ var Theme = {
                 $("#result").text('');
             },
             error: function(xhr, status, error){
+                clearInterval(progressTimer);
                 console.error('SOC Report error:', error);
                 $('.report__result').removeClass('overlay');
+                $("#progress").removeClass('soc-loading-bar').css("width", "100%").text("Error");
                 $("#result").text('An error occurred while generating the report.');
             }
         });
@@ -908,14 +927,81 @@ var Theme = {
 
     reconReportGenerate: function($){
         if($('.init-recon-report').length > 0){
-            var aid = false;
+            var dfrom = $('.init-recon-report').attr('dfrom');
+            var dto = $('.init-recon-report').attr('dto');
+            var dept = $('.init-recon-report').attr('ddept') || false;
 
-            if($('#author-id').length > 0){
-                aid = $('#author-id').val();
+            if($('.recon-dept').length > 0){
+                dept = $('.recon-dept').val();
             }
 
-            Theme.initialReportDateFitler($, $('.init-recon-report').attr('dfrom'), $('.init-recon-report').attr('dto'), aid);
+            Theme.loadReconReportFull($, dfrom, dto, dept);
         }
+    },
+
+    loadReconReportFull: function($, fromdate, todate, dept){
+        var progressTimer = null;
+        var currentProgress = 0;
+
+        function simulateProgress(){
+            progressTimer = setInterval(function(){
+                if(currentProgress < 90){
+                    currentProgress += Math.random() * 8 + 2; // increment 2-10%
+                    if(currentProgress > 90) currentProgress = 90;
+                    var pct = Math.round(currentProgress);
+                    $("#progress").css("width", pct + "%").text(pct + "%");
+                }
+            }, 800);
+        }
+
+        $.ajax({
+            url: $('#ajax-url').val(),
+            type: 'POST',
+            dataType: 'JSON',
+            data: {
+                action: 'load_recon_report_full',
+                fromdate: fromdate,
+                todate: todate,
+                dept: dept
+            },
+            beforeSend: function(){
+                $('.report__result').addClass('overlay');
+                $('#progress-container').show();
+                currentProgress = 5;
+                $("#progress").removeClass('soc-loading-bar').css("width", "5%").text("5%").addClass('soc-loading-bar');
+                $("#result").text('Generating reconciliation report...');
+                simulateProgress();
+            },
+            success: function(resp){
+                clearInterval(progressTimer);
+                if(resp.success){
+                    $('.report__result').html(resp.data);
+                    $('.filter-show__item input').prop('checked', true);
+                }
+                $('.report__result').removeClass('overlay');
+                $("#progress").removeClass('soc-loading-bar').css("width", "100%").text("100%");
+                $("#result").text('');
+
+                // Initialize report UI components
+                Theme.actualCountCalculator($);
+                Theme.sectionFilter($);
+                Theme.reconTotal($);
+                Theme.recalculateReconTotal($);
+                Theme.sortRecon($);
+                setTimeout(function(){
+                    Theme.checkExpired($);
+                    Theme.expirationFilter($);
+                    Theme.reconTotal($);
+                }, 100);
+            },
+            error: function(xhr, status, error){
+                clearInterval(progressTimer);
+                console.error('Recon Report error:', error);
+                $('.report__result').removeClass('overlay');
+                $("#progress").removeClass('soc-loading-bar').css("width", "100%").text("Error");
+                $("#result").text('An error occurred generating the report.');
+            }
+        });
     },
 
     initialReportDateFitler: function($, dfrom, dto, aid = false){
@@ -1562,6 +1648,16 @@ var Theme = {
             // SOC report uses optimized single-call endpoint
             if($('#filter-data').attr('data-report') == 'soc_report'){
                 Theme.loadSOCReportFull($, from, to);
+                return false;
+            }
+
+            // Reconciliation report uses optimized single-call endpoint
+            if($('#filter-data').attr('data-report') == 'reconciliation_report'){
+                var dept = false;
+                if($('.recon-dept').length > 0){
+                    dept = $('.recon-dept').val();
+                }
+                Theme.loadReconReportFull($, from, to, dept);
                 return false;
             }
 

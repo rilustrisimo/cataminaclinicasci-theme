@@ -73,6 +73,18 @@
   100% { transform: rotate(360deg); }
 }
 
+/* Progress bar shimmer animation for single-call report loading */
+#progress.soc-loading-bar {
+  background: linear-gradient(90deg, #2e7d32, #4caf50, #2e7d32);
+  background-size: 200% 100%;
+  animation: loading-shimmer 1.5s ease infinite;
+}
+
+@keyframes loading-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* When custom-post__list has overlay class */
 .custom-post__list.overlay {
   position: relative;

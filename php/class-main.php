@@ -363,7 +363,9 @@ class Theme {
         add_action( 'wp_ajax_load_items_per_search', array($this, 'load_items_per_search') );
         add_action( 'wp_ajax_nopriv_load_items_per_search', array($this, 'load_items_per_search') ); 
         add_action( 'wp_ajax_load_reconciliation_report', array($this, 'load_reconciliation_report') );
-        add_action( 'wp_ajax_nopriv_load_reconciliation_report', array($this, 'load_reconciliation_report') ); 
+        add_action( 'wp_ajax_nopriv_load_reconciliation_report', array($this, 'load_reconciliation_report') );
+        add_action( 'wp_ajax_load_recon_report_full', array($this, 'load_recon_report_full') );
+        add_action( 'wp_ajax_nopriv_load_recon_report_full', array($this, 'load_recon_report_full') ); 
         add_action( 'wp_ajax_load_incomeexpense_report', array($this, 'load_incomeexpense_report') );
         add_action( 'wp_ajax_nopriv_load_incomeexpense_report', array($this, 'load_incomeexpense_report') ); 
         add_action( 'wp_ajax_load_goods_report', array($this, 'load_goods_report') );
@@ -1069,6 +1071,479 @@ class Theme {
         }
 
         return $suppdept;
+    }
+
+    /**
+     * Optimized single-call endpoint for reconciliation report.
+     * Replaces the 3-stage flow (load supplies → batch process → render) with one AJAX call.
+     */
+    public function load_recon_report_full() {
+        $from = sanitize_text_field($_POST['fromdate']);
+        $to = sanitize_text_field($_POST['todate']);
+        $dept = (isset($_POST['dept']) && $_POST['dept'] !== 'false' && $_POST['dept'] !== false) ? sanitize_text_field($_POST['dept']) : false;
+
+        // Step 1: Bulk fetch all supply data via SQL
+        $recondata = $this->getBulkReconData($from, $to, $dept);
+
+        // Step 2: Render the HTML report directly
+        $html = $this->renderReconReport($from, $to, $recondata);
+
+        wp_send_json_success($html);
+    }
+
+    /**
+     * Bulk fetch all reconciliation data using direct SQL queries.
+     * Replaces batch_process_supplies_recon() which ran getQtyOfSupplyBetweenDates() per supply.
+     */
+    public function getBulkReconData($from, $to, $dept = false) {
+        global $wpdb;
+
+        $formatted_from = date('Y-m-d', strtotime($from));
+        $formatted_to = date('Y-m-d', strtotime($to));
+
+        // Date normalization for date_added (mixed formats: YYYYMMDD, mm/dd/yyyy, Y-m-d)
+        $date_norm = "CASE
+            WHEN pm_date.meta_value REGEXP '^[0-9]{8}$' THEN STR_TO_DATE(pm_date.meta_value, '%%Y%%m%%d')
+            WHEN pm_date.meta_value REGEXP '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$' THEN STR_TO_DATE(pm_date.meta_value, '%%m/%%d/%%Y')
+            ELSE CAST(pm_date.meta_value AS DATE)
+        END";
+
+        // Date normalization for expiry_date
+        $exp_norm = "CASE
+            WHEN pm_exp.meta_value REGEXP '^[0-9]{8}$' THEN STR_TO_DATE(pm_exp.meta_value, '%%Y%%m%%d')
+            WHEN pm_exp.meta_value REGEXP '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$' THEN STR_TO_DATE(pm_exp.meta_value, '%%m/%%d/%%Y')
+            ELSE CAST(pm_exp.meta_value AS DATE)
+        END";
+
+        // Query 1: Supply master data (price, department, type, section, sub_section)
+        $dept_filter = '';
+        $dept_having = "HAVING type != 'Adjustment'";
+        if ($dept !== false) {
+            $dept_filter = $wpdb->prepare(" AND EXISTS (
+                SELECT 1 FROM {$wpdb->postmeta} pmd
+                WHERE pmd.post_id = p.ID AND pmd.meta_key = 'department' AND pmd.meta_value = %s
+            )", $dept);
+        }
+
+        $supplies = $wpdb->get_results($wpdb->prepare(
+            "SELECT p.ID, p.post_title,
+                MAX(CASE WHEN pm.meta_key='price_per_unit' THEN pm.meta_value END) as price_per_unit,
+                MAX(CASE WHEN pm.meta_key='department' THEN pm.meta_value END) as department,
+                MAX(CASE WHEN pm.meta_key='type' THEN pm.meta_value END) as type,
+                MAX(CASE WHEN pm.meta_key='section' THEN pm.meta_value END) as section,
+                MAX(CASE WHEN pm.meta_key='sub_section' THEN pm.meta_value END) as sub_section
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND pm.meta_key IN ('price_per_unit','department','type','section','sub_section')
+                {$dept_filter}
+            GROUP BY p.ID
+            {$dept_having}",
+            'supplies', 'publish'
+        ));
+
+        if (empty($supplies)) {
+            return array('overallupplies' => array(), 'datesupplies' => array(), 'relsupplies' => array());
+        }
+
+        // Build supply metadata lookup
+        $supply_meta = array();
+        foreach ($supplies as $s) {
+            $supply_meta[$s->ID] = array(
+                'title' => $s->post_title,
+                'price' => (float)$s->price_per_unit,
+                'department' => $s->department,
+                'type' => $s->type,
+                'section' => $s->section ?: '',
+                'sub_section' => $s->sub_section ?: ''
+            );
+        }
+
+        // Query 2: Actual quantities BEFORE or ON from_date (for Beginning Inventory)
+        $actual_before = array();
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as total_qty
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
+            LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} <= %s
+                AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
+            GROUP BY pm_name.meta_value",
+            'actualsupplies', 'publish', $formatted_from
+        ));
+        foreach ($results as $r) {
+            $actual_before[$r->supply_id] = (float)$r->total_qty;
+        }
+
+        // Query 3: Actual quantities BETWEEN from and to (Purchases)
+        $actual_between = array();
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as purchase_qty
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
+            LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} > %s
+                AND {$date_norm} <= %s
+                AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
+            GROUP BY pm_name.meta_value",
+            'actualsupplies', 'publish', $formatted_from, $formatted_to
+        ));
+        foreach ($results as $r) {
+            $actual_between[$r->supply_id] = (float)$r->purchase_qty;
+        }
+
+        // Query 4: Release quantities BEFORE or ON from_date (for Beg Inv)
+        $released_before = array();
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as released_qty
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'release_date'
+            INNER JOIN {$wpdb->postmeta} pm_conf ON p.ID = pm_conf.post_id AND pm_conf.meta_key = 'confirmed' AND pm_conf.meta_value = '1'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} <= %s
+            GROUP BY pm_name.meta_value",
+            'releasesupplies', 'publish', $formatted_from
+        ));
+        foreach ($results as $r) {
+            $released_before[$r->supply_id] = (float)$r->released_qty;
+        }
+
+        // Query 5: Release quantities BETWEEN from and to (Consumption)
+        $released_between = array();
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as consumption_qty
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'release_date'
+            INNER JOIN {$wpdb->postmeta} pm_conf ON p.ID = pm_conf.post_id AND pm_conf.meta_key = 'confirmed' AND pm_conf.meta_value = '1'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} > %s
+                AND {$date_norm} <= %s
+            GROUP BY pm_name.meta_value",
+            'releasesupplies', 'publish', $formatted_from, $formatted_to
+        ));
+        foreach ($results as $r) {
+            $released_between[$r->supply_id] = (float)$r->consumption_qty;
+        }
+
+        // Query 6: Expired quantities (actual items with expiry <= to_date, added <= to_date, not released)
+        $expired_qty = array();
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as expired_qty
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_exp ON p.ID = pm_exp.post_id AND pm_exp.meta_key = 'expiry_date'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
+            LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} <= %s
+                AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
+                AND pm_exp.meta_value != ''
+                AND {$exp_norm} <= %s
+            GROUP BY pm_name.meta_value",
+            'actualsupplies', 'publish', $formatted_to, $formatted_to
+        ));
+        foreach ($results as $r) {
+            $expired_qty[$r->supply_id] = (float)$r->expired_qty;
+        }
+
+        // Query 7: Total releases up to to_date (for expired qty adjustment)
+        $total_releases_to = array();
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as total_released
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'release_date'
+            INNER JOIN {$wpdb->postmeta} pm_conf ON p.ID = pm_conf.post_id AND pm_conf.meta_key = 'confirmed' AND pm_conf.meta_value = '1'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} <= %s
+            GROUP BY pm_name.meta_value",
+            'releasesupplies', 'publish', $formatted_to
+        ));
+        foreach ($results as $r) {
+            $total_releases_to[$r->supply_id] = (float)$r->total_released;
+        }
+
+        // Query 8: Latest lot_number and expiry_date from purchases (between from and to)
+        $purchase_display = array();
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUBSTRING_INDEX(GROUP_CONCAT(IFNULL(pm_lot.meta_value, '') ORDER BY p.ID DESC), ',', 1) as lot_number,
+                SUBSTRING_INDEX(GROUP_CONCAT(IFNULL(pm_exp.meta_value, '') ORDER BY p.ID DESC), ',', 1) as expiry_date,
+                SUBSTRING_INDEX(GROUP_CONCAT(IFNULL(pm_serial.meta_value, '') ORDER BY p.ID DESC), ',', 1) as serial,
+                SUBSTRING_INDEX(GROUP_CONCAT(IFNULL(pm_states.meta_value, '') ORDER BY p.ID DESC), ',', 1) as states_status
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
+            LEFT JOIN {$wpdb->postmeta} pm_lot ON p.ID = pm_lot.post_id AND pm_lot.meta_key = 'lot_number'
+            LEFT JOIN {$wpdb->postmeta} pm_exp ON p.ID = pm_exp.post_id AND pm_exp.meta_key = 'expiry_date'
+            LEFT JOIN {$wpdb->postmeta} pm_serial ON p.ID = pm_serial.post_id AND pm_serial.meta_key = 'serial'
+            LEFT JOIN {$wpdb->postmeta} pm_states ON p.ID = pm_states.post_id AND pm_states.meta_key = 'states__status'
+            LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
+                AND {$date_norm} > %s
+                AND {$date_norm} <= %s
+            GROUP BY pm_name.meta_value",
+            'actualsupplies', 'publish', $formatted_from, $formatted_to
+        ));
+        foreach ($results as $r) {
+            $purchase_display[$r->supply_id] = array(
+                'lot_number' => $r->lot_number ?: '',
+                'expiry_date' => $r->expiry_date ?: '',
+                'serial' => $r->serial ?: '',
+                'states_status' => $r->states_status ?: ''
+            );
+        }
+
+        // Build the 3 data structures matching batch_process_supplies_recon() output
+        $overallupplies = array();
+        $datesupplies = array();
+        $relsupplies = array();
+
+        foreach ($supply_meta as $id => $meta) {
+            $sid = (string)$id;
+            $deptslug = str_replace(" ", "_", strtolower($meta['department']));
+            $typeslug = strtolower($meta['type']);
+
+            $beg_actual = isset($actual_before[$sid]) ? $actual_before[$sid] : 0;
+            $beg_released = isset($released_before[$sid]) ? $released_before[$sid] : 0;
+            $beg_inv = $beg_actual - $beg_released;
+
+            $purchases = isset($actual_between[$sid]) ? $actual_between[$sid] : 0;
+            $consumption = isset($released_between[$sid]) ? $released_between[$sid] : 0;
+
+            $raw_expired = isset($expired_qty[$sid]) ? $expired_qty[$sid] : 0;
+            $total_rel = isset($total_releases_to[$sid]) ? $total_releases_to[$sid] : 0;
+            $expired_remaining = max(0, $raw_expired - $total_rel);
+
+            $overallupplies[$deptslug][$typeslug][$id] = array(
+                'supply_name' => $meta['title'],
+                'department' => $meta['department'],
+                'section' => $meta['section'],
+                'sub_section' => ($meta['section'] == 'Ambulatory Surgery Center (ASC)') ? $meta['sub_section'] : '',
+                'type' => $meta['type'],
+                'quantity' => $beg_inv,
+                'expired_qty' => $expired_remaining,
+                'price_per_unit' => $meta['price']
+            );
+
+            $display = isset($purchase_display[$sid]) ? $purchase_display[$sid] : array();
+            $datesupplies[$id] = array(
+                'supply_name' => $meta['title'],
+                'quantity' => $purchases,
+                'lot_number' => isset($display['lot_number']) ? $display['lot_number'] : '',
+                'expiry_date' => isset($display['expiry_date']) ? $display['expiry_date'] : '',
+                'serial' => isset($display['serial']) ? $display['serial'] : '',
+                'states__status' => isset($display['states_status']) ? $display['states_status'] : ''
+            );
+
+            $relsupplies[$id] = array(
+                'supply_name' => $meta['title'],
+                'quantity' => $consumption
+            );
+        }
+
+        return array(
+            'overallupplies' => $overallupplies,
+            'datesupplies' => $datesupplies,
+            'relsupplies' => $relsupplies
+        );
+    }
+
+    /**
+     * Render reconciliation report HTML from pre-computed data.
+     * Same output as render_recon_output() but takes data directly instead of from php://input.
+     */
+    public function renderReconReport($from, $to, $recondata) {
+        $overallupplies = $recondata['overallupplies'];
+        $datesupplies = $recondata['datesupplies'];
+        $relsupplies = $recondata['relsupplies'];
+
+        $sectionlist = array();
+        $subsectionlist = array();
+
+        $res = "";
+        $res .= "<h2>AS OF ".date('M d, Y', strtotime($from))." - ".date('M d, Y', strtotime($to))."</h2>";
+        $res .= "<h3>Reconciliation Report</h3>";
+
+        foreach ($overallupplies as $department => $types) {
+            ksort($types);
+            $res .= "<h1>".str_replace("_", " ", strtoupper($department))."</h1>";
+
+            foreach ($types as $type => $suppdetails) {
+                $typetext = strtoupper($type);
+                $res .= '<div class="report__result-header">'.$typetext.'</div>';
+                $res .= "<table>";
+
+                if (strtoupper($type) == "EQUIPMENT") {
+                    $res .= "<thead><tr>
+                        <th>EQUIPMENT</th>
+                        <th class='filter-serial'>SERIAL</th>
+                        <th class='filter-states'>STATES</th>
+                        <th class='filter-beg'>BEG INV</th>
+                        <th class='filter-purchase'>PURCHASES</th>
+                        <th class='filter-total'>TOTAL</th>
+                        <th class='filter-cons'>CONSUMPTION</th>
+                        <th>END INV</th>
+                        <th>PRICE</th>
+                        <th>ACTUAL COUNT</th>
+                        <th>VARIANCE</th>
+                        <th>TOTAL</th>
+                    </tr></thead>";
+                } else {
+                    $res .= "<thead><tr>
+                        <th>SUPPLY NAME</th>
+                        <th class='filter-lot'>LOT #</th>
+                        <th class='filter-exp'>EXP. DATE</th>
+                        <th class='filter-beg'>BEG INV</th>
+                        <th class='filter-purchase'>PURCHASES</th>
+                        <th class='filter-total'>TOTAL</th>
+                        <th class='filter-cons'>CONSUMPTION</th>
+                        <th>END INV</th>
+                        <th>PRICE</th>
+                        <th>ACTUAL COUNT</th>
+                        <th>VARIANCE</th>
+                        <th>TOTAL</th>
+                    </tr></thead>";
+                }
+
+                $expSuppExpTotal = 0;
+
+                foreach ($suppdetails as $suppid => $suppdeets) {
+                    if (!isset($suppdeets['supply_name'])) {
+                        continue;
+                    }
+
+                    $section = isset($suppdeets['section']) ? $suppdeets['section'] : '';
+                    $subsection = '';
+                    if ($section == "Ambulatory Surgery Center (ASC)") {
+                        $subsection = isset($suppdeets['sub_section']) ? $suppdeets['sub_section'] : '';
+                    }
+
+                    $price = isset($suppdeets['price_per_unit']) ? (float)$suppdeets['price_per_unit'] : 0;
+
+                    if (strtoupper($type) == "EQUIPMENT") {
+                        $purchase = (isset($datesupplies[$suppid]['quantity'])) ? (float)$datesupplies[$suppid]['quantity'] : 0;
+                        $release = (isset($relsupplies[$suppid]['quantity'])) ? (float)$relsupplies[$suppid]['quantity'] : 0;
+
+                        $serial = (!empty($datesupplies[$suppid]['serial'])) ? $datesupplies[$suppid]['serial'] : get_field('serial', $suppid);
+                        $states = (!empty($datesupplies[$suppid]['states__status'])) ? $datesupplies[$suppid]['states__status'] : get_field('states__status', $suppid);
+
+                        $beginQuantity = isset($suppdeets['quantity']) ? (float)$suppdeets['quantity'] : 0;
+                        $endInventory = (($beginQuantity + $purchase) - $release);
+                        $totalValue = $endInventory * $price;
+
+                        $res .= "<tbody data-id='".$suppid."' class='sup-container' data-name='".$suppdeets['supply_name']."'>";
+                        $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
+                        $res .= "<td>".esc_html($suppdeets['supply_name'])."</td>";
+                        $res .= "<td class='filter-serial'>".esc_html($serial)."</td>";
+                        $res .= "<td class='filter-states'>".esc_html($states)."</td>";
+                        $res .= "<td class='filter-beg'>".$beginQuantity."</td>";
+                        $res .= "<td class='filter-purchase'>".$purchase."</td>";
+                        $res .= "<td class='filter-total'>".($beginQuantity + $purchase)."</td>";
+                        $res .= "<td class='filter-cons'>".$release."</td>";
+                        $res .= "<td class='orig-count' data-val='".$endInventory."'>".$endInventory."</td>";
+                        $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
+                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".$endInventory."'></td>";
+                        $res .= "<td class='row-variance'>0</td>";
+                        $res .= "<td class='row-total'>&#8369 ".$this->convertNumber($totalValue)."</td>";
+                        $res .= "</tr>";
+                        $res .= "</tbody>";
+                    } else {
+                        $purchase = (isset($datesupplies[$suppid]['quantity'])) ? (float)$datesupplies[$suppid]['quantity'] : 0;
+                        $release = (isset($relsupplies[$suppid]['quantity'])) ? (float)$relsupplies[$suppid]['quantity'] : 0;
+
+                        $beginQuantity = isset($suppdeets['quantity']) ? (float)$suppdeets['quantity'] : 0;
+                        $endInventory = (($beginQuantity + $purchase) - $release);
+                        $suptots = $endInventory * $price;
+
+                        $lot = (!empty($datesupplies[$suppid]['lot_number'])) ? $datesupplies[$suppid]['lot_number'] : '';
+                        $expiry = (!empty($datesupplies[$suppid]['expiry_date'])) ? $datesupplies[$suppid]['expiry_date'] : $this->getLastExpDate($suppid, $beginQuantity, $to);
+
+                        $expQtyAmount = isset($suppdeets['expired_qty']) ? (float)$suppdeets['expired_qty'] : 0;
+                        $expQtyAmountHTML = ($expQtyAmount && ($expQtyAmount > 0)) ? "<span class='red-warning'>(" . $expQtyAmount . ")</span>" : "";
+                        $expNameHTMLClass = ($expQtyAmount && ($expQtyAmount > 0)) ? "red-warning" : "";
+                        $expNameHTMLClassBody = '';
+                        if ($expQtyAmount > 0) {
+                            $isCompletelyExpired = ($endInventory <= $expQtyAmount + 0.01);
+                            if ($isCompletelyExpired) {
+                                $expNameHTMLClassBody = "has-expired";
+                            }
+                            $expSuppExpTotal += ($expQtyAmount * $price);
+                        }
+
+                        $res .= "<tbody data-id='".$suppid."' class='sup-container count-supplies ".$expNameHTMLClassBody."' data-name='".$suppdeets['supply_name']."'>";
+                        $res .= "<tr data-section='".$section."' data-subsection='".$subsection."'>";
+                        $res .= "<td class='".$expNameHTMLClass."'>".$suppdeets['supply_name']."</td>";
+                        $res .= "<td class='filter-lot'>".esc_html($lot)."</td>";
+                        $res .= "<td class='filter-exp'>".esc_html($expiry)."</td>";
+                        $res .= "<td class='filter-beg'>".$beginQuantity."</td>";
+                        $res .= "<td class='filter-purchase'>".$purchase."</td>";
+                        $res .= "<td class='filter-total'>".($beginQuantity + $purchase)."</td>";
+                        $res .= "<td class='filter-cons'>".$release."</td>";
+                        $res .= "<td class='orig-count' data-val='".$endInventory."'>".$endInventory." ".$expQtyAmountHTML."</td>";
+                        $res .= "<td class='row-price' data-val='".$price."'>&#8369 ".$this->convertNumber($price)."</td>";
+                        $res .= "<td class='row-actual-count'><input type='number' class='actual-field' value='".($endInventory - $expQtyAmount)."'></td>";
+                        $res .= "<td class='row-variance'>0</td>";
+                        $res .= "<td class='row-total'>&#8369 ".$this->convertNumber($suptots)."</td>";
+                        $res .= "</tr>";
+                        $res .= "</tbody>";
+                    }
+
+                    if ($section) {
+                        $sectionlist[str_replace(" ", "-", strtolower($section))] = $section;
+                    }
+                    if ($subsection && ($subsection != '')) {
+                        $subsectionlist[str_replace(" ", "-", strtolower($subsection))] = $subsection;
+                    }
+                }
+
+                $res .= "</table>";
+            }
+        }
+
+        // Build filter dropdowns
+        $res .= "<select id='section-list'><option data-val='all'>Select Room Section</option>";
+        if (!empty($sectionlist)) {
+            $res .= "<option>" . implode("</option><option>", $sectionlist) . "</option>";
+        }
+        $res .= "</select>";
+
+        $res .= "<select id='subsection-list'><option data-val='all'>Select Sub Section</option>";
+        if (!empty($subsectionlist)) {
+            $res .= "<option>" . implode("</option><option>", $subsectionlist) . "</option>";
+        }
+        $res .= "</select>";
+
+        $res .= "<select id='expiration-list'>
+            <option data-val='all'>All Items</option>
+            <option data-val='expired'>Show Expired</option>
+            <option data-val='expiring'>Show Expiring Soon</option>
+        </select>";
+
+        $res .= "<div class='sup-total'><b>SUPPLIES TOTAL:</b> <span></span></div>";
+        $res .= "<div class='sup-loss'><b>SUPPLIES (LOSS):</b> <span data-val='".$expSuppExpTotal."'>₱ ".$this->convertNumber($expSuppExpTotal)."</span></div>";
+        $res .= "<div class='recon-total'><b>OVERALL TOTAL:</b> <span></span></div>";
+
+        return $res;
     }
 
     public function load_financial_report() {
