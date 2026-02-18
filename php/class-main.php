@@ -884,6 +884,9 @@ class Theme {
     }
 
     public function load_soc_report_full() {
+        @set_time_limit(300);
+        @ini_set('max_execution_time', '300');
+
         $from = date('Y-m-d', strtotime($_POST['fromdate']));
         $to = date('Y-m-d', strtotime($_POST['todate']));
         $cache_key = 'soc_report_' . md5($from . $to);
@@ -1078,6 +1081,10 @@ class Theme {
      * Replaces the 3-stage flow (load supplies → batch process → render) with one AJAX call.
      */
     public function load_recon_report_full() {
+        // Extend execution time for large datasets
+        @set_time_limit(300);
+        @ini_set('max_execution_time', '300');
+
         $from = sanitize_text_field($_POST['fromdate']);
         $to = sanitize_text_field($_POST['todate']);
         $dept = (isset($_POST['dept']) && $_POST['dept'] !== 'false' && $_POST['dept'] !== false) ? sanitize_text_field($_POST['dept']) : false;
@@ -1159,87 +1166,57 @@ class Theme {
             );
         }
 
-        // Query 2: Actual quantities BEFORE or ON from_date (for Beginning Inventory)
+        // Query 2 (merged): ALL actual quantities up to to_date, split by from_date in SQL
+        // This replaces old queries 2+3, scanning actualsupplies table only ONCE
         $actual_before = array();
-        $results = $wpdb->get_results($wpdb->prepare(
-            "SELECT pm_name.meta_value as supply_id,
-                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as total_qty
-            FROM {$wpdb->posts} p
-            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
-            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
-            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
-            LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
-            WHERE p.post_type = %s AND p.post_status = %s
-                AND {$date_norm} <= %s
-                AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
-            GROUP BY pm_name.meta_value",
-            'actualsupplies', 'publish', $formatted_from
-        ));
-        foreach ($results as $r) {
-            $actual_before[$r->supply_id] = (float)$r->total_qty;
-        }
-
-        // Query 3: Actual quantities BETWEEN from and to (Purchases)
         $actual_between = array();
         $results = $wpdb->get_results($wpdb->prepare(
             "SELECT pm_name.meta_value as supply_id,
-                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as purchase_qty
+                SUM(CASE WHEN {$date_norm} <= %s THEN CAST(pm_qty.meta_value AS DECIMAL(10,2)) ELSE 0 END) as qty_before,
+                SUM(CASE WHEN {$date_norm} > %s AND {$date_norm} <= %s THEN CAST(pm_qty.meta_value AS DECIMAL(10,2)) ELSE 0 END) as qty_between
             FROM {$wpdb->posts} p
             INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
             INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
             INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
             LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
             WHERE p.post_type = %s AND p.post_status = %s
-                AND {$date_norm} > %s
                 AND {$date_norm} <= %s
                 AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
             GROUP BY pm_name.meta_value",
-            'actualsupplies', 'publish', $formatted_from, $formatted_to
+            $formatted_from, $formatted_from, $formatted_to, 'actualsupplies', 'publish', $formatted_to
         ));
         foreach ($results as $r) {
-            $actual_between[$r->supply_id] = (float)$r->purchase_qty;
+            $actual_before[$r->supply_id] = (float)$r->qty_before;
+            $actual_between[$r->supply_id] = (float)$r->qty_between;
         }
 
-        // Query 4: Release quantities BEFORE or ON from_date (for Beg Inv)
+        // Query 3 (merged): ALL release quantities up to to_date, split by from_date in SQL
+        // This replaces old queries 4+5+7, scanning releasesupplies table only ONCE
         $released_before = array();
-        $results = $wpdb->get_results($wpdb->prepare(
-            "SELECT pm_name.meta_value as supply_id,
-                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as released_qty
-            FROM {$wpdb->posts} p
-            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
-            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
-            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'release_date'
-            INNER JOIN {$wpdb->postmeta} pm_conf ON p.ID = pm_conf.post_id AND pm_conf.meta_key = 'confirmed' AND pm_conf.meta_value = '1'
-            WHERE p.post_type = %s AND p.post_status = %s
-                AND {$date_norm} <= %s
-            GROUP BY pm_name.meta_value",
-            'releasesupplies', 'publish', $formatted_from
-        ));
-        foreach ($results as $r) {
-            $released_before[$r->supply_id] = (float)$r->released_qty;
-        }
-
-        // Query 5: Release quantities BETWEEN from and to (Consumption)
         $released_between = array();
+        $total_releases_to = array();
         $results = $wpdb->get_results($wpdb->prepare(
             "SELECT pm_name.meta_value as supply_id,
-                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as consumption_qty
+                SUM(CASE WHEN {$date_norm} <= %s THEN CAST(pm_qty.meta_value AS DECIMAL(10,2)) ELSE 0 END) as rel_before,
+                SUM(CASE WHEN {$date_norm} > %s AND {$date_norm} <= %s THEN CAST(pm_qty.meta_value AS DECIMAL(10,2)) ELSE 0 END) as rel_between,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as rel_total
             FROM {$wpdb->posts} p
             INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
             INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
             INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'release_date'
             INNER JOIN {$wpdb->postmeta} pm_conf ON p.ID = pm_conf.post_id AND pm_conf.meta_key = 'confirmed' AND pm_conf.meta_value = '1'
             WHERE p.post_type = %s AND p.post_status = %s
-                AND {$date_norm} > %s
                 AND {$date_norm} <= %s
             GROUP BY pm_name.meta_value",
-            'releasesupplies', 'publish', $formatted_from, $formatted_to
+            $formatted_from, $formatted_from, $formatted_to, 'releasesupplies', 'publish', $formatted_to
         ));
         foreach ($results as $r) {
-            $released_between[$r->supply_id] = (float)$r->consumption_qty;
+            $released_before[$r->supply_id] = (float)$r->rel_before;
+            $released_between[$r->supply_id] = (float)$r->rel_between;
+            $total_releases_to[$r->supply_id] = (float)$r->rel_total;
         }
 
-        // Query 6: Expired quantities (actual items with expiry <= to_date, added <= to_date, not released)
+        // Query 4: Expired quantities (actual items with expiry <= to_date, added <= to_date, not released)
         $expired_qty = array();
         $results = $wpdb->get_results($wpdb->prepare(
             "SELECT pm_name.meta_value as supply_id,
@@ -1262,26 +1239,7 @@ class Theme {
             $expired_qty[$r->supply_id] = (float)$r->expired_qty;
         }
 
-        // Query 7: Total releases up to to_date (for expired qty adjustment)
-        $total_releases_to = array();
-        $results = $wpdb->get_results($wpdb->prepare(
-            "SELECT pm_name.meta_value as supply_id,
-                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as total_released
-            FROM {$wpdb->posts} p
-            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
-            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
-            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'release_date'
-            INNER JOIN {$wpdb->postmeta} pm_conf ON p.ID = pm_conf.post_id AND pm_conf.meta_key = 'confirmed' AND pm_conf.meta_value = '1'
-            WHERE p.post_type = %s AND p.post_status = %s
-                AND {$date_norm} <= %s
-            GROUP BY pm_name.meta_value",
-            'releasesupplies', 'publish', $formatted_to
-        ));
-        foreach ($results as $r) {
-            $total_releases_to[$r->supply_id] = (float)$r->total_released;
-        }
-
-        // Query 8: Latest lot_number and expiry_date from purchases (between from and to)
+        // Query 5: Latest lot_number, expiry_date, serial, states from purchases (between from and to)
         $purchase_display = array();
         $results = $wpdb->get_results($wpdb->prepare(
             "SELECT pm_name.meta_value as supply_id,
