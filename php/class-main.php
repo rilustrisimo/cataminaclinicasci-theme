@@ -1077,25 +1077,257 @@ class Theme {
     }
 
     /**
-     * Optimized single-call endpoint for reconciliation report.
-     * Replaces the 3-stage flow (load supplies → batch process → render) with one AJAX call.
+     * Phased endpoint for reconciliation report.
+     * Each phase runs 1-2 SQL queries to stay within server connection timeout.
+     * JS calls this 5 times with phase=1..5, accumulating data client-side.
      */
     public function load_recon_report_full() {
-        // Extend execution time for large datasets
-        @set_time_limit(300);
-        @ini_set('max_execution_time', '300');
+        @set_time_limit(120);
+        @ini_set('max_execution_time', '120');
 
-        $from = sanitize_text_field($_POST['fromdate']);
-        $to = sanitize_text_field($_POST['todate']);
-        $dept = (isset($_POST['dept']) && $_POST['dept'] !== 'false' && $_POST['dept'] !== false) ? sanitize_text_field($_POST['dept']) : false;
+        // Phase 5 sends JSON body, phases 1-4 use standard POST
+        $raw = file_get_contents('php://input');
+        $json_input = json_decode($raw, true);
 
-        // Step 1: Bulk fetch all supply data via SQL
-        $recondata = $this->getBulkReconData($from, $to, $dept);
+        if ($json_input && isset($json_input['phase'])) {
+            // JSON request (phase 5)
+            $phase = (int)$json_input['phase'];
+            $from = sanitize_text_field($json_input['fromdate']);
+            $to = sanitize_text_field($json_input['todate']);
+            $dept = false;
+        } else {
+            // Standard POST (phases 1-4)
+            $phase = isset($_POST['phase']) ? (int)$_POST['phase'] : 0;
+            $from = sanitize_text_field($_POST['fromdate']);
+            $to = sanitize_text_field($_POST['todate']);
+            $dept = (isset($_POST['dept']) && $_POST['dept'] !== 'false' && $_POST['dept'] !== false) ? sanitize_text_field($_POST['dept']) : false;
+        }
 
-        // Step 2: Render the HTML report directly
-        $html = $this->renderReconReport($from, $to, $recondata);
+        switch($phase) {
+            case 1:
+                wp_send_json_success($this->getReconPhase1_Supplies($from, $to, $dept));
+                break;
+            case 2:
+                wp_send_json_success($this->getReconPhase2_Actuals($from, $to));
+                break;
+            case 3:
+                wp_send_json_success($this->getReconPhase3_Releases($from, $to));
+                break;
+            case 4:
+                wp_send_json_success($this->getReconPhase4_Expired($from, $to));
+                break;
+            case 5:
+                $recondata = isset($json_input['recondata']) ? $json_input['recondata'] : array();
+                $html = $this->renderReconReport($from, $to, $recondata);
+                wp_send_json_success($html);
+                break;
+            default:
+                wp_send_json_error('Invalid phase');
+        }
+    }
 
-        wp_send_json_success($html);
+    /**
+     * Phase 1: Get supply master data
+     */
+    private function getReconPhase1_Supplies($from, $to, $dept) {
+        global $wpdb;
+
+        $dept_filter = '';
+        if ($dept !== false) {
+            $dept_filter = $wpdb->prepare(" AND EXISTS (
+                SELECT 1 FROM {$wpdb->postmeta} pmd
+                WHERE pmd.post_id = p.ID AND pmd.meta_key = 'department' AND pmd.meta_value = %s
+            )", $dept);
+        }
+
+        $supplies = $wpdb->get_results($wpdb->prepare(
+            "SELECT p.ID, p.post_title,
+                MAX(CASE WHEN pm.meta_key='price_per_unit' THEN pm.meta_value END) as price_per_unit,
+                MAX(CASE WHEN pm.meta_key='department' THEN pm.meta_value END) as department,
+                MAX(CASE WHEN pm.meta_key='type' THEN pm.meta_value END) as type,
+                MAX(CASE WHEN pm.meta_key='section' THEN pm.meta_value END) as section,
+                MAX(CASE WHEN pm.meta_key='sub_section' THEN pm.meta_value END) as sub_section
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND pm.meta_key IN ('price_per_unit','department','type','section','sub_section')
+                {$dept_filter}
+            GROUP BY p.ID
+            HAVING type != 'Adjustment'",
+            'supplies', 'publish'
+        ));
+
+        $result = array();
+        foreach ($supplies as $s) {
+            $result[$s->ID] = array(
+                'title' => $s->post_title,
+                'price' => (float)$s->price_per_unit,
+                'department' => $s->department,
+                'type' => $s->type,
+                'section' => $s->section ?: '',
+                'sub_section' => $s->sub_section ?: ''
+            );
+        }
+        return $result;
+    }
+
+    /**
+     * Phase 2: Get actual supply quantities (before from_date + between from-to)
+     */
+    private function getReconPhase2_Actuals($from, $to) {
+        global $wpdb;
+        $formatted_from = date('Y-m-d', strtotime($from));
+        $formatted_to = date('Y-m-d', strtotime($to));
+
+        $date_norm = "CASE
+            WHEN pm_date.meta_value REGEXP '^[0-9]{8}$' THEN STR_TO_DATE(pm_date.meta_value, '%%Y%%m%%d')
+            WHEN pm_date.meta_value REGEXP '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$' THEN STR_TO_DATE(pm_date.meta_value, '%%m/%%d/%%Y')
+            ELSE CAST(pm_date.meta_value AS DATE)
+        END";
+
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CASE WHEN {$date_norm} <= %s THEN CAST(pm_qty.meta_value AS DECIMAL(10,2)) ELSE 0 END) as qty_before,
+                SUM(CASE WHEN {$date_norm} > %s AND {$date_norm} <= %s THEN CAST(pm_qty.meta_value AS DECIMAL(10,2)) ELSE 0 END) as qty_between
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
+            LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} <= %s
+                AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
+            GROUP BY pm_name.meta_value",
+            $formatted_from, $formatted_from, $formatted_to, 'actualsupplies', 'publish', $formatted_to
+        ));
+
+        $data = array();
+        foreach ($results as $r) {
+            $data[$r->supply_id] = array(
+                'before' => (float)$r->qty_before,
+                'between' => (float)$r->qty_between
+            );
+        }
+        return $data;
+    }
+
+    /**
+     * Phase 3: Get release quantities (before from_date + between from-to + total to to_date)
+     */
+    private function getReconPhase3_Releases($from, $to) {
+        global $wpdb;
+        $formatted_from = date('Y-m-d', strtotime($from));
+        $formatted_to = date('Y-m-d', strtotime($to));
+
+        $date_norm = "CASE
+            WHEN pm_date.meta_value REGEXP '^[0-9]{8}$' THEN STR_TO_DATE(pm_date.meta_value, '%%Y%%m%%d')
+            WHEN pm_date.meta_value REGEXP '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$' THEN STR_TO_DATE(pm_date.meta_value, '%%m/%%d/%%Y')
+            ELSE CAST(pm_date.meta_value AS DATE)
+        END";
+
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CASE WHEN {$date_norm} <= %s THEN CAST(pm_qty.meta_value AS DECIMAL(10,2)) ELSE 0 END) as rel_before,
+                SUM(CASE WHEN {$date_norm} > %s AND {$date_norm} <= %s THEN CAST(pm_qty.meta_value AS DECIMAL(10,2)) ELSE 0 END) as rel_between,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as rel_total
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'release_date'
+            INNER JOIN {$wpdb->postmeta} pm_conf ON p.ID = pm_conf.post_id AND pm_conf.meta_key = 'confirmed' AND pm_conf.meta_value = '1'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} <= %s
+            GROUP BY pm_name.meta_value",
+            $formatted_from, $formatted_from, $formatted_to, 'releasesupplies', 'publish', $formatted_to
+        ));
+
+        $data = array();
+        foreach ($results as $r) {
+            $data[$r->supply_id] = array(
+                'before' => (float)$r->rel_before,
+                'between' => (float)$r->rel_between,
+                'total' => (float)$r->rel_total
+            );
+        }
+        return $data;
+    }
+
+    /**
+     * Phase 4: Get expired quantities + display data (lot, expiry, serial, states)
+     */
+    private function getReconPhase4_Expired($from, $to) {
+        global $wpdb;
+        $formatted_from = date('Y-m-d', strtotime($from));
+        $formatted_to = date('Y-m-d', strtotime($to));
+
+        $date_norm = "CASE
+            WHEN pm_date.meta_value REGEXP '^[0-9]{8}$' THEN STR_TO_DATE(pm_date.meta_value, '%%Y%%m%%d')
+            WHEN pm_date.meta_value REGEXP '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$' THEN STR_TO_DATE(pm_date.meta_value, '%%m/%%d/%%Y')
+            ELSE CAST(pm_date.meta_value AS DATE)
+        END";
+
+        $exp_norm = "CASE
+            WHEN pm_exp.meta_value REGEXP '^[0-9]{8}$' THEN STR_TO_DATE(pm_exp.meta_value, '%%Y%%m%%d')
+            WHEN pm_exp.meta_value REGEXP '^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$' THEN STR_TO_DATE(pm_exp.meta_value, '%%m/%%d/%%Y')
+            ELSE CAST(pm_exp.meta_value AS DATE)
+        END";
+
+        // Expired quantities
+        $expired = array();
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUM(CAST(pm_qty.meta_value AS DECIMAL(10,2))) as expired_qty
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_qty ON p.ID = pm_qty.post_id AND pm_qty.meta_key = 'quantity'
+            INNER JOIN {$wpdb->postmeta} pm_exp ON p.ID = pm_exp.post_id AND pm_exp.meta_key = 'expiry_date'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
+            LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND {$date_norm} <= %s
+                AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
+                AND pm_exp.meta_value != ''
+                AND {$exp_norm} <= %s
+            GROUP BY pm_name.meta_value",
+            'actualsupplies', 'publish', $formatted_to, $formatted_to
+        ));
+        foreach ($results as $r) {
+            $expired[$r->supply_id] = (float)$r->expired_qty;
+        }
+
+        // Display data (lot, expiry, serial, states) from purchases between from-to
+        $display = array();
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUBSTRING_INDEX(GROUP_CONCAT(IFNULL(pm_lot.meta_value, '') ORDER BY p.ID DESC), ',', 1) as lot_number,
+                SUBSTRING_INDEX(GROUP_CONCAT(IFNULL(pm_exp.meta_value, '') ORDER BY p.ID DESC), ',', 1) as expiry_date,
+                SUBSTRING_INDEX(GROUP_CONCAT(IFNULL(pm_serial.meta_value, '') ORDER BY p.ID DESC), ',', 1) as serial,
+                SUBSTRING_INDEX(GROUP_CONCAT(IFNULL(pm_states.meta_value, '') ORDER BY p.ID DESC), ',', 1) as states_status
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
+            LEFT JOIN {$wpdb->postmeta} pm_lot ON p.ID = pm_lot.post_id AND pm_lot.meta_key = 'lot_number'
+            LEFT JOIN {$wpdb->postmeta} pm_exp ON p.ID = pm_exp.post_id AND pm_exp.meta_key = 'expiry_date'
+            LEFT JOIN {$wpdb->postmeta} pm_serial ON p.ID = pm_serial.post_id AND pm_serial.meta_key = 'serial'
+            LEFT JOIN {$wpdb->postmeta} pm_states ON p.ID = pm_states.post_id AND pm_states.meta_key = 'states__status'
+            LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
+                AND {$date_norm} > %s
+                AND {$date_norm} <= %s
+            GROUP BY pm_name.meta_value",
+            'actualsupplies', 'publish', $formatted_from, $formatted_to
+        ));
+        foreach ($results as $r) {
+            $display[$r->supply_id] = array(
+                'lot_number' => $r->lot_number ?: '',
+                'expiry_date' => $r->expiry_date ?: '',
+                'serial' => $r->serial ?: '',
+                'states_status' => $r->states_status ?: ''
+            );
+        }
+
+        return array('expired' => $expired, 'display' => $display);
     }
 
     /**

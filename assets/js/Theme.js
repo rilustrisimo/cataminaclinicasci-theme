@@ -940,68 +940,181 @@ var Theme = {
     },
 
     loadReconReportFull: function($, fromdate, todate, dept){
-        var progressTimer = null;
-        var currentProgress = 0;
+        var ajaxUrl = $('#ajax-url').val();
+        var phases = [
+            { phase: 1, label: 'Loading supplies...', pct: 10 },
+            { phase: 2, label: 'Calculating inventory...', pct: 35 },
+            { phase: 3, label: 'Processing releases...', pct: 60 },
+            { phase: 4, label: 'Checking expirations...', pct: 80 },
+            { phase: 5, label: 'Rendering report...', pct: 95 }
+        ];
+        var collected = {};
 
-        function simulateProgress(){
-            progressTimer = setInterval(function(){
-                if(currentProgress < 90){
-                    currentProgress += Math.random() * 8 + 2; // increment 2-10%
-                    if(currentProgress > 90) currentProgress = 90;
-                    var pct = Math.round(currentProgress);
-                    $("#progress").css("width", pct + "%").text(pct + "%");
-                }
-            }, 800);
+        function updateProgress(pct, label){
+            $("#progress").removeClass('soc-loading-bar').css("width", pct + "%").text(pct + "%");
+            if(label) $("#result").text(label);
         }
 
-        $.ajax({
-            url: $('#ajax-url').val(),
-            type: 'POST',
-            dataType: 'JSON',
-            data: {
-                action: 'load_recon_report_full',
-                fromdate: fromdate,
-                todate: todate,
-                dept: dept
-            },
-            beforeSend: function(){
-                $('.report__result').addClass('overlay');
-                $('#progress-container').show();
-                currentProgress = 5;
-                $("#progress").removeClass('soc-loading-bar').css("width", "5%").text("5%").addClass('soc-loading-bar');
-                $("#result").text('Generating reconciliation report...');
-                simulateProgress();
-            },
-            success: function(resp){
-                clearInterval(progressTimer);
-                if(resp.success){
-                    $('.report__result').html(resp.data);
-                    $('.filter-show__item input').prop('checked', true);
-                }
-                $('.report__result').removeClass('overlay');
-                $("#progress").removeClass('soc-loading-bar').css("width", "100%").text("100%");
-                $("#result").text('');
-
-                // Initialize report UI components
-                Theme.actualCountCalculator($);
-                Theme.sectionFilter($);
-                Theme.reconTotal($);
-                Theme.recalculateReconTotal($);
-                Theme.sortRecon($);
-                setTimeout(function(){
-                    Theme.checkExpired($);
-                    Theme.expirationFilter($);
-                    Theme.reconTotal($);
-                }, 100);
-            },
-            error: function(xhr, status, error){
-                clearInterval(progressTimer);
-                console.error('Recon Report error:', error);
-                $('.report__result').removeClass('overlay');
-                $("#progress").removeClass('soc-loading-bar').css("width", "100%").text("Error");
-                $("#result").text('An error occurred generating the report.');
+        function runPhase(idx){
+            if(idx >= phases.length){
+                return;
             }
-        });
+            var p = phases[idx];
+            updateProgress(p.pct, p.label);
+
+            if(p.phase === 5){
+                // Phase 5: assemble data and send as JSON for rendering
+                var recondata = Theme.assembleReconData(collected);
+                $.ajax({
+                    url: ajaxUrl + '?action=load_recon_report_full',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    dataType: 'json',
+                    data: JSON.stringify({
+                        action: 'load_recon_report_full',
+                        phase: 5,
+                        fromdate: fromdate,
+                        todate: todate,
+                        recondata: recondata
+                    }),
+                    success: function(resp){
+                        if(resp.success){
+                            $('.report__result').html(resp.data);
+                            $('.filter-show__item input').prop('checked', true);
+                        }
+                        finishReport();
+                    },
+                    error: function(xhr, status, error){
+                        handleError('Rendering failed: ' + error);
+                    }
+                });
+            } else {
+                // Phases 1-4: fetch data
+                $.ajax({
+                    url: ajaxUrl,
+                    type: 'POST',
+                    dataType: 'JSON',
+                    data: {
+                        action: 'load_recon_report_full',
+                        phase: p.phase,
+                        fromdate: fromdate,
+                        todate: todate,
+                        dept: dept
+                    },
+                    success: function(resp){
+                        if(resp.success){
+                            collected['phase' + p.phase] = resp.data;
+                            runPhase(idx + 1);
+                        } else {
+                            handleError('Phase ' + p.phase + ' failed');
+                        }
+                    },
+                    error: function(xhr, status, error){
+                        handleError('Phase ' + p.phase + ': ' + error);
+                    }
+                });
+            }
+        }
+
+        function finishReport(){
+            $('.report__result').removeClass('overlay');
+            updateProgress(100, '');
+            $("#result").text('');
+
+            Theme.actualCountCalculator($);
+            Theme.sectionFilter($);
+            Theme.reconTotal($);
+            Theme.recalculateReconTotal($);
+            Theme.sortRecon($);
+            setTimeout(function(){
+                Theme.checkExpired($);
+                Theme.expirationFilter($);
+                Theme.reconTotal($);
+            }, 100);
+        }
+
+        function handleError(msg){
+            console.error('Recon Report error:', msg);
+            $('.report__result').removeClass('overlay');
+            $("#progress").removeClass('soc-loading-bar').css("width", "100%").text("Error");
+            $("#result").text('An error occurred: ' + msg);
+        }
+
+        // Start
+        $('.report__result').addClass('overlay');
+        $('#progress-container').show();
+        $("#progress").css("width", "5%").text("5%").addClass('soc-loading-bar');
+        $("#result").text('Starting report generation...');
+        runPhase(0);
+    },
+
+    /**
+     * Assemble the 3 data structures from phased data for server-side rendering.
+     */
+    assembleReconData: function(collected){
+        var supplies = collected.phase1 || {};
+        var actuals = collected.phase2 || {};
+        var releases = collected.phase3 || {};
+        var phase4 = collected.phase4 || {};
+        var expired = phase4.expired || {};
+        var display = phase4.display || {};
+
+        var overallupplies = {};
+        var datesupplies = {};
+        var relsupplies = {};
+
+        for(var id in supplies){
+            var meta = supplies[id];
+            var sid = String(id);
+            var deptslug = meta.department.toLowerCase().replace(/ /g, '_');
+            var typeslug = meta.type.toLowerCase();
+
+            var begActual = (actuals[sid] && actuals[sid].before) ? actuals[sid].before : 0;
+            var begReleased = (releases[sid] && releases[sid].before) ? releases[sid].before : 0;
+            var begInv = begActual - begReleased;
+
+            var purchases = (actuals[sid] && actuals[sid].between) ? actuals[sid].between : 0;
+            var consumption = (releases[sid] && releases[sid].between) ? releases[sid].between : 0;
+
+            var rawExpired = expired[sid] ? expired[sid] : 0;
+            var totalRel = (releases[sid] && releases[sid].total) ? releases[sid].total : 0;
+            var expiredRemaining = Math.max(0, rawExpired - totalRel);
+
+            if(!overallupplies[deptslug]) overallupplies[deptslug] = {};
+            if(!overallupplies[deptslug][typeslug]) overallupplies[deptslug][typeslug] = {};
+
+            overallupplies[deptslug][typeslug][id] = {
+                supply_name: meta.title,
+                department: meta.department,
+                section: meta.section || '',
+                sub_section: (meta.section === 'Ambulatory Surgery Center (ASC)') ? (meta.sub_section || '') : '',
+                type: meta.type,
+                quantity: begInv,
+                expired_qty: expiredRemaining,
+                price_per_unit: meta.price
+            };
+
+            var disp = display[sid] || {};
+            datesupplies[id] = {
+                supply_name: meta.title,
+                quantity: purchases,
+                lot_number: disp.lot_number || '',
+                expiry_date: disp.expiry_date || '',
+                serial: disp.serial || '',
+                states__status: disp.states_status || ''
+            };
+
+            relsupplies[id] = {
+                supply_name: meta.title,
+                quantity: consumption
+            };
+        }
+
+        return {
+            overallupplies: overallupplies,
+            datesupplies: datesupplies,
+            relsupplies: relsupplies
+        };
     },
 
     initialReportDateFitler: function($, dfrom, dto, aid = false){
