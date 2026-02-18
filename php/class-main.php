@@ -1327,6 +1327,49 @@ class Theme {
             );
         }
 
+        // Fallback expiry date: most recent expiry_date up to to_date (matches getLastExpDate logic)
+        $fallback_expiry = array();
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT pm_name.meta_value as supply_id,
+                SUBSTRING_INDEX(GROUP_CONCAT(IFNULL(pm_exp.meta_value, '') ORDER BY {$date_norm} DESC), ',', 1) as expiry_fallback
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm_name ON p.ID = pm_name.post_id AND pm_name.meta_key = 'supply_name'
+            INNER JOIN {$wpdb->postmeta} pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = 'date_added'
+            INNER JOIN {$wpdb->postmeta} pm_exp ON p.ID = pm_exp.post_id AND pm_exp.meta_key = 'expiry_date'
+            LEFT JOIN {$wpdb->postmeta} pm_rel ON p.ID = pm_rel.post_id AND pm_rel.meta_key = 'related_release_id'
+            WHERE p.post_type = %s AND p.post_status = %s
+                AND (pm_rel.meta_value IS NULL OR pm_rel.meta_value = '')
+                AND {$date_norm} <= %s
+                AND pm_exp.meta_value != ''
+            GROUP BY pm_name.meta_value",
+            'actualsupplies', 'publish', $formatted_to
+        ));
+        foreach ($results as $r) {
+            $fallback_expiry[$r->supply_id] = $r->expiry_fallback ?: '';
+        }
+
+        if (!empty($fallback_expiry)) {
+            foreach ($fallback_expiry as $sid => $expval) {
+                if (!isset($display[$sid])) {
+                    $display[$sid] = array(
+                        'lot_number' => '',
+                        'expiry_date' => '',
+                        'serial' => '',
+                        'states_status' => ''
+                    );
+                }
+                $display[$sid]['expiry_fallback'] = $expval;
+            }
+        }
+
+        if (!empty($display)) {
+            foreach ($display as $sid => $vals) {
+                if (!isset($display[$sid]['expiry_fallback'])) {
+                    $display[$sid]['expiry_fallback'] = '';
+                }
+            }
+        }
+
         return array('expired' => $expired, 'display' => $display);
     }
 

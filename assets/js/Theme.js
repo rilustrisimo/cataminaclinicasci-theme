@@ -945,8 +945,7 @@ var Theme = {
             { phase: 1, label: 'Loading supplies...', pct: 10 },
             { phase: 2, label: 'Calculating inventory...', pct: 35 },
             { phase: 3, label: 'Processing releases...', pct: 60 },
-            { phase: 4, label: 'Checking expirations...', pct: 80 },
-            { phase: 5, label: 'Rendering report...', pct: 95 }
+            { phase: 4, label: 'Checking expirations...', pct: 85 }
         ];
         var collected = {};
 
@@ -957,63 +956,41 @@ var Theme = {
 
         function runPhase(idx){
             if(idx >= phases.length){
+                // All data phases done — render client-side
+                updateProgress(95, 'Rendering report...');
+                var recondata = Theme.assembleReconData(collected);
+                var html = Theme.renderReconHTML(fromdate, todate, recondata);
+                $('.report__result').html(html);
+                $('.filter-show__item input').prop('checked', true);
+                finishReport();
                 return;
             }
             var p = phases[idx];
             updateProgress(p.pct, p.label);
 
-            if(p.phase === 5){
-                // Phase 5: assemble data and send as JSON for rendering
-                var recondata = Theme.assembleReconData(collected);
-                $.ajax({
-                    url: ajaxUrl + '?action=load_recon_report_full',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    dataType: 'json',
-                    data: JSON.stringify({
-                        action: 'load_recon_report_full',
-                        phase: 5,
-                        fromdate: fromdate,
-                        todate: todate,
-                        recondata: recondata
-                    }),
-                    success: function(resp){
-                        if(resp.success){
-                            $('.report__result').html(resp.data);
-                            $('.filter-show__item input').prop('checked', true);
-                        }
-                        finishReport();
-                    },
-                    error: function(xhr, status, error){
-                        handleError('Rendering failed: ' + error);
+            $.ajax({
+                url: ajaxUrl,
+                type: 'POST',
+                dataType: 'JSON',
+                data: {
+                    action: 'load_recon_report_full',
+                    phase: p.phase,
+                    fromdate: fromdate,
+                    todate: todate,
+                    dept: dept
+                },
+                success: function(resp){
+                    if(resp.success){
+                        collected['phase' + p.phase] = resp.data;
+                        runPhase(idx + 1);
+                    } else {
+                        handleError('Phase ' + p.phase + ' failed');
                     }
-                });
-            } else {
-                // Phases 1-4: fetch data
-                $.ajax({
-                    url: ajaxUrl,
-                    type: 'POST',
-                    dataType: 'JSON',
-                    data: {
-                        action: 'load_recon_report_full',
-                        phase: p.phase,
-                        fromdate: fromdate,
-                        todate: todate,
-                        dept: dept
-                    },
-                    success: function(resp){
-                        if(resp.success){
-                            collected['phase' + p.phase] = resp.data;
-                            runPhase(idx + 1);
-                        } else {
-                            handleError('Phase ' + p.phase + ' failed');
-                        }
-                    },
-                    error: function(xhr, status, error){
-                        handleError('Phase ' + p.phase + ': ' + error);
-                    }
-                });
-            }
+                },
+                error: function(xhr, status, error){
+                    handleError('Phase ' + p.phase + ': ' + error);
+                }
+            });
         }
 
         function finishReport(){
@@ -1049,7 +1026,7 @@ var Theme = {
     },
 
     /**
-     * Assemble the 3 data structures from phased data for server-side rendering.
+     * Assemble the 3 data structures from phased data.
      */
     assembleReconData: function(collected){
         var supplies = collected.phase1 || {};
@@ -1100,6 +1077,7 @@ var Theme = {
                 quantity: purchases,
                 lot_number: disp.lot_number || '',
                 expiry_date: disp.expiry_date || '',
+                expiry_fallback: disp.expiry_fallback || '',
                 serial: disp.serial || '',
                 states__status: disp.states_status || ''
             };
@@ -1115,6 +1093,247 @@ var Theme = {
             datesupplies: datesupplies,
             relsupplies: relsupplies
         };
+    },
+
+    /**
+     * Format number with 2 decimal places and commas (mirrors PHP convertNumber)
+     */
+    convertNumber: function(num){
+        return parseFloat(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    },
+
+    /**
+     * Escape HTML entities
+     */
+    escHtml: function(str){
+        if(!str) return '';
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    },
+
+    /**
+     * Format expiry date to mm/dd/yyyy (mirrors PHP getLastExpDate formatting)
+     */
+    formatExpiryDate: function(val){
+        if(!val) return '';
+        if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(val)){
+            return val;
+        }
+        if(/^\d{8}$/.test(val)){
+            return val.slice(4, 6) + '/' + val.slice(6, 8) + '/' + val.slice(0, 4);
+        }
+        if(/^\d{4}-\d{2}-\d{2}$/.test(val)){
+            var parts = val.split('-');
+            return parts[1] + '/' + parts[2] + '/' + parts[0];
+        }
+        var ts = Date.parse(val);
+        if(!isNaN(ts)){
+            var d = new Date(ts);
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var dd = String(d.getDate()).padStart(2, '0');
+            return mm + '/' + dd + '/' + d.getFullYear();
+        }
+        return val;
+    },
+
+    /**
+     * Render reconciliation report HTML client-side.
+     * Mirrors PHP renderReconReport() output exactly.
+     */
+    renderReconHTML: function(fromdate, todate, recondata){
+        var overallupplies = recondata.overallupplies;
+        var datesupplies = recondata.datesupplies;
+        var relsupplies = recondata.relsupplies;
+        var self = this;
+
+        var sectionlist = {};
+        var subsectionlist = {};
+        var res = '';
+
+        // Date formatting
+        var fromObj = new Date(fromdate);
+        var toObj = new Date(todate);
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var fromStr = months[fromObj.getMonth()] + ' ' + String(fromObj.getDate()).padStart(2,'0') + ', ' + fromObj.getFullYear();
+        var toStr = months[toObj.getMonth()] + ' ' + String(toObj.getDate()).padStart(2,'0') + ', ' + toObj.getFullYear();
+
+        res += '<h2>AS OF ' + fromStr + ' - ' + toStr + '</h2>';
+        res += '<h3>Reconciliation Report</h3>';
+
+        // Sort department keys
+        var deptKeys = Object.keys(overallupplies).sort();
+        var expSuppExpTotal = 0;
+
+        for(var di = 0; di < deptKeys.length; di++){
+            var department = deptKeys[di];
+            var types = overallupplies[department];
+
+            res += '<h1>' + department.replace(/_/g, ' ').toUpperCase() + '</h1>';
+
+            // Sort type keys
+            var typeKeys = Object.keys(types).sort();
+
+            for(var ti = 0; ti < typeKeys.length; ti++){
+                var type = typeKeys[ti];
+                var suppdetails = types[type];
+                var typetext = type.toUpperCase();
+                var isEquipment = (typetext === 'EQUIPMENT');
+
+                res += '<div class="report__result-header">' + typetext + '</div>';
+                res += '<table>';
+
+                if(isEquipment){
+                    res += '<thead><tr>' +
+                        '<th>EQUIPMENT</th>' +
+                        "<th class='filter-serial'>SERIAL</th>" +
+                        "<th class='filter-states'>STATES</th>" +
+                        "<th class='filter-beg'>BEG INV</th>" +
+                        "<th class='filter-purchase'>PURCHASES</th>" +
+                        "<th class='filter-total'>TOTAL</th>" +
+                        "<th class='filter-cons'>CONSUMPTION</th>" +
+                        '<th>END INV</th>' +
+                        '<th>PRICE</th>' +
+                        '<th>ACTUAL COUNT</th>' +
+                        '<th>VARIANCE</th>' +
+                        '<th>TOTAL</th>' +
+                        '</tr></thead>';
+                } else {
+                    res += '<thead><tr>' +
+                        '<th>SUPPLY NAME</th>' +
+                        "<th class='filter-lot'>LOT #</th>" +
+                        "<th class='filter-exp'>EXP. DATE</th>" +
+                        "<th class='filter-beg'>BEG INV</th>" +
+                        "<th class='filter-purchase'>PURCHASES</th>" +
+                        "<th class='filter-total'>TOTAL</th>" +
+                        "<th class='filter-cons'>CONSUMPTION</th>" +
+                        '<th>END INV</th>' +
+                        "<th class='row-price'>PRICE</th>" +
+                        '<th>ACTUAL COUNT</th>' +
+                        '<th>VARIANCE</th>' +
+                        '<th>TOTAL</th>' +
+                        '</tr></thead>';
+                }
+
+                var typeExpTotal = 0;
+
+                for(var suppid in suppdetails){
+                    var suppdeets = suppdetails[suppid];
+                    if(!suppdeets.supply_name) continue;
+
+                    var section = suppdeets.section || '';
+                    var subsection = '';
+                    if(section === 'Ambulatory Surgery Center (ASC)'){
+                        subsection = suppdeets.sub_section || '';
+                    }
+
+                    var price = parseFloat(suppdeets.price_per_unit) || 0;
+                    var ds = datesupplies[suppid] || {};
+                    var rs = relsupplies[suppid] || {};
+
+                    var purchase = parseFloat(ds.quantity) || 0;
+                    var release = parseFloat(rs.quantity) || 0;
+                    var beginQuantity = parseFloat(suppdeets.quantity) || 0;
+                    var endInventory = (beginQuantity + purchase) - release;
+                    var totalValue = endInventory * price;
+
+                    if(isEquipment){
+                        var serial = ds.serial || '';
+                        var states = ds.states__status || '';
+
+                        res += "<tbody data-id='" + suppid + "' class='sup-container' data-name='" + self.escHtml(suppdeets.supply_name) + "'>";
+                        res += "<tr data-section='" + self.escHtml(section) + "' data-subsection='" + self.escHtml(subsection) + "'>";
+                        res += '<td>' + self.escHtml(suppdeets.supply_name) + '</td>';
+                        res += "<td class='filter-serial'>" + self.escHtml(serial) + '</td>';
+                        res += "<td class='filter-states'>" + self.escHtml(states) + '</td>';
+                        res += "<td class='filter-beg'>" + beginQuantity + '</td>';
+                        res += "<td class='filter-purchase'>" + purchase + '</td>';
+                        res += "<td class='filter-total'>" + (beginQuantity + purchase) + '</td>';
+                        res += "<td class='filter-cons'>" + release + '</td>';
+                        res += "<td class='orig-count' data-val='" + endInventory + "'>" + endInventory + '</td>';
+                        res += "<td class='row-price' data-val='" + price + "'>&#8369 " + self.convertNumber(price) + '</td>';
+                        res += "<td class='row-actual-count'><input type='number' class='actual-field' value='" + endInventory + "'></td>";
+                        res += "<td class='row-variance'>0</td>";
+                        res += "<td class='row-total'>&#8369 " + self.convertNumber(totalValue) + '</td>';
+                        res += '</tr></tbody>';
+                    } else {
+                        var lot = ds.lot_number || '';
+                        var expiry = ds.expiry_date || '';
+                        if(!expiry && ds.expiry_fallback){
+                            expiry = self.formatExpiryDate(ds.expiry_fallback);
+                        }
+
+                        var expQtyAmount = parseFloat(suppdeets.expired_qty) || 0;
+                        var expQtyAmountHTML = (expQtyAmount > 0) ? "<span class='red-warning'>(" + expQtyAmount + ")</span>" : '';
+                        var expNameHTMLClass = (expQtyAmount > 0) ? 'red-warning' : '';
+                        var expNameHTMLClassBody = '';
+                        if(expQtyAmount > 0){
+                            var isCompletelyExpired = (endInventory <= expQtyAmount + 0.01);
+                            if(isCompletelyExpired){
+                                expNameHTMLClassBody = 'has-expired';
+                            }
+                            typeExpTotal += (expQtyAmount * price);
+                        }
+
+                        var suptots = endInventory * price;
+
+                        res += "<tbody data-id='" + suppid + "' class='sup-container count-supplies " + expNameHTMLClassBody + "' data-name='" + self.escHtml(suppdeets.supply_name) + "'>";
+                        res += "<tr data-section='" + self.escHtml(section) + "' data-subsection='" + self.escHtml(subsection) + "'>";
+                        res += "<td class='" + expNameHTMLClass + "'>" + suppdeets.supply_name + '</td>';
+                        res += "<td class='filter-lot'>" + self.escHtml(lot) + '</td>';
+                        res += "<td class='filter-exp'>" + self.escHtml(expiry) + '</td>';
+                        res += "<td class='filter-beg'>" + beginQuantity + '</td>';
+                        res += "<td class='filter-purchase'>" + purchase + '</td>';
+                        res += "<td class='filter-total'>" + (beginQuantity + purchase) + '</td>';
+                        res += "<td class='filter-cons'>" + release + '</td>';
+                        res += "<td class='orig-count' data-val='" + endInventory + "'>" + endInventory + ' ' + expQtyAmountHTML + '</td>';
+                        res += "<td class='row-price' data-val='" + price + "'>&#8369 " + self.convertNumber(price) + '</td>';
+                        res += "<td class='row-actual-count'><input type='number' class='actual-field' value='" + (endInventory - expQtyAmount) + "'></td>";
+                        res += "<td class='row-variance'>0</td>";
+                        res += "<td class='row-total'>&#8369 " + self.convertNumber(suptots) + '</td>';
+                        res += '</tr></tbody>';
+                    }
+
+                    if(section){
+                        sectionlist[section.toLowerCase().replace(/ /g, '-')] = section;
+                    }
+                    if(subsection && subsection !== ''){
+                        subsectionlist[subsection.toLowerCase().replace(/ /g, '-')] = subsection;
+                    }
+                }
+
+                expSuppExpTotal += typeExpTotal;
+                res += '</table>';
+            }
+        }
+
+        // Section filter dropdown
+        res += "<select id='section-list'><option data-val='all'>Select Room Section</option>";
+        for(var sk in sectionlist){
+            res += '<option>' + sectionlist[sk] + '</option>';
+        }
+        res += '</select>';
+
+        // Subsection filter dropdown
+        res += "<select id='subsection-list'><option data-val='all'>Select Sub Section</option>";
+        for(var ssk in subsectionlist){
+            res += '<option>' + subsectionlist[ssk] + '</option>';
+        }
+        res += '</select>';
+
+        // Expiration filter dropdown
+        res += "<select id='expiration-list'>" +
+            "<option data-val='all'>All Items</option>" +
+            "<option data-val='expired'>Show Expired</option>" +
+            "<option data-val='expiring'>Show Expiring Soon</option>" +
+            '</select>';
+
+        // Totals
+        res += "<div class='sup-total'><b>SUPPLIES TOTAL:</b> <span></span></div>";
+        res += "<div class='sup-loss'><b>SUPPLIES (LOSS):</b> <span data-val='" + expSuppExpTotal + "'>\u20B1 " + self.convertNumber(expSuppExpTotal) + '</span></div>';
+        res += "<div class='recon-total'><b>OVERALL TOTAL:</b> <span></span></div>";
+
+        return res;
     },
 
     initialReportDateFitler: function($, dfrom, dto, aid = false){
