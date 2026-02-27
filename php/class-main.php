@@ -387,6 +387,8 @@ class Theme {
         add_action('wp_ajax_get_department_releases', array($this, 'get_department_releases'));
         add_action('wp_ajax_update_release_status', array($this, 'update_release_status'));
         add_action('wp_ajax_get_pending_release_count', array($this, 'get_pending_release_count'));
+        add_action('wp_ajax_get_pending_releases_for_cleanup', array($this, 'get_pending_releases_for_cleanup'));
+        add_action('wp_ajax_bulk_delete_pending_releases', array($this, 'bulk_delete_pending_releases'));
     }
 
     protected function initFilters() {
@@ -4882,6 +4884,217 @@ class Theme {
         $result = update_field('confirmed', $auto_confirm, $post_id);
         
         error_log("Release Supplies Auto-Confirm Debug - Update Field Result: " . var_export($result, true));
+    }
+
+    /**
+     * Get pending releases for cleanup (Admin only)
+     * Retrieves all pending releases with optional filters
+     */
+    public function get_pending_releases_for_cleanup() {
+        // Security check
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'pending_releases_cleanup')) {
+            wp_send_json_error('Security check failed');
+        }
+
+        // Admin-only access
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized access');
+        }
+
+        // Get filter parameters
+        $department = isset($_POST['department']) ? sanitize_text_field($_POST['department']) : 'ALL';
+        $supply_name = isset($_POST['supply_name']) ? sanitize_text_field($_POST['supply_name']) : '';
+        $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+        $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+
+        // Build meta query for pending releases
+        $meta_query = array(
+            'relation' => 'AND',
+            array(
+                'relation' => 'OR',
+                array(
+                    'key' => 'confirmed',
+                    'value' => '1',
+                    'compare' => '!='
+                ),
+                array(
+                    'key' => 'confirmed',
+                    'compare' => 'NOT EXISTS'
+                )
+            )
+        );
+
+        // Add department filter if not ALL
+        if ($department !== 'ALL') {
+            $meta_query[] = array(
+                'key' => 'department',
+                'value' => $department,
+                'compare' => '='
+            );
+        }
+
+        // Add date range filters
+        if (!empty($date_from)) {
+            $meta_query[] = array(
+                'key' => 'release_date',
+                'value' => $date_from,
+                'compare' => '>=',
+                'type' => 'DATE'
+            );
+        }
+
+        if (!empty($date_to)) {
+            $meta_query[] = array(
+                'key' => 'release_date',
+                'value' => $date_to,
+                'compare' => '<=',
+                'type' => 'DATE'
+            );
+        }
+
+        // Query arguments
+        $args = array(
+            'post_type' => 'releasesupplies',
+            'posts_per_page' => -1,
+            'meta_query' => $meta_query,
+            'orderby' => 'meta_value',
+            'meta_key' => 'release_date',
+            'order' => 'DESC'
+        );
+
+        $query = new WP_Query($args);
+        $releases = array();
+
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $post_id = get_the_ID();
+                $post = get_post($post_id);
+                $author_id = $post->post_author;
+
+                // Get supply information
+                $supply_obj = get_field('supply_name', $post_id);
+                if (!$supply_obj) continue;
+
+                $supply_id = $supply_obj->ID;
+                $supply_name_text = $supply_obj->post_title;
+
+                // Apply supply name filter if provided
+                if (!empty($supply_name) && stripos($supply_name_text, $supply_name) === false) {
+                    continue;
+                }
+
+                // Get other fields
+                $quantity = get_field('quantity', $post_id);
+                $release_date = get_field('release_date', $post_id);
+                $department_field = get_field('department', $post_id);
+                $section = get_field('section', $post_id);
+                $sub_section = get_field('sub_section', $post_id);
+
+                // Get author name
+                $author_name = get_the_author_meta('display_name', $author_id);
+
+                // Get department name from departmentArr
+                $author_department = '';
+                foreach ($this->departmentArr as $dept => $id) {
+                    if ($id == $author_id) {
+                        $author_department = $dept;
+                        break;
+                    }
+                }
+
+                $released_by = $author_name;
+                if (!empty($author_department)) {
+                    $released_by .= ' (' . $author_department . ')';
+                }
+
+                $releases[] = array(
+                    'id' => $post_id,
+                    'supply_name' => $supply_name_text,
+                    'quantity' => $quantity,
+                    'release_date' => $release_date,
+                    'department' => $department_field,
+                    'section' => $section,
+                    'sub_section' => $sub_section,
+                    'released_by' => $released_by
+                );
+            }
+            wp_reset_postdata();
+        }
+
+        wp_send_json_success($releases);
+    }
+
+    /**
+     * Bulk delete pending releases (Admin only)
+     * Permanently deletes multiple release records
+     */
+    public function bulk_delete_pending_releases() {
+        // Security check
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'bulk_delete_releases')) {
+            wp_send_json_error('Security check failed');
+        }
+
+        // Admin-only access
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized access');
+        }
+
+        // Get release IDs to delete
+        $release_ids = isset($_POST['release_ids']) ? $_POST['release_ids'] : array();
+
+        if (!is_array($release_ids) || empty($release_ids)) {
+            wp_send_json_error('No releases selected for deletion');
+        }
+
+        // Sanitize IDs
+        $release_ids = array_map('intval', $release_ids);
+
+        $deleted_count = 0;
+        $failed_count = 0;
+        $errors = array();
+
+        foreach ($release_ids as $release_id) {
+            // Verify this is a releasesupplies post
+            $post = get_post($release_id);
+
+            if (!$post || $post->post_type !== 'releasesupplies') {
+                $errors[] = "Release #{$release_id} not found or invalid type";
+                $failed_count++;
+                continue;
+            }
+
+            // Check if it's still pending (confirmed != 1)
+            $is_confirmed = get_field('confirmed', $release_id);
+            if ($is_confirmed == '1') {
+                $errors[] = "Release #{$release_id} is already confirmed and cannot be deleted";
+                $failed_count++;
+                continue;
+            }
+
+            // Delete the post permanently
+            $result = wp_delete_post($release_id, true);
+
+            if ($result) {
+                $deleted_count++;
+            } else {
+                $errors[] = "Failed to delete release #{$release_id}";
+                $failed_count++;
+            }
+        }
+
+        // Prepare response message
+        $message = "Successfully deleted {$deleted_count} release(s)";
+        if ($failed_count > 0) {
+            $message .= ". Failed: {$failed_count}";
+        }
+
+        wp_send_json_success(array(
+            'message' => $message,
+            'deleted_count' => $deleted_count,
+            'failed_count' => $failed_count,
+            'errors' => $errors
+        ));
     }
 }
 ?>
