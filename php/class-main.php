@@ -4604,8 +4604,15 @@ class Theme {
                 $post_id = get_the_ID();
                 $post = get_post($post_id);
                 $author_id = $post->post_author;
-                $supply_id = get_field('supply_name', $post_id)->ID;
-                $supply_name = get_field('supply_name', $post_id)->post_title;
+                
+                // Get supply object and skip if null/invalid
+                $supply_obj = get_field('supply_name', $post_id);
+                if (!$supply_obj || !is_object($supply_obj) || !isset($supply_obj->ID)) {
+                    continue; // Skip releases with null/invalid supplies
+                }
+                
+                $supply_id = $supply_obj->ID;
+                $supply_name = $supply_obj->post_title;
                 $quantity = get_field('quantity', $post_id);
                 $release_date = get_field('release_date', $post_id);
                 
