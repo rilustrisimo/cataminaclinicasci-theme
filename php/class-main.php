@@ -4848,7 +4848,22 @@ class Theme {
         );
         
         $query = new WP_Query($args);
-        $count = $query->found_posts;
+        
+        // Count only releases with valid supplies (exclude null supplies)
+        $count = 0;
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $post_id = get_the_ID();
+                
+                // Get supply object and only count if valid
+                $supply_obj = get_field('supply_name', $post_id);
+                if ($supply_obj && is_object($supply_obj) && isset($supply_obj->ID)) {
+                    $count++;
+                }
+            }
+            wp_reset_postdata();
+        }
         
         wp_send_json_success($count);
     }
